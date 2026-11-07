@@ -1,0 +1,17 @@
+/.local/
+/.worktrees/
+/bin/
+/build/
+/dist/
+/data/
+/artifacts/
+*.exe
+*.log
+*.db
+*.db-wal
+*.db-shm
+*.conf
+.env
+mygo-update.key
+__pycache__/
+*.pyc

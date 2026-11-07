@@ -1,0 +1,9 @@
+RcloneGo
+Copyright 2026 RcloneGo contributors
+
+This product uses MyGo, copyright 2026 MyGo contributors, licensed under MIT,
+and other components with their own terms. See docs/third-party.md and
+third_party/licenses for the license texts.
+
+RcloneGo is an independent community project. Service names and marks identify
+integrations and do not imply endorsement.
