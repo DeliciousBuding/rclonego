@@ -1,120 +1,119 @@
-# RcloneGo
+<p align="center"><img src="assets/wordmark.svg" width="400" alt="RcloneGo"></p>
+<p align="center">Reliable transfers. Visible workflows.</p>
+<p align="center">
+  <a href="README.md">English</a> · <a href="README.zh-CN.md">简体中文</a> ·
+  <a href="https://github.com/DeliciousBuding/rclonego/releases">Downloads</a> ·
+  <a href="docs/agents.md">Agent API</a>
+</p>
+<p align="center">
+  <a href="https://github.com/DeliciousBuding/rclonego/actions/workflows/check.yml"><img src="https://github.com/DeliciousBuding/rclonego/actions/workflows/check.yml/badge.svg" alt="CI"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-318b9d" alt="Apache-2.0"></a>
+  <a href="https://mygo.egoist.dev/"><img src="https://img.shields.io/badge/native_UI-MyGo-318b9d" alt="Built with MyGo"></a>
+</p>
 
-**Reliable transfers. Visible workflows.**
+RcloneGo is a native desktop workspace for transfers, mounts and verification,
+powered by [rclone](https://rclone.org/) and built with
+[MyGo](https://mygo.egoist.dev/). Its GUI, CLI and authenticated local API share
+one persistent scheduler.
 
-A native workspace for cloud transfers, verification and automation.
-Powered by [rclone](https://rclone.org/). Built with [MyGo](https://mygo.egoist.dev/).
+This is an independent community project under active alpha development.
+It is not an official rclone or MyGo application.
 
-<img src="assets/icon.png" alt="RcloneGo" width="96">
+<p align="center"><img src="assets/screenshots/resources-light.png" width="900" alt="RcloneGo native resource and engine controls"></p>
 
-RcloneGo is an independent community project. It is not an official rclone or
-MyGo application.
+## What it does
 
-## Development preview
+- **Transfer with evidence.** Copy, single-file copy, one-way mirror and checks.
+  Reusable workflows create separate runs with ordered steps and retained attempts.
+- **See and control execution.** Current folders/files, resource counters,
+  concurrency, bandwidth, schedules, queue pause and task pause/resume.
+- **Connect storage.** Verified engine installation, offline import, provider-driven
+  account setup, browser OAuth and read verification. Mounts stay under recorded ownership.
+- **Work from any interface.** Native light/dark/system appearance, tray background
+  operation, CLI JSON, offline OpenAPI, event cursors and read-only observer tokens.
 
-This repository is under active development. There is no stable release yet.
+A mirror requires a matching dry-run preview and explicit deletion permission.
+Verification reports distinguish sizes, available hashes and content-download
+comparison. A completed copy is not automatically a completed content check.
 
-The current preview includes:
+## Install
 
-- Native UI with light, dark and system appearance.
-- A persistent queue for copy, single-file copy, one-way mirror and checks.
-- Ordered directory workflows with a final verification step.
-- Reusable workflow definitions, separate runs and retained execution attempts.
-- Restart recovery, parameter controls and live transfer information.
-- A loopback API and CLI that operate the same scheduler.
-- An isolated application rclone configuration by default.
-- SQLite transactions and state-change events.
-- Verified official engine download, offline archive import and engine selection.
-- Provider-driven account configuration sessions, browser OAuth and read verification.
-- Tray background operation, explicit quit and user-level login startup.
-- Dry-run confirmation for mirrors, task pause/resume and run-level controls.
-- Offline OpenAPI discovery, event cursors and expiring read-only Agent tokens.
-- A Windows executable with its SQLite runtime embedded.
+Choose a package from [Releases](https://github.com/DeliciousBuding/rclonego/releases).
+Preview packages are marked as prereleases; no stable version is available yet.
 
-Verification reports distinguish size checks, available backend hashes and
-explicit content comparison. A completed transfer is not automatically a
-completed content verification.
+| Platform | Package and validation |
+| --- | --- |
+| Windows amd64 | Portable executable or installer; native UI and packaged CLI tested |
+| Linux amd64 | `.deb` or `.tar.gz`; Ubuntu WSLg UI, transfers and FUSE mount/read/unmount tested |
+| macOS arm64 | `.dmg` or application ZIP; build and synthetic CI tests, manual native validation pending |
 
-## Build and run
+Other amd64/arm64 combinations can be cross-built, with runtime support pending.
+Windows packages are not Authenticode signed; macOS packages are not Developer ID
+notarized. SHA256SUMS verifies artifact integrity and does not replace OS signing.
 
-Requires Go 1.27.3 or later. A native UI build needs no JavaScript toolchain.
-The UI can open without an engine. In **Resources**, download the recommended
-rclone release, import its official ZIP offline or select an existing executable.
+Windows portable users can copy the executable alone. SQLite is embedded and
+extracted to a verified private cache on first use. On Linux, use the packaged
+install script or the distribution package.
+
+Open **Resources** to download the pinned official rclone release, select an
+existing executable or import its verified ZIP offline. This does not modify PATH
+or a package-manager installation. Mounts separately require WinFsp on Windows,
+FUSE on Linux, or a compatible FUSE/engine combination on macOS.
+
+## First workflow
+
+1. Open RcloneGo and install or select an engine.
+2. Add an account or use local directories. Google Drive requires your own OAuth
+   Client ID; see [account setup](docs/accounts.md).
+3. Create a copy task, or save a directory workflow with final verification.
+4. Observe the queue and read the execution report.
+
+Closing a window keeps the service running when a tray is available. Use **Quit**
+to stop the service. Without tray support, closing exits. Restart recovery
+compares source and destination again; file-internal resume depends on the backend.
+
+## CLI and Agents
 
 ```sh
-go test ./...
-go vet ./...
-python scripts/build.py
+rclonego --help
+rclonego schema
+rclonego status --json
+rclonego engine install
+rclonego workflows save --file workflow.json --json
+rclonego workflows run <workflow-id> --json
+rclonego runs wait <run-id> --timeout 1h --json
+rclonego runs report <run-id> --json
 ```
 
-`scripts/build.py` embeds MyGo's verified platform SQLite library into the
-executable. On first use it extracts the library to a private, content-addressed
-cache. Windows portable users can copy the executable alone. rclone remains an
-independently managed engine. Add `--installer` to produce a Windows installer.
+The CLI discovers the same local instance as the GUI. For an isolated profile,
+set `RCLONEGO_DATA`; `RCLONEGO_TOKEN_FILE` selects a private token file.
+Ctrl+C stops waiting without cancelling the task.
 
-For development:
+See the [Agent guide](docs/agents.md), [API](docs/api.md),
+[architecture](docs/architecture.md) and [privacy](docs/privacy.md).
+Automatic synchronization, separate-daemon GUI attachment, MCP and signed
+automatic application updates remain future work.
+
+## Develop and contribute
+
+Requires Go 1.27.3+ and Python 3.12+. Native UI needs no JavaScript toolchain.
 
 ```sh
 go run ./cmd/rclonego
-go run ./cmd/rclonego serve
-go run ./cmd/rclonego --help
+go test ./...
+go vet ./...
+python scripts/test.py
+python scripts/build.py --platform windows/amd64
 ```
 
-`-rclone` selects an engine, `-data` selects private application state and
-`-config` explicitly selects an existing rclone configuration. Without `-config`,
-RcloneGo creates an empty application configuration and does not import accounts.
+`scripts/test.py` downloads a verified temporary integration engine. Add
+`--installer` to the Windows build to create an installer. `-data`, `-rclone`
+and `-config` select explicit private state, engine and config paths.
+The default app configuration starts empty and does not take over existing uploads.
 
-## CLI
-
-```sh
-rclonego status
-rclonego doctor
-rclonego engine install
-rclonego accounts providers --json
-rclonego schema
-rclonego jobs list --json
-rclonego workflows save --file workflow.json
-rclonego workflows list
-rclonego workflows run <workflow-id> --json
-rclonego runs report <run-id>
-rclonego runs wait <run-id> --timeout 1h --json
-```
-
-The CLI discovers the local running instance. For a separate development profile,
-set `RCLONEGO_DATA` to its state directory. An explicit API URL may be selected
-with `--api` or `RCLONEGO_API`; `RCLONEGO_TOKEN_FILE` selects its private token file.
-Authentication tokens should not be passed as command-line arguments.
-
-See [API](docs/api.md), [architecture](docs/architecture.md) and
-[privacy](docs/privacy.md). Account setup is described in [accounts](docs/accounts.md);
-Agent usage is described in [agents](docs/agents.md).
-
-## Platform status
-
-| Platform | Current scope |
-| --- | --- |
-| Windows amd64 | Primary development target; native UI and synthetic transfer/recovery tests |
-| Windows arm64 | Build target; native runtime validation pending |
-| macOS amd64/arm64 | Experimental build targets; native runtime validation pending |
-| Linux amd64 | Native UI inspected under Ubuntu WSLg; synthetic transfer and content verification tested |
-| Linux arm64 | Build target; native runtime validation pending |
-
-Windows mounts require WinFsp. Linux mounts use FUSE; macOS mounts require a
-compatible FUSE installation and engine build. POSIX mount management is
-implemented; native macOS mount validation is pending. Resource counters are
-scoped to this application and its direct children. Unavailable counters are
-reported explicitly. Normal transfers do not require mounting.
-
-## Verification
-
-`go test ./...` includes a real local transfer/recovery test when rclone is
-available. Set `RCLONEGO_TEST_ENGINE` to test a particular engine. That test uses
-temporary synthetic directories and an empty configuration.
-`python scripts/test.py` downloads and verifies a temporary integration engine,
-then runs the suite. Linux CI also runs the race detector.
-
-## License
-
-RcloneGo source is licensed under [Apache-2.0](LICENSE).
-Dependency licenses and service trademarks retain their own terms; see
-[third-party notices](docs/third-party.md).
+Read [CONTRIBUTING](CONTRIBUTING.md) for focused changes and UI verification,
+[releasing](docs/releasing.md) for packaging, and [SECURITY](SECURITY.md) for private
+security reports. Source uses [Apache-2.0](LICENSE); dependencies and service
+marks retain their [own terms](docs/third-party.md).
+License texts are embedded in the portable executable and available through
+About or `rclonego licenses`.

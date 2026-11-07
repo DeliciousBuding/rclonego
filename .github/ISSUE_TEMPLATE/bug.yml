@@ -1,0 +1,38 @@
+name: Bug report / 问题反馈
+description: Report a reproducible transfer, account or interface problem / 反馈可复现的问题
+title: "[Bug] "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        English and Chinese are welcome / 可以使用中文或英文。
+        Use synthetic examples. Remove tokens, account names and private paths from logs or screenshots.
+        使用合成示例，提交前去掉凭据、账户名和私人路径。安全问题请使用私密报告入口。
+  - type: input
+    id: versions
+    attributes:
+      label: Versions / 版本
+      description: RcloneGo version, rclone version, operating system and architecture
+      placeholder: RcloneGo alpha, rclone version, Windows/macOS/Linux, amd64/arm64
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction / 复现步骤
+      description: Minimal steps or a synthetic workflow / 最少步骤或合成工作流
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and actual behavior / 预期与实际表现
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence / 证据
+      description: Optional redacted diagnostics, screenshot or error code. For UI issues include window size and scaling.
+      placeholder: "rclonego diagnostics --json; window size and display scale / 窗口大小与缩放"

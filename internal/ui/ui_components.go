@@ -6,6 +6,7 @@ import (
 	"math"
 	"strconv"
 
+	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 )
 
@@ -22,16 +23,46 @@ var googleDriveSVG []byte
 //go:embed assets/google-g.svg
 var googleGSVG []byte
 
+//go:embed assets/onedrive.svg
+var oneDriveSVG []byte
+
+//go:embed assets/dropbox.svg
+var dropboxSVG []byte
+
+//go:embed assets/github.svg
+var githubSVG []byte
+
 var googleDriveLogo = ui.MustParseSVG(googleDriveSVG)
 var googleGLogo = ui.MustParseSVG(googleGSVG)
+var oneDriveLogo = ui.MustParseSVG(oneDriveSVG)
+var dropboxLogo = ui.MustParseSVG(dropboxSVG)
+var githubLogo = ui.MustParseSVG(githubSVG)
+
+type providerStyle struct {
+	label string
+	logo  *ui.SVG
+}
+
+var providerStyles = map[string]providerStyle{
+	"drive": {"Google Drive", googleDriveLogo}, "onedrive": {"OneDrive", oneDriveLogo},
+	"dropbox": {"Dropbox", dropboxLogo}, "s3": {"S3 storage", nil},
+	"local": {"本机存储", iconMounts}, "alias": {"位置别名", iconFolder}, "crypt": {"加密存储", nil},
+}
+
+func providerName(kind string) string {
+	if style, ok := providerStyles[kind]; ok {
+		return style.label
+	}
+	return kind
+}
 
 func brandIcon(c *ui.Context, logo *ui.SVG, size float32) ui.Element {
 	return ui.Image(c, logo).Size(size, size).Shrink(0).Role(ui.RoleImage)
 }
 
 func remoteLogo(c *ui.Context, kind string, size float32) {
-	if kind == "drive" {
-		brandIcon(c, googleDriveLogo, size).Label("Google Drive")
+	if style, ok := providerStyles[kind]; ok && style.logo != nil {
+		brandIcon(c, style.logo, size).Label(style.label)
 		return
 	}
 	ui.Icon(c, iconRemotes).FontSize(size).TextColor(c.Theme().Accent)
@@ -64,8 +95,45 @@ var (
 	iconDown       = lineIcon(`<path d="m6 10 6 6 6-6"/>`)
 	iconChevron    = lineIcon(`<path d="m9 6 6 6-6 6"/>`)
 	iconResources  = lineIcon(`<path d="M3 12h4l3-8 4 16 3-8h4"/>`)
+	iconDownload   = lineIcon(`<path d="M12 3v12m-5-5 5 5 5-5M4 17v3h16v-3"/>`)
+	iconEngine     = lineIcon(`<rect x="3" y="4" width="18" height="16" rx="3"/><path d="m7 9 3 3-3 3m6 0h4"/>`)
+	iconInfo       = lineIcon(`<circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10h.01"/>`)
+	iconTrash      = lineIcon(`<path d="M3 6h18m-13 0V3h8v3m-11 0 1 15h12l1-15m-9 4v7m4-7v7"/>`)
+	iconWarning    = lineIcon(`<path d="m12 3 10 18H2Z"/><path d="M12 9v5m0 3h.01"/>`)
 )
 
+func actionButton(c *ui.Context, icon *ui.SVG, label string, primary bool) ui.Element {
+	var b ui.Element
+	if primary {
+		b = ui.PrimaryButton(c, "")
+	} else {
+		b = ui.Button(c, "")
+	}
+	b.Height(30).Padding(0, 10).Gap(7).Shrink(0).Label(label).Children(func() {
+		ui.Icon(c, icon).FontSize(15)
+		ui.Text(c, label).FontSize(12).SingleLine()
+	})
+	return b
+}
+
+func (s *nativeUI) pathInput(c *ui.Context, value *string, label, placeholder string, directory, disabled bool, filters []mygo.FileFilter) {
+	ui.Row(c).Gap(6).MinWidth(0).Children(func() {
+		ui.TextInput(c.Key("value"), value).Grow(1).MinWidth(0).Label(label).Placeholder(placeholder).Disabled(disabled)
+		iconButton(c.Key("browse"), iconFolder, "浏览"+label).Disabled(s.busy || disabled).OnClick(func() {
+			defaultPath := *value
+			go func() {
+				paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Parent: s.win, Title: "选择" + label, DefaultPath: defaultPath, Directory: directory, Filters: filters})
+				s.win.Update(func() {
+					if err != nil {
+						s.setError(err)
+					} else if len(paths) > 0 {
+						*value = paths[0]
+					}
+				})
+			}()
+		})
+	})
+}
 func iconButton(c *ui.Context, icon *ui.SVG, label string) ui.Element {
 	t := c.Theme()
 	b := ui.ButtonBase(c).Size(30, 30).Radius(8).Role(ui.RoleButton).Label(label).Tooltip(label)

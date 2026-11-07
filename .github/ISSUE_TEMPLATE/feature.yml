@@ -1,0 +1,24 @@
+name: Feature request / 功能建议
+description: Describe a storage workflow or UX improvement / 描述存储工作流或体验改进
+title: "[Feature] "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or workflow / 问题或使用场景
+      description: What are you trying to complete? / 你想完成什么？
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome / 期望结果
+      description: Include platform and whether this concerns GUI, CLI or API.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives or references / 现有方案或参考
+      description: Optional links to a mature implementation / 可选的成熟实现链接

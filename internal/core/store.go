@@ -276,8 +276,105 @@ func (s *Store) saveLocked() error {
 	if err := s.db.Save(raw, records, events); err != nil {
 		return err
 	}
+	s.boundHistoryLocked()
 	s.persisted = map[string]string{}
 	for _, job := range s.data.Jobs {
+		s.persisted[job.ID] = job.Status
+	}
+	return nil
+}
+
+func (s *Store) boundHistoryLocked() {
+	active := func(status string) bool {
+		return status == "running" || status == "pending" || status == "paused" || status == "interrupted"
+	}
+	keepRuns := map[string]bool{}
+	for _, job := range s.data.Jobs {
+		if active(job.Status) && job.WorkflowID != "" {
+			keepRuns[job.WorkflowID] = true
+		}
+	}
+	for i := max(0, len(s.data.Runs)-200); i < len(s.data.Runs); i++ {
+		keepRuns[s.data.Runs[i].ID] = true
+	}
+	runs := s.data.Runs[:0]
+	for _, run := range s.data.Runs {
+		if keepRuns[run.ID] {
+			runs = append(runs, run)
+		} else {
+			s.db.Forget("runs", run.ID)
+		}
+	}
+	clear(s.data.Runs[len(runs):])
+	s.data.Runs = runs
+	keepSteps := map[string]bool{}
+	recent := 0
+	for i := len(s.data.Jobs) - 1; i >= 0; i-- {
+		job := s.data.Jobs[i]
+		keep := active(job.Status) || keepRuns[job.WorkflowID]
+		if job.WorkflowID == "" && !active(job.Status) && recent < 500 {
+			recent++
+			keep = true
+		}
+		if keep {
+			keepSteps[job.ID] = true
+		}
+	}
+	jobs := s.data.Jobs[:0]
+	for _, job := range s.data.Jobs {
+		if keepSteps[job.ID] {
+			jobs = append(jobs, job)
+		} else {
+			s.db.Forget("steps", job.ID)
+		}
+	}
+	clear(s.data.Jobs[len(jobs):])
+	s.data.Jobs = jobs
+	attempts := s.data.Attempts[:0]
+	for _, attempt := range s.data.Attempts {
+		if keepSteps[attempt.StepID] {
+			attempts = append(attempts, attempt)
+		} else {
+			s.db.Forget("attempts", attempt.ID)
+		}
+	}
+	clear(s.data.Attempts[len(attempts):])
+	s.data.Attempts = attempts
+}
+
+func (s *Store) RestoreRun(id string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, run := range s.data.Runs {
+		if run.ID == id {
+			return nil
+		}
+	}
+	records, err := s.db.RunRecords(id)
+	if err != nil {
+		return err
+	}
+	var run Run
+	if len(records["runs"]) == 0 {
+		return fmt.Errorf("run not found")
+	}
+	if err := json.Unmarshal(records["runs"][0], &run); err != nil {
+		return err
+	}
+	var jobs []Job
+	var attempts []Attempt
+	raw, _ := json.Marshal(records["steps"])
+	if err := json.Unmarshal(raw, &jobs); err != nil {
+		return err
+	}
+	raw, _ = json.Marshal(records["attempts"])
+	if err := json.Unmarshal(raw, &attempts); err != nil {
+		return err
+	}
+	s.data.Runs = append(s.data.Runs, run)
+	s.data.Jobs = append(s.data.Jobs, jobs...)
+	s.data.Attempts = append(s.data.Attempts, attempts...)
+	for _, job := range jobs {
 		s.persisted[job.ID] = job.Status
 	}
 	return nil

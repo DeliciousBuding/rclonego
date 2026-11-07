@@ -17,7 +17,9 @@ func (s *nativeUI) mountEditor(c *ui.Context) {
 			label, placeholder = "盘符", "K:"
 		}
 		ui.Field(c, label, func() { ui.TextInput(c.Key("mount-drive"), &s.mountDrive).Placeholder(placeholder) })
-		ui.Field(c, "缓存目录", func() { ui.TextInput(c.Key("mount-cache"), &s.mountCache).Placeholder("选择本机 SSD 目录") })
+		ui.Field(c, "缓存目录", func() {
+			s.pathInput(c.Key("mount-cache"), &s.mountCache, "缓存目录", "选择本机 SSD 目录", true, false, nil)
+		})
 	})
 	ui.Collapsible(c.Key("mount-advanced"), "更多选项", &s.showMountAdvanced, func() {
 		ui.Form(c, func() {
