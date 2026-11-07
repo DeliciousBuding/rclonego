@@ -39,7 +39,7 @@ func (s *nativeUI) activityCard(c *ui.Context) {
 				Center().Children(func() {
 				ui.Icon(c, appMark).FontSize(26).TextColor(t.Accent)
 			})
-			ui.Column(c).Gap(3).Grow(1).Children(func() {
+			ui.Column(c).Gap(3).Grow(1).MinWidth(0).Children(func() {
 				title := "传输总览"
 				for _, job := range s.jobs {
 					if job.Status == "running" {
@@ -53,7 +53,7 @@ func (s *nativeUI) activityCard(c *ui.Context) {
 						break
 					}
 				}
-				ui.Text(c, title).FontSize(22).FontWeight(600)
+				ui.Text(c, title).FontSize(22).FontWeight(600).SingleLine().Tooltip(title)
 				phase := s.activityPhase()
 				ui.Text(c, phase).FontSize(12).TextColor(t.TextMuted).SingleLine()
 			})

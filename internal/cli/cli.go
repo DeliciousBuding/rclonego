@@ -10,6 +10,7 @@ import (
 	"github.com/DeliciousBuding/rclonego/internal/api"
 	"github.com/DeliciousBuding/rclonego/internal/core"
 	"github.com/DeliciousBuding/rclonego/internal/session"
+	"github.com/DeliciousBuding/rclonego/internal/version"
 	"io"
 	"net/http"
 	"net/url"
@@ -23,7 +24,7 @@ import (
 	"time"
 )
 
-const appVersion = "0.1.0-alpha.1"
+const appVersion = version.Version
 
 const cliHelp = `RcloneGo — 本机数据工作台
 
@@ -50,7 +51,7 @@ const cliHelp = `RcloneGo — 本机数据工作台
   mounts [list]                            列出盘符映射
   mounts start|stop <映射ID>                 挂载或卸载
   remotes [list]                           列出云端账户
-  remotes reconnect <远端名称>              创建重新授权任务
+  remotes reconnect <远端名称>              开始独立账户授权会话
   queue pause|resume                       暂停或继续队列调度
   theme [light|dark|system]                 查看或切换外观
   settings                                查看持久化默认参数
@@ -58,8 +59,9 @@ const cliHelp = `RcloneGo — 本机数据工作台
   external --file <配置.json>              配置现有上传器的 RC 与所有者
   resources                               查看进程资源和线程
   bandwidth <任务ID或外部ID> <4M|off>        调整运行限速
-  workflows list|save --file <json>|run <ID>  保存或执行工作流定义
-  runs list|report|wait|watch <ID>            执行记录和校验结果
+  workflows list|save --file <json>|run <ID>|delete <ID>
+  runs list [--offset 0 --limit 100]         分页执行记录
+  runs report|wait|watch|pause|resume|retry|cancel <ID>
   doctor                                    引擎与平台诊断
   jobs preview --file <json>                 预览，sync 提交时使用返回的 preview_id
   jobs pause <ID>                            中断当前任务，保留可恢复状态
@@ -695,9 +697,11 @@ func printCLIResult(out io.Writer, args []string, raw []byte) error {
 				fmt.Fprintf(w, "%s\t%s\n", r.Name, r.Type)
 			}
 		} else {
-			var job core.Job
-			_ = json.Unmarshal(raw, &job)
-			fmt.Fprintf(w, "授权任务已创建\t%s\n", job.ID)
+			var account core.AccountView
+			if err := json.Unmarshal(raw, &account); err != nil {
+				return err
+			}
+			fmt.Fprintf(w, "账户配置会话\t%s\n状态\t%s\n", account.ID, account.Status)
 		}
 	case "theme":
 		var result struct {

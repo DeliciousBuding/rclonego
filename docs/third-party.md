@@ -19,6 +19,12 @@ provided by the operating system; Apple fonts and SF Symbols are not bundled.
 Google and Google Drive marks identify those integrations only. They are
 trademarks of Google LLC and are not covered by the project's source license.
 The RcloneGo app mark does not incorporate them.
+Google, Drive, OneDrive, Dropbox and GitHub SVGs are sourced from
+[gilbarbara/logos](https://github.com/gilbarbara/logos), whose collection is CC0
+(text in `third_party/licenses/logos-cc0.txt`). Trademark ownership remains with
+each provider. The Drive mark uses its path-only revision
+`c1a8f4dfd9334aeb28220dbad6175d47e6332823` for native SVG compatibility.
+Other action icons and the wordmark are project-owned vectors.
 
 WinFsp is a separate Windows mount dependency licensed under GPLv3 with a
 FLOSS exception. It is not bundled in this development baseline. Distribution

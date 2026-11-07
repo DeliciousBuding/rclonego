@@ -49,10 +49,10 @@ func (s *nativeUI) resourcesPage(c *ui.Context) {
 		ui.Text(c, fmt.Sprintf("%d 核 · %d 个 Go 协程", s.resources.LogicalCPUs, s.resources.Goroutines)).
 			FontSize(11).TextColor(t.TextMuted).Label("运行计数")
 		ui.Divider(c)
-		sectionHeading(c, "rclone 引擎")
+		ui.Row(c).Gap(8).Children(func() { ui.Icon(c, iconEngine).FontSize(18).TextColor(t.Accent); sectionHeading(c, "rclone 引擎") })
 		ui.Text(c, core.ValueOr(s.version, "尚未安装引擎 · 窗口和设置仍可使用")).FontSize(12).TextColor(t.TextMuted)
 		ui.Row(c).Gap(8).Children(func() {
-			ui.PrimaryButton(c.Key("install-engine"), "下载推荐版本").Disabled(s.busy).OnClick(func() {
+			actionButton(c.Key("install-engine"), iconDownload, "下载推荐版本", true).Disabled(s.busy).OnClick(func() {
 				s.run("安装引擎", func() error {
 					ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 					defer cancel()
@@ -63,14 +63,18 @@ func (s *nativeUI) resourcesPage(c *ui.Context) {
 			ui.Text(c, "校验官方发行包，不修改系统 PATH").Grow(1).MinWidth(0).FontSize(11).TextColor(t.TextMuted)
 		})
 		ui.Row(c).Gap(8).Children(func() {
-			ui.TextInput(c.Key("engine-path"), &s.enginePath).Placeholder("已有 rclone 可执行文件路径").Grow(1).MinWidth(0).Label("引擎路径")
+			ui.Column(c).Grow(1).MinWidth(0).Children(func() {
+				s.pathInput(c.Key("engine-path"), &s.enginePath, "引擎路径", "已有 rclone 可执行文件路径", false, false, nil)
+			})
 			ui.Button(c.Key("select-engine"), "使用此引擎").Shrink(0).Disabled(s.busy || s.enginePath == "").OnClick(func() {
 				path := s.enginePath
 				s.run("选择引擎", func() error { _, err := s.app.SelectEngine(context.Background(), path); return err })
 			})
 		})
 		ui.Row(c).Gap(8).Children(func() {
-			ui.TextInput(c.Key("engine-archive"), &s.engineArchive).Placeholder("官方推荐版本 ZIP（离线安装）").Grow(1).MinWidth(0).Label("离线发行包路径")
+			ui.Column(c).Grow(1).MinWidth(0).Children(func() {
+				s.pathInput(c.Key("engine-archive"), &s.engineArchive, "离线发行包路径", "官方推荐版本 ZIP（离线安装）", false, false, []mygo.FileFilter{{Name: "rclone ZIP", Extensions: []string{"zip"}}})
+			})
 			ui.Button(c.Key("import-engine"), "导入发行包").Shrink(0).Disabled(s.busy || s.engineArchive == "").OnClick(func() {
 				path := s.engineArchive
 				s.run("导入引擎", func() error { _, err := s.app.InstallEngine(context.Background(), path); return err })

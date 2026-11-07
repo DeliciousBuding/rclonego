@@ -13,7 +13,7 @@ func (s *nativeUI) workflowsPage(c *ui.Context) {
 		ui.Row(c).Gap(10).Children(func() {
 			ui.Text(c, "保存常用步骤，按需执行").FontSize(12).TextColor(t.TextMuted)
 			ui.Spacer(c)
-			ui.PrimaryButton(c.Key("save-workflow"), "新建工作流…").Height(30).Disabled(s.busy).OnClick(func() {
+			actionButton(c.Key("save-workflow"), iconPlus, "新建工作流…", true).Disabled(s.busy).OnClick(func() {
 				s.beginJobForm(nil)
 				s.saveDefinition = true
 				s.jobWorkflow = true
@@ -31,11 +31,11 @@ func (s *nativeUI) workflowsPage(c *ui.Context) {
 						ui.Text(c, definition.Name).FontSize(13).FontWeight(600)
 						ui.Text(c, definition.Source+" → "+definition.Destination).FontSize(11).TextColor(t.TextMuted).SingleLine()
 					})
-					ui.Button(c.Key("run-"+definition.ID), "执行").Height(28).Disabled(s.busy).OnClick(func() {
+					actionButton(c.Key("run-"+definition.ID), iconPlay, "执行", false).Disabled(s.busy).OnClick(func() {
 						id := definition.ID
 						s.run("启动工作流", func() error { _, err := s.app.StartWorkflow(id, ""); return err })
 					})
-					iconButton(c.Key("delete-definition-"+definition.ID), iconClose, "删除定义，保留执行记录").Disabled(s.busy).OnClick(func() {
+					iconButton(c.Key("delete-definition-"+definition.ID), iconTrash, "删除定义，保留执行记录").Disabled(s.busy).OnClick(func() {
 						id := definition.ID
 						s.run("删除定义", func() error { return s.app.DeleteDefinition(id) })
 					})

@@ -37,6 +37,7 @@ func Open(app *core.App, address string) error {
 				model.run("继续队列", func() error { return app.SetPaused(false) })
 			}},
 			mygo.Separator(),
+			{Label: "关于 RcloneGo", Click: func(*mygo.MenuItem, *mygo.Window) { model.showAbout = true; show(); window.Invalidate() }},
 			{Label: "退出 RcloneGo", Click: func(*mygo.MenuItem, *mygo.Window) { quitting = true; mygo.App.Quit() }},
 		})
 		tray, err := mygo.NewTray(mygo.TrayOptions{ID: "rclonego", Icon: trayIcon,

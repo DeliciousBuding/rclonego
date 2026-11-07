@@ -118,6 +118,7 @@ func (s *nativeUI) sidebar(c *ui.Context, vibrant bool) {
 			}
 		}).Grow(1).Padding(8, 12).Gap(4).Background(ui.Transparent).Label("主导航")
 		ui.Column(c).Padding(16, 20, 20, 20).Gap(6).Children(func() {
+			actionButton(c.Key("about"), iconInfo, "关于 RcloneGo", false).OnClick(func() { s.showAbout = true })
 			ui.Row(c).Gap(6).Children(func() {
 				ui.Box(c).Size(5, 5).Radius(3).Background(t.Success)
 				ui.Text(c, "本地服务已连接").FontSize(11).TextColor(t.TextMuted)
@@ -154,7 +155,7 @@ func (s *nativeUI) main(c *ui.Context, vibrant bool) {
 			Background(ui.Transparent).
 			DragWindow().Children(func() {
 			title, _ := s.pageTitle()
-			ui.Text(c, title).FontSize(15).FontWeight(600)
+			ui.Text(c, title).FontSize(15).FontWeight(600).Grow(1).MinWidth(0).SingleLine()
 			ui.Spacer(c)
 			iconButton(c.Key("refresh"), iconRefresh, "刷新状态").OnClick(func() {
 				s.app.RefreshRuntime()

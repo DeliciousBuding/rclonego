@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/DeliciousBuding/rclonego/internal/core"
+	"github.com/DeliciousBuding/rclonego/internal/version"
 	"io"
 	"net/http"
 	"regexp"
@@ -172,7 +173,7 @@ func (a *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
 
 func (a *Server) handleAPIInfo(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{
-		"name": "RcloneGo", "api_version": 1,
+		"name": "RcloneGo", "version": version.Version, "api_version": 1,
 		"listen": "loopback HTTP", "mutation_header": headerGuard + ": 1",
 		"operations":     []string{"copy", "copyto", "sync", "check"},
 		"authentication": "Bearer token from the private api-token file",

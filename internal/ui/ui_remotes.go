@@ -14,7 +14,7 @@ func (s *nativeUI) remotesPage(c *ui.Context) {
 		ui.Row(c).Children(func() {
 			ui.Text(c, "连接云端账户，供映射和传输任务使用。").FontSize(12).TextColor(t.TextMuted)
 			ui.Spacer(c)
-			ui.PrimaryButton(c.Key("show-remote-form"), "添加账户…").Height(30).
+			actionButton(c.Key("show-remote-form"), iconPlus, "添加账户…", true).
 				Disabled(s.busy).OnClick(func() {
 				if s.account.ID != "" {
 					s.showRemoteForm = true
@@ -43,10 +43,7 @@ func (s *nativeUI) remotesPage(c *ui.Context) {
 						Children(func() { remoteLogo(c, remote.Type, 24) })
 					ui.Column(c).Grow(1).MinWidth(0).Gap(4).Children(func() {
 						ui.Text(c, remote.Name).FontSize(13).FontWeight(600).SingleLine().Tooltip(remote.Name)
-						label := remote.Type
-						if label == "drive" {
-							label = "Google Drive"
-						}
+						label := providerName(remote.Type)
 						ui.Text(c, label).FontSize(12).TextColor(t.TextMuted)
 					})
 					ui.Button(c.Key("oauth-"+remote.Name), "重新授权…").Height(28).Padding(4, 10).
@@ -104,7 +101,7 @@ func (s *nativeUI) remoteEditor(c *ui.Context) {
 		FontSize(12).TextColor(c.Theme().TextMuted)
 	ui.Row(c).Gap(8).Justify(ui.End).Children(func() {
 		ui.Button(c.Key("cancel-remote"), "取消").Height(30).OnClick(func() { s.showRemoteForm = false })
-		ui.PrimaryButton(c.Key("create-remote"), "开始授权").Height(30).Disabled(s.busy).OnClick(func() {
+		actionButton(c.Key("create-remote"), iconArrow, "开始授权", true).Disabled(s.busy).OnClick(func() {
 			name, kind := strings.TrimSpace(s.newRemoteName), s.newRemoteType
 			parameters := map[string]string{}
 			if kind == "drive" {

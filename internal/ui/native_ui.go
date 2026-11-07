@@ -108,6 +108,7 @@ type nativeUI struct {
 	trayAvailable       bool
 	jobPreview          core.Preview
 	previewOnly         bool
+	showAbout           bool
 }
 
 func New(app *core.App, api string) *nativeUI {
@@ -305,7 +306,11 @@ func (s *nativeUI) mountRow(c *ui.Context, mount core.MountView) {
 	t := c.Theme()
 	ui.Row(c).Padding(13, 0).Gap(12).BorderWidth(0, 0, 1, 0).BorderColor(t.Border).Children(func() {
 		ui.Box(c).Size(42, 34).Radius(8).Center().Background(t.Accent.Alpha(0.10)).Children(func() {
-			ui.Text(c, mount.Drive).FontSize(14).Bold().TextColor(t.Accent)
+			label := mount.Drive
+			if !strings.HasSuffix(label, ":") {
+				label = "目录"
+			}
+			ui.Text(c, label).FontSize(14).Bold().TextColor(t.Accent).Tooltip(mount.Drive)
 		})
 		ui.Column(c).Grow(1).MinWidth(0).Gap(2).Children(func() {
 			ui.Text(c, mount.Name).Bold().SingleLine().Tooltip(mount.Name)

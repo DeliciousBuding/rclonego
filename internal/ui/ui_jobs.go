@@ -29,7 +29,7 @@ func (s *nativeUI) queuePage(c *ui.Context) {
 				paused := !s.paused
 				s.run("更新队列", func() error { return s.app.SetPaused(paused) })
 			})
-			ui.PrimaryButton(c.Key("show-job-form"), "新建任务…").Height(30).Padding(4, 12).
+			actionButton(c.Key("show-job-form"), iconPlus, "新建任务…", true).
 				Disabled(s.busy).OnClick(func() { s.beginJobForm(nil) })
 		})
 		if s.queueBlockReason != "" {
@@ -286,7 +286,7 @@ func (s *nativeUI) editOverlays(c *ui.Context) {
 			ui.Row(c).Children(func() {
 				ui.Text(c, title).FontSize(17).FontWeight(600)
 				ui.Spacer(c)
-				iconButton(c.Key("close-"+key), iconClose, "关闭").OnClick(func() {
+				iconButton(c.Key("close-"+key), iconClose, "关闭"+title).OnClick(func() {
 					if key == "remote-editor" && s.account.ID != "" {
 						id := s.account.ID
 						s.runAfter("关闭配置", func() error { return s.app.CancelAccount(id) }, func() { s.account = core.AccountView{}; s.showRemoteForm = false })
@@ -311,6 +311,7 @@ func (s *nativeUI) editOverlays(c *ui.Context) {
 	dialog("job-editor", &s.showJobForm, title, 520, func() { s.jobForm(c) })
 	dialog("mount-editor", &s.editingMount, "映射配置", 500, func() { s.mountEditor(c) })
 	dialog("remote-editor", &s.showRemoteForm, "添加云端账户", 460, func() { s.remoteEditor(c) })
+	dialog("about", &s.showAbout, "关于", 440, func() { s.aboutContent(c) })
 }
 
 func (s *nativeUI) jobForm(c *ui.Context) {
@@ -326,10 +327,10 @@ func (s *nativeUI) jobForm(c *ui.Context) {
 			}
 		})
 		ui.Field(c, "源目录", func() {
-			ui.TextInput(c.Key("job-source"), &s.jobSource).Placeholder("本机目录或 remote:目录").Disabled(editing)
+			s.pathInput(c.Key("job-source"), &s.jobSource, "源目录", "本机目录或 remote:目录", true, editing, nil)
 		})
 		ui.Field(c, "目标目录", func() {
-			ui.TextInput(c.Key("job-destination"), &s.jobDestination).Placeholder("remote:备份目录").Disabled(editing)
+			s.pathInput(c.Key("job-destination"), &s.jobDestination, "目标目录", "remote:备份目录或本机目录", true, editing, nil)
 		})
 	})
 	if !editing && s.jobOperation == "copy" {

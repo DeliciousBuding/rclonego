@@ -2,11 +2,58 @@ package desktop
 
 import (
 	"github.com/DeliciousBuding/rclonego/internal/core"
+	"github.com/DeliciousBuding/rclonego/internal/version"
 	"strings"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
 )
+
+func TestProviderLogosRenderAsColorVectors(t *testing.T) {
+	logos := []struct {
+		name string
+		svg  *ui.SVG
+	}{{"Google", googleGLogo}, {"Drive", googleDriveLogo}, {"OneDrive", oneDriveLogo}, {"Dropbox", dropboxLogo}}
+	for _, logo := range logos {
+		tester := ui.NewTester(func(c *ui.Context) {
+			ui.Column(c).Fill().Background(ui.Hex("#ffffff")).Center().Children(func() { brandIcon(c, logo.svg, 32).Label(logo.name) })
+		}, 64, 64)
+		image := tester.Image()
+		colored := 0
+		for y := 16; y < 48; y++ {
+			for x := 16; x < 48; x++ {
+				p := image.RGBAAt(x, y)
+				if p.A > 0 && (int(p.R)-int(p.G) > 20 || int(p.G)-int(p.R) > 20 || int(p.B)-int(p.R) > 20) {
+					colored++
+				}
+			}
+		}
+		if colored < 30 {
+			t.Fatalf("%s logo did not render enough colored pixels: %d", logo.name, colored)
+		}
+	}
+}
+
+func TestAboutShowsSharedVersionAndProjectLinks(t *testing.T) {
+	model := New(testApp(t), "http://127.0.0.1:12345")
+	tester := ui.NewTester(model.view, 900, 560)
+	if err := tester.Click("关于 RcloneGo"); err != nil {
+		t.Fatal(err)
+	}
+	if !model.showAbout || !tester.HasText(version.Version+" · Apache-2.0") {
+		t.Fatal("About version missing")
+	}
+	for _, label := range []string{"GitHub", "反馈问题", "版本发布"} {
+		rect, ok := tester.Find(label)
+		if !ok || rect.X < 0 || rect.X+rect.W > 900 {
+			t.Fatalf("About link not visible: %s %v", label, rect)
+		}
+	}
+	tester.Key(0, ui.KeyEscape)
+	if model.showAbout {
+		t.Fatal("About did not close with Escape")
+	}
+}
 
 func TestNativeNavigationAndKeyActions(t *testing.T) {
 	app := testApp(t)

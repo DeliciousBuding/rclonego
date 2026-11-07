@@ -3,7 +3,6 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
-import platform
 import shutil
 import subprocess
 import zipfile
@@ -45,7 +44,8 @@ elif operating_system == "darwin":
 else:
     for pattern in ["*.deb", "*.tar.gz"]:
         for path in build.glob(pattern):
-            shutil.copy2(path, dist / path.name)
+            name = f"{prefix}.deb" if path.suffix==".deb" else path.name
+            shutil.copy2(path, dist / name)
 
 modules = []
 raw = subprocess.check_output(["go", "list", "-m", "-json", "all"], cwd=root, text=True)
@@ -59,6 +59,12 @@ while raw.strip():
 inventory = {"bomFormat": "CycloneDX", "specVersion": "1.5", "version": 1,
              "metadata": {"component": {"type": "application", "name": "RcloneGo", "version": version}},
              "components": modules}
+module_dir=json.loads(subprocess.check_output(["go","mod","download","-json","github.com/egoist/mygo"],cwd=root))["Dir"]
+native=json.loads((Path(module_dir)/"plugins/sqlite/mygo-plugin.json").read_text())["libraries"][0]
+library=native["files"][f"{operating_system}-{architecture}"]
+modules.append({"type":"library","name":"MyGo SQLite runtime","version":"3.53.4",
+                "hashes":[{"alg":"SHA-256","content":library["sha256"]}],
+                "externalReferences":[{"type":"distribution","url":library["url"]}]})
 (dist / f"{prefix}.sbom.json").write_text(json.dumps(inventory, indent=2) + "\n", encoding="utf-8")
 files = sorted(path for path in dist.iterdir() if path.is_file() and path.name != "SHA256SUMS")
 (dist / "SHA256SUMS").write_text("".join(

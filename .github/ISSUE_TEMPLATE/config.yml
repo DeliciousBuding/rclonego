@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security report / 安全报告
+    url: https://github.com/DeliciousBuding/rclonego/security/advisories/new
+    about: Report credentials or authorization vulnerabilities privately / 私密反馈凭据或授权漏洞
+  - name: rclone documentation / rclone 文档
+    url: https://rclone.org/docs/
+    about: Backend settings, OAuth requirements and transfer semantics / 后端参数、OAuth 与传输语义

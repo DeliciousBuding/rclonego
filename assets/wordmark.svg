@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="104" viewBox="0 0 480 104">
+  <g fill="none" stroke="#318b9d" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" transform="translate(10 18)">
+    <path d="M26 8H18A14 14 0 0 0 4 22v22a14 14 0 0 0 14 14h8M46 8h8a14 14 0 0 1 14 14v22a14 14 0 0 1-14 14h-8M26 33h20"/>
+  </g>
+  <text x="104" y="66" fill="#318b9d" font-family="system-ui,-apple-system,Segoe UI,sans-serif" font-size="46" font-weight="600" letter-spacing="-1.4">RcloneGo</text>
+</svg>
