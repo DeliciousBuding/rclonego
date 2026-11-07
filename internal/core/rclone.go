@@ -133,7 +133,7 @@ var remotePattern = regexp.MustCompile(`^[A-Za-z0-9_.-]+:$`)
 var drivePattern = regexp.MustCompile(`^[A-Za-z]:$`)
 
 func EnsureColonRemote(value string) string {
-	if strings.HasSuffix(value, ":") {
+	if strings.Contains(value, ":") || filepath.IsAbs(value) {
 		return value
 	}
 	return value + ":"
@@ -162,6 +162,9 @@ func rcloneTransferArgs(job Job, rcPort int, logPath string) ([]string, error) {
 			return nil, errors.New("sync requires explicit allow_delete")
 		}
 		args := []string{job.Operation, job.Source, job.Destination}
+		if job.DryRun {
+			args = append(args, "--dry-run")
+		}
 		for _, file := range job.Files {
 			clean := filepath.Clean(filepath.FromSlash(file))
 			if validateSafeText(file) != nil || file == "" || filepath.IsAbs(file) || filepath.VolumeName(file) != "" || clean == ".." || strings.HasPrefix(clean, ".."+string(filepath.Separator)) {
@@ -207,7 +210,11 @@ func rcloneTransferArgs(job Job, rcPort int, logPath string) ([]string, error) {
 			args = append(args, "--bwlimit", job.Bandwidth)
 		}
 		if job.Operation == "sync" {
-			args = append(args, "--max-delete", "10")
+			limit := job.MaxDelete
+			if limit == 0 {
+				limit = 10
+			}
+			args = append(args, "--max-delete", strconv.Itoa(limit))
 		}
 		args = append(args,
 			"--transfers", strconv.Itoa(job.Transfers),
@@ -246,13 +253,8 @@ func rcloneTransferArgs(job Job, rcPort int, logPath string) ([]string, error) {
 			args = append(args, "--exclude", exclude)
 		}
 		return args, nil
-	case "oauth-reconnect":
-		if !remotePattern.MatchString(EnsureColonRemote(job.Source)) {
-			return nil, errors.New("invalid remote name")
-		}
-		return []string{"config", "reconnect", EnsureColonRemote(job.Source)}, nil
-	case "oauth-create":
-		return nil, errors.New("multi-step account setup is not available in this preview; create a config with rclone and select it using -config")
+	case "oauth-reconnect", "oauth-create":
+		return nil, errors.New("use account configuration sessions; OAuth is separate from the transfer queue")
 	default:
 		return nil, errors.New("unsupported operation")
 	}

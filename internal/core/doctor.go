@@ -15,26 +15,22 @@ type Diagnostic struct {
 
 func (a *App) Doctor(ctx context.Context) []Diagnostic {
 	result := []Diagnostic{{ID: "platform", Status: "ready", Message: runtime.GOOS + "/" + runtime.GOARCH}}
-	version, err := a.rclone.Version(ctx)
+	client := a.EngineClient()
+	version, err := client.Version(ctx)
 	if err != nil {
 		result = append(result, Diagnostic{ID: "engine", Status: "missing", Message: "rclone is unavailable",
-			NextAction: "install rclone from rclone.org or select it with -rclone"})
+			NextAction: "use engine install, engine select, or the engine setup in Resources"})
 	} else {
 		result = append(result, Diagnostic{ID: "engine", Status: "ready", Message: version})
 	}
-	if a.rclone.ConfigPath != "" {
-		_, err := os.Stat(a.rclone.ConfigPath)
+	if client.ConfigPath != "" {
+		_, err := os.Stat(client.ConfigPath)
 		if err != nil {
 			result = append(result, Diagnostic{ID: "config", Status: "unavailable", Message: "selected config is not readable"})
 		} else {
 			result = append(result, Diagnostic{ID: "config", Status: "ready", Message: "application config selected"})
 		}
 	}
-	mounts := "experimental"
-	if runtime.GOOS == "windows" {
-		mounts = "requires_winfsp"
-	}
-	result = append(result, Diagnostic{ID: "mount", Status: mounts, Message: "mount support is separate from transfer support",
-		NextAction: "check the platform mount dependency before creating a mount"})
+	result = append(result, mountDependency())
 	return result
 }

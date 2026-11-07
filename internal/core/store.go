@@ -115,6 +115,12 @@ func (s *Store) Snapshot() State {
 
 func cloneState(data State) State {
 	result := data
+	if data.MountIdentities != nil {
+		result.MountIdentities = map[string]string{}
+		for id, identity := range data.MountIdentities {
+			result.MountIdentities[id] = identity
+		}
+	}
 	if data.OwnedMounts != nil {
 		result.OwnedMounts = map[string]int{}
 		for id, pid := range data.OwnedMounts {
@@ -131,13 +137,79 @@ func cloneState(data State) State {
 		result.Workflows[i].Entries = append([]string(nil), data.Workflows[i].Entries...)
 	}
 	for i := range result.Jobs {
+		result.Jobs[i].NotBefore = cloneTime(data.Jobs[i].NotBefore)
+		result.Jobs[i].StartedAt = cloneTime(data.Jobs[i].StartedAt)
+		result.Jobs[i].FinishedAt = cloneTime(data.Jobs[i].FinishedAt)
+		if data.Jobs[i].ExitCode != nil {
+			value := *data.Jobs[i].ExitCode
+			result.Jobs[i].ExitCode = &value
+		}
 		result.Jobs[i].ActiveFiles = append([]RCTransfer(nil), data.Jobs[i].ActiveFiles...)
 		result.Jobs[i].CheckingFiles = append([]string(nil), data.Jobs[i].CheckingFiles...)
 		result.Jobs[i].Includes = append([]string(nil), data.Jobs[i].Includes...)
 		result.Jobs[i].Files = append([]string(nil), data.Jobs[i].Files...)
 		result.Jobs[i].Excludes = append([]string(nil), data.Jobs[i].Excludes...)
 	}
+	for i := range result.Attempts {
+		result.Attempts[i].FinishedAt = cloneTime(data.Attempts[i].FinishedAt)
+	}
 	return result
+}
+
+func cloneTime(value *time.Time) *time.Time {
+	if value == nil {
+		return nil
+	}
+	copy := *value
+	return &copy
+}
+
+func (s *Store) Events(after int64, limit int) ([]persistence.Event, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.db.Events(after, limit)
+}
+
+func (s *Store) Runs(offset, limit int) ([]Run, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	records, err := s.db.Runs(offset, limit)
+	if err != nil {
+		return nil, err
+	}
+	raw, _ := json.Marshal(records)
+	var runs []Run
+	err = json.Unmarshal(raw, &runs)
+	return runs, err
+}
+
+func (s *Store) RunState(id string) (State, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	records, err := s.db.RunRecords(id)
+	if err != nil {
+		return State{}, err
+	}
+	var state State
+	for table, output := range map[string]any{"runs": &state.Runs, "steps": &state.Jobs, "attempts": &state.Attempts} {
+		raw, _ := json.Marshal(records[table])
+		if err := json.Unmarshal(raw, output); err != nil {
+			return State{}, err
+		}
+	}
+	return state, nil
+}
+
+func (s *Store) JobByKey(key string) (Job, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	raw, err := s.db.JobByKey(key)
+	if err != nil || raw == nil {
+		return Job{}, err
+	}
+	var job Job
+	err = json.Unmarshal(raw, &job)
+	return job, err
 }
 
 func (s *Store) Update(fn func(*State) error) error {

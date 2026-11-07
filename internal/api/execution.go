@@ -2,11 +2,20 @@ package api
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/DeliciousBuding/rclonego/internal/core"
 )
 
 func (a *Server) handleDefinitions(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodDelete {
+		if err := a.app.DeleteDefinition(r.PathValue("id")); err != nil {
+			writeError(w, 404, err.Error())
+			return
+		}
+		writeJSON(w, 200, map[string]bool{"ok": true})
+		return
+	}
 	if r.Method == http.MethodGet {
 		writeJSON(w, 200, a.app.Snapshot().Workflows)
 		return
@@ -24,9 +33,24 @@ func (a *Server) handleDefinitions(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 201, saved)
 }
 
+func (a *Server) handleRunAction(w http.ResponseWriter, r *http.Request) {
+	if err := a.app.ActOnRun(r.PathValue("id"), r.PathValue("action")); err != nil {
+		writeError(w, 400, err.Error())
+		return
+	}
+	writeJSON(w, 200, map[string]bool{"ok": true})
+}
+
 func (a *Server) handleRuns(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
-		writeJSON(w, 200, a.app.Snapshot().Runs)
+		offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
+		limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+		runs, err := a.app.ListRuns(offset, limit)
+		if err != nil {
+			writeError(w, 400, err.Error())
+			return
+		}
+		writeJSON(w, 200, runs)
 		return
 	}
 	var request struct {

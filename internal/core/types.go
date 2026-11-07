@@ -14,6 +14,7 @@ type State struct {
 	QueuePaused       bool                 `json:"queue_paused"`
 	Mounts            []MountConfig        `json:"mounts"`
 	OwnedMounts       map[string]int       `json:"owned_mounts,omitempty"`
+	MountIdentities   map[string]string    `json:"mount_identities,omitempty"`
 	Jobs              []Job                `json:"jobs"`
 	Workflows         []WorkflowDefinition `json:"workflows"`
 	Runs              []Run                `json:"runs"`
@@ -61,6 +62,8 @@ type MountView struct {
 }
 
 type Job struct {
+	DryRun               bool         `json:"dry_run"`
+	MaxDelete            int          `json:"max_delete"`
 	Attempt              int          `json:"attempt"`
 	VerificationMode     string       `json:"verification_mode,omitempty"`
 	ID                   string       `json:"id"`
@@ -113,6 +116,9 @@ type Job struct {
 }
 
 type JobCreateRequest struct {
+	DryRun               bool       `json:"dry_run"`
+	MaxDelete            int        `json:"max_delete"`
+	PreviewID            string     `json:"preview_id,omitempty"`
 	VerificationMode     string     `json:"verification_mode"`
 	Name                 string     `json:"name"`
 	IdempotencyKey       string     `json:"idempotency_key"`

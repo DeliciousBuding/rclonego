@@ -72,11 +72,14 @@ func (r *Runtime) Close() {
 }
 
 func (r *Runtime) refresh(ctx context.Context) {
+	r.mu.RLock()
+	client := r.rclone
+	r.mu.RUnlock()
 	next := RuntimeSnapshot{UpdatedAt: time.Now()}
 	state := r.store.Snapshot()
 	for _, external := range state.ExternalTransfers {
 		view := ExternalTransferView{ExternalTransfer: external, UpdatedAt: next.UpdatedAt}
-		stats, err := r.rclone.Stats(ctx, external.RCPort)
+		stats, err := client.Stats(ctx, external.RCPort)
 		if err == nil {
 			view.Available = true
 			view.Stats = stats
@@ -100,15 +103,20 @@ func (r *Runtime) refresh(ctx context.Context) {
 	old := r.Snapshot()
 	next.Version, next.Remotes, next.CatalogError = old.Version, old.Remotes, old.CatalogError
 	if time.Since(r.catalogAt) > time.Minute {
-		catalogCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-		next.Version, _ = r.rclone.Version(catalogCtx)
-		remotes, err := r.rclone.Remotes(catalogCtx)
-		cancel()
-		next.Remotes = remotes
-		if err != nil {
-			next.CatalogError = err.Error()
+		if client.Path == "" {
+			next.Version, next.CatalogError = "", "rclone engine is not installed; open Resources to install or select it"
+			next.Remotes = nil
 		} else {
-			next.CatalogError = ""
+			catalogCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+			next.Version, _ = client.Version(catalogCtx)
+			remotes, err := client.Remotes(catalogCtx)
+			cancel()
+			next.Remotes = remotes
+			if err != nil {
+				next.CatalogError = err.Error()
+			} else {
+				next.CatalogError = ""
+			}
 		}
 		r.catalogAt = time.Now()
 	}
@@ -116,6 +124,12 @@ func (r *Runtime) refresh(ctx context.Context) {
 	r.mu.Lock()
 	r.snapshot = next
 	r.mu.Unlock()
+}
+
+func (r *Runtime) setEngine(client RcloneClient) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.rclone = client
 }
 
 func (r *Runtime) Snapshot() RuntimeSnapshot {

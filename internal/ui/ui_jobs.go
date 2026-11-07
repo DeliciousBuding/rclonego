@@ -35,31 +35,41 @@ func (s *nativeUI) queuePage(c *ui.Context) {
 		if s.queueBlockReason != "" {
 			ui.Text(c, s.queueBlockReason).FontSize(11).TextColor(t.TextMuted)
 		}
-		ui.Row(c).Grow(1).MinHeight(0).Gap(20).AlignItems(ui.Stretch).Children(func() {
-			ui.Column(c).Grow(1).MinWidth(0).MinHeight(0).Gap(8).Children(func() {
-				ui.Scroll(c).Grow(1).Gap(16).Children(func() {
-					for _, external := range s.external {
-						if !external.Available {
-							continue
+		width, _ := c.Size()
+		narrow := s.logJobID != "" && width < 1040
+		var layout ui.Element
+		if narrow {
+			layout = ui.Column(c).Grow(1).MinHeight(0).Gap(12)
+		} else {
+			layout = ui.Row(c).Grow(1).MinHeight(0).Gap(20).AlignItems(ui.Stretch)
+		}
+		layout.Children(func() {
+			if !narrow {
+				ui.Column(c).Grow(1).MinWidth(0).MinHeight(0).Gap(8).Children(func() {
+					contentScroll(c).Grow(1).Gap(16).Children(func() {
+						for _, external := range s.external {
+							if !external.Available {
+								continue
+							}
+							disclosure(c.Key("external-"+external.ID), iconQueue, external.Name, fmt.Sprintf("%.2f MiB/s", external.Stats.Speed/1048576), s.openState("external-"+external.ID, true), func() {
+								ui.Text(c, "当前阶段 · "+formatBytes(external.Stats.Bytes)+" / "+formatBytes(external.Stats.TotalBytes)).
+									FontSize(12).TextColor(t.TextMuted)
+								ui.Text(c, "当前活动文件；其他文件由 rclone 继续扫描和调度。").FontSize(11).TextColor(t.TextMuted)
+								s.transferFolders(c, external.ID, external.Tree)
+							})
 						}
-						disclosure(c.Key("external-"+external.ID), iconQueue, external.Name, fmt.Sprintf("%.2f MiB/s", external.Stats.Speed/1048576), s.openState("external-"+external.ID, true), func() {
-							ui.Text(c, "当前阶段 · "+formatBytes(external.Stats.Bytes)+" / "+formatBytes(external.Stats.TotalBytes)).
-								FontSize(12).TextColor(t.TextMuted)
-							ui.Text(c, "当前活动文件；其他文件由 rclone 继续扫描和调度。").FontSize(11).TextColor(t.TextMuted)
-							s.transferFolders(c, external.ID, external.Tree)
+						s.activeJobCard(c)
+						s.queuedJobs(c)
+						ui.Collapsible(c.Key("job-history"), fmt.Sprintf("历史记录 · %d", len(historyJobs(s.jobs))), &s.historyOpen, func() {
+							if len(historyJobs(s.jobs)) == 0 {
+								ui.Text(c, "暂无已结束的任务").FontSize(12).TextColor(t.TextMuted)
+							} else {
+								s.jobsTable(c).Height(240)
+							}
 						})
-					}
-					s.activeJobCard(c)
-					s.queuedJobs(c)
-					ui.Collapsible(c.Key("job-history"), fmt.Sprintf("历史记录 · %d", len(historyJobs(s.jobs))), &s.historyOpen, func() {
-						if len(historyJobs(s.jobs)) == 0 {
-							ui.Text(c, "暂无已结束的任务").FontSize(12).TextColor(t.TextMuted)
-						} else {
-							s.jobsTable(c).Height(240)
-						}
 					})
 				})
-			})
+			}
 			if s.logJobID != "" {
 				s.jobInspector(c)
 			}
@@ -82,12 +92,17 @@ func (s *nativeUI) activeJobCard(c *ui.Context) {
 	ui.Column(c).Padding(16, 18).Gap(14).Radius(10).Background(t.Accent.Alpha(0.04)).Children(func() {
 		ui.Row(c).Gap(12).Children(func() {
 			ui.Icon(c, iconQueue).FontSize(20).TextColor(t.Accent)
-			ui.Column(c).Grow(1).Gap(3).Children(func() {
+			ui.Column(c).Grow(1).MinWidth(0).Gap(3).Children(func() {
 				ui.Text(c, active.Name).FontSize(17).FontWeight(600).SingleLine()
 				ui.Text(c, operationLabel(active.Operation)+" · "+active.Source).FontSize(11).
 					TextColor(t.TextMuted).SingleLine()
 			})
-			ui.Button(c.Key("cancel-active"), "停止").Height(28).Padding(4, 10).
+			ui.Button(c.Key("pause-active"), "暂停").Height(28).Padding(4, 10).
+				OnClick(func() {
+					id := active.ID
+					s.run("暂停任务", func() error { return s.app.Pause(id) })
+				})
+			ui.Button(c.Key("cancel-active"), "取消").Height(28).Padding(4, 10).
 				OnClick(func() {
 					id := active.ID
 					s.run("停止任务", func() error { return s.app.Cancel(id) })
@@ -196,15 +211,19 @@ func (s *nativeUI) jobInspector(c *ui.Context) {
 		s.logJobID = ""
 		return
 	}
-	ui.Column(c).Width(280).Shrink(0).MinHeight(0).Padding(0, 0, 0, 18).
-		BorderWidth(0, 0, 0, 0.5).BorderColor(t.Border).Gap(14).Children(func() {
+	panel := ui.Column(c).Width(280).Shrink(0).MinWidth(0).MinHeight(0).Padding(0, 0, 0, 18).
+		BorderWidth(0, 0, 0, 0.5).BorderColor(t.Border).Gap(14)
+	if width, _ := c.Size(); width < 1040 {
+		panel.WidthPercent(100).Grow(1).Shrink(1).Padding(0).BorderWidth(0)
+	}
+	panel.Children(func() {
 		ui.Row(c).Children(func() {
 			sectionHeading(c, "任务详情")
 			ui.Spacer(c)
 			iconButton(c.Key("close-log"), iconClose, "关闭任务详情").OnClick(func() { s.logJobID, s.logText = "", "" })
 		})
-		ui.Scroll(c).Grow(1).MinHeight(0).Gap(14).Children(func() {
-			ui.Text(c, selected.Name).FontSize(15).FontWeight(600)
+		contentScroll(c).Grow(1).Gap(14).Children(func() {
+			ui.Text(c, selected.Name).FontSize(15).FontWeight(600).MaxLines(2).Tooltip(selected.Name)
 			statusDot(c, statusLabel(selected.Status), statusColor(c, selected.Status))
 			detail := func(label, value string) {
 				ui.Column(c).Gap(3).Children(func() {
@@ -240,8 +259,12 @@ func (s *nativeUI) jobInspector(c *ui.Context) {
 		if selected.Error != "" {
 			ui.Text(c, selected.Error).FontSize(12).TextColor(t.Danger)
 		}
-		if selected.Status == "failed" || selected.Status == "interrupted" || selected.Status == "cancelled" {
-			ui.Button(c.Key("retry-"+selected.ID), "重试").Height(28).OnClick(func() {
+		if selected.Status == "failed" || selected.Status == "interrupted" || selected.Status == "cancelled" || selected.Status == "paused" {
+			label := "重试"
+			if selected.Status == "paused" {
+				label = "恢复"
+			}
+			ui.Button(c.Key("retry-"+selected.ID), label).Height(28).OnClick(func() {
 				id := selected.ID
 				s.run("重试任务", func() error { return s.app.Retry(id) })
 			})
@@ -263,9 +286,16 @@ func (s *nativeUI) editOverlays(c *ui.Context) {
 			ui.Row(c).Children(func() {
 				ui.Text(c, title).FontSize(17).FontWeight(600)
 				ui.Spacer(c)
-				iconButton(c.Key("close-"+key), iconClose, "关闭").OnClick(func() { *open = false })
+				iconButton(c.Key("close-"+key), iconClose, "关闭").OnClick(func() {
+					if key == "remote-editor" && s.account.ID != "" {
+						id := s.account.ID
+						s.runAfter("关闭配置", func() error { return s.app.CancelAccount(id) }, func() { s.account = core.AccountView{}; s.showRemoteForm = false })
+						return
+					}
+					*open = false
+				})
 			})
-			ui.Scroll(c).MinHeight(0).Gap(14).Children(content)
+			contentScroll(c).Gap(14).Children(content)
 			if s.isError && s.notice != "" {
 				ui.Text(c, s.notice).FontSize(12).TextColor(c.Theme().Danger).MaxLines(3)
 			}
@@ -336,7 +366,12 @@ func (s *nativeUI) jobForm(c *ui.Context) {
 	})
 	if s.jobOperation == "sync" {
 		ui.Checkbox(c.Key("job-allow-delete"), &s.jobAllowDelete, "允许删除目标多余文件")
-		ui.Text(c, "单次最多删除 10 项。").FontSize(11).TextColor(t.Warning)
+		ui.Text(c, "先预览，再确认加入队列。单次最多删除 10 项。").FontSize(11).TextColor(t.Warning)
+		ui.Button(c.Key("preview-sync"), "预览更改").Disabled(s.busy).OnClick(func() { s.previewOnly = true; s.addJob() })
+		if s.jobPreview.ID != "" {
+			ui.Text(c, "已生成预览；修改路径或参数后请重新预览。").FontSize(11).TextColor(t.TextMuted)
+			contentScroll(c).Height(130).Children(func() { ui.Text(c, s.jobPreview.Log).FontSize(11).TextColor(t.TextMuted) })
+		}
 	}
 	ui.Row(c).Gap(8).Justify(ui.End).Children(func() {
 		ui.Button(c.Key("hide-job-form"), "取消").Height(30).OnClick(func() { s.showJobForm = false })

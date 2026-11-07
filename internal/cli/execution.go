@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"net/http"
@@ -27,6 +28,10 @@ func executionRequest(args []string) (method, path string, body any, key string,
 	case "workflows":
 		path = "/api/v1/workflow-definitions"
 		if len(args) == 1 || len(args) == 2 && args[1] == "list" {
+			return
+		}
+		if len(args) == 3 && args[1] == "delete" {
+			method, path = http.MethodDelete, path+"/"+url.PathEscape(args[2])
 			return
 		}
 		if len(args) == 4 && args[1] == "save" && args[2] == "--file" {
@@ -62,8 +67,24 @@ func executionRequest(args []string) (method, path string, body any, key string,
 		if len(args) == 1 || len(args) == 2 && args[1] == "list" {
 			return
 		}
+		if len(args) > 2 && args[1] == "list" {
+			set := flag.NewFlagSet("runs list", flag.ContinueOnError)
+			set.SetOutput(io.Discard)
+			offset := set.Int("offset", 0, "")
+			limit := set.Int("limit", 100, "")
+			err = set.Parse(args[2:])
+			if err == nil && set.NArg() != 0 {
+				err = errors.New("unexpected run list arguments")
+			}
+			path += fmt.Sprintf("?offset=%d&limit=%d", *offset, *limit)
+			return
+		}
 		if len(args) == 3 && (args[1] == "report" || args[1] == "wait" || args[1] == "watch") {
 			path += "/" + url.PathEscape(args[2]) + "/report"
+			return
+		}
+		if len(args) == 3 && (args[1] == "retry" || args[1] == "pause" || args[1] == "resume" || args[1] == "cancel") {
+			method, path, body = http.MethodPost, path+"/"+url.PathEscape(args[2])+"/"+args[1], map[string]string{}
 			return
 		}
 		err = errors.New("use runs list, report, wait, or watch <id>")
@@ -85,7 +106,7 @@ func printExecution(out io.Writer, args []string, raw []byte) error {
 		}
 		return nil
 	}
-	if args[0] == "runs" && len(args) == 3 {
+	if args[0] == "runs" && len(args) == 3 && (args[1] == "report" || args[1] == "wait" || args[1] == "watch") {
 		var report core.RunReport
 		if err := json.Unmarshal(raw, &report); err != nil {
 			return err
@@ -135,6 +156,14 @@ func waitRun(ctx context.Context, options cliOptions, args []string, out, stderr
 			return cliError(stderr, options.json, err)
 		}
 		terminal := report.Status == "completed" || report.Status == "failed" || report.Status == "interrupted" || report.Status == "cancelled"
+		if report.Status == "paused" {
+			if options.json {
+				fmt.Fprintln(out, string(raw))
+			} else {
+				_ = printExecution(out, args, raw)
+			}
+			return 4
+		}
 		if terminal || args[1] == "watch" && report.Status != previous {
 			if options.json {
 				fmt.Fprintln(out, string(raw))
@@ -151,7 +180,11 @@ func waitRun(ctx context.Context, options cliOptions, args []string, out, stderr
 		}
 		select {
 		case <-ctx.Done():
-			return cliError(stderr, options.json, ctx.Err())
+			_ = cliError(stderr, options.json, ctx.Err())
+			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+				return 3
+			}
+			return 130
 		case <-ticker.C:
 		}
 	}

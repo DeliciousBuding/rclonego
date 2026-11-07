@@ -23,6 +23,8 @@ patterns = [
 ]
 failures = []
 for path in files:
+    if not path.exists():
+        continue
     relative = path.relative_to(root).as_posix()
     if path.suffix.lower() in {".db", ".conf", ".log", ".key", ".exe"} or relative.startswith(".local/"):
         failures.append(f"{relative}: private or generated file")

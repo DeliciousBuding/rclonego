@@ -5,9 +5,23 @@ package core
 import (
 	"os"
 	"os/exec"
+	"strconv"
 	"syscall"
 	"unsafe"
 )
+
+func processIdentity(pid int) string {
+	handle, err := syscall.OpenProcess(0x1000, false, uint32(pid))
+	if err != nil {
+		return ""
+	}
+	defer syscall.CloseHandle(handle)
+	var created, exited, kernel, user syscall.Filetime
+	if err := syscall.GetProcessTimes(handle, &created, &exited, &kernel, &user); err != nil {
+		return ""
+	}
+	return strconv.FormatUint(filetimeTicks(created), 10)
+}
 
 const createNoWindow = 0x08000000
 const createNewProcessGroup = 0x00000200
