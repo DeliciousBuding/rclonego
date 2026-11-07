@@ -23,12 +23,25 @@ func TestOldRunReportAndIdempotencySurviveBoundedStartupHistory(t *testing.T) {
 		for i := 0; i < 205; i++ {
 			id := fmt.Sprintf("synthetic-run-%03d", i)
 			state.Runs = append(state.Runs, Run{ID: id, WorkflowID: definition.ID, Name: "Synthetic run", CreatedAt: time.Now().UTC()})
-			state.Jobs = append(state.Jobs, Job{ID: id + "-step", WorkflowID: id, Status: "completed", Operation: "check", VerificationMode: "content"})
+			status := "completed"
+			if i == 0 {
+				status = "failed"
+			}
+			state.Jobs = append(state.Jobs, Job{ID: id + "-step", WorkflowID: id, Status: status, Operation: "check", VerificationMode: "content"})
 		}
 		return nil
 	})
 	if err != nil {
 		t.Fatal(err)
+	}
+	if len(app.Snapshot().Runs) != 200 {
+		t.Fatalf("live history not bounded: %d", len(app.Snapshot().Runs))
+	}
+	if err := app.SetPaused(true); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := app.ReportRun("synthetic-run-000"); err != nil {
+		t.Fatal("eviction deleted older report on next save")
 	}
 	store.Close()
 	store, err = OpenStore(dir)
@@ -51,5 +64,12 @@ func TestOldRunReportAndIdempotencySurviveBoundedStartupHistory(t *testing.T) {
 	page, err := app.ListRuns(0, 1)
 	if err != nil || len(page) != 1 || page[0].ID != "synthetic-run-204" {
 		t.Fatalf("pagination order: %+v %v", page, err)
+	}
+	if err := app.ActOnRun("synthetic-run-000", "resume"); err != nil {
+		t.Fatal(err)
+	}
+	report, err = app.ReportRun("synthetic-run-000")
+	if err != nil || report.Status != "pending" {
+		t.Fatalf("older failed run was not restored: %+v %v", report, err)
 	}
 }

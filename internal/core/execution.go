@@ -100,6 +100,9 @@ func (a *App) ActOnRun(id, action string) error {
 	if err != nil {
 		return err
 	}
+	if err := a.store.RestoreRun(id); err != nil {
+		return err
+	}
 	switch action {
 	case "pause":
 		for _, job := range report.Steps {

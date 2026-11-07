@@ -38,9 +38,10 @@ events. A workflow is inserted transactionally. Persistence failures restore the
 in-memory snapshot.
 
 Only changed rows are written in a transaction. Events retain the newest 10000
-records. Startup loads active work, the newest 200 runs and 500 standalone jobs;
+records. Memory retains active work, the newest 200 runs and 500 standalone jobs;
 older history remains in SQLite and can be read through paginated run queries
-and reports. This bounds startup history loading without deleting older reports.
+and reports. Limits apply during startup and continued operation. Retrying an
+older run restores its rows before dispatch; eviction does not delete reports.
 
 Startup marks previously running steps interrupted. A still-existing process
 prevents duplicate dispatch; a stopped process allows the step to be retried.

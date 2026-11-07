@@ -75,6 +75,10 @@ func (d *DB) JobByKey(key string) (json.RawMessage, error) {
 
 func (d *DB) Close() error { return d.db.Close() }
 
+// Forget removes an evicted row from the snapshot cache, not from SQLite.
+// Intentional deletion still follows Save's authoritative tracked rows.
+func (d *DB) Forget(table, id string) { delete(d.cached[table], id) }
+
 func (d *DB) Load() (map[string][]json.RawMessage, error) {
 	result := map[string][]json.RawMessage{}
 	for _, table := range []string{"settings", "workflows", "runs", "steps", "attempts"} {
