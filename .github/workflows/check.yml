@@ -20,6 +20,10 @@ jobs:
         with:
           python-version: '3.12'
       - run: python scripts/check_public.py --tracked
-      - run: go test ./...
+      - run: python scripts/test.py
+      - if: runner.os == 'Linux'
+        run: python scripts/test.py --race
       - run: go vet ./...
       - run: go build -trimpath ./cmd/rclonego
+      - run: python scripts/update_contract.py
+      - run: git diff --exit-code -- internal/api/openapi.json

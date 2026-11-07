@@ -15,3 +15,5 @@
 mygo-update.key
 __pycache__/
 *.pyc
+/internal/persistence/native/
+/internal/persistence/native_embed_*.go

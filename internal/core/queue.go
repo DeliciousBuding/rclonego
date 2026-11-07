@@ -30,6 +30,7 @@ type Queue struct {
 	done         chan struct{}
 	closed       bool
 	closing      bool
+	pausing      bool
 	externalBusy func() bool
 }
 
@@ -98,8 +99,9 @@ func (q *Queue) loop() {
 		}
 		q.mu.Lock()
 		active := q.running != ""
+		missing := q.client.Path == ""
 		q.mu.Unlock()
-		if active || q.rclone == "" {
+		if active || missing {
 			continue
 		}
 		if q.externalBusy != nil && q.externalBusy() {
@@ -190,6 +192,12 @@ func lastPosition(jobs []Job) int {
 }
 
 func (q *Queue) buildJob(request JobCreateRequest) (Job, error) {
+	if request.MaxDelete < 0 || request.MaxDelete > 10000 {
+		return Job{}, errors.New("max_delete must be between 0 and 10000")
+	}
+	if request.MaxDelete == 0 {
+		request.MaxDelete = 10
+	}
 	request.Name = strings.TrimSpace(request.Name)
 	request.IdempotencyKey = strings.TrimSpace(request.IdempotencyKey)
 	request.Operation = strings.TrimSpace(request.Operation)
@@ -252,6 +260,7 @@ func (q *Queue) buildJob(request JobCreateRequest) (Job, error) {
 		Transfers: request.Transfers, Checkers: request.Checkers,
 		Bandwidth: settings.Bandwidth, Checksum: request.Checksum,
 		CreateDirs: request.CreateDirs, AllowDelete: request.AllowDelete,
+		DryRun: request.DryRun, MaxDelete: request.MaxDelete,
 		Status: "pending", CreatedAt: now, LastUpdatedAt: now,
 	}
 	if _, err := rcloneTransferArgs(job, 1, ""); err != nil {
@@ -269,6 +278,7 @@ func RandomID() (string, error) {
 }
 
 func (q *Queue) execute(job Job) {
+	client := q.engineClient()
 	beginAttempt(&job)
 	if err := q.validateImmutableSource(job); err != nil {
 		q.finish(job, "failed", nil, err)
@@ -306,7 +316,7 @@ func (q *Queue) execute(job Job) {
 		return
 	}
 	defer logFile.Close()
-	fmt.Fprintf(logFile, "%s START %s\n", time.Now().Format(time.RFC3339), strings.Join(append([]string{q.rclone}, args...), " "))
+	fmt.Fprintf(logFile, "%s START operation=%s attempt=%d\n", time.Now().Format(time.RFC3339), job.Operation, job.Attempt)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	q.mu.Lock()
@@ -324,11 +334,12 @@ func (q *Queue) execute(job Job) {
 		q.mu.Lock()
 		q.running = ""
 		q.cancel = nil
+		q.pausing = false
 		q.mu.Unlock()
 	}()
 
-	cmd := exec.CommandContext(ctx, q.rclone, args...)
-	cmd.Env = q.client.environment()
+	cmd := exec.CommandContext(ctx, client.Path, args...)
+	cmd.Env = client.environment()
 	if job.CPUParallelism > 0 {
 		cmd.Env = append(cmd.Env, "GOMAXPROCS="+strconv.Itoa(job.CPUParallelism))
 	}
@@ -369,9 +380,12 @@ func (q *Queue) execute(job Job) {
 			if ctx.Err() != nil {
 				q.mu.Lock()
 				closing := q.closing
+				pausing := q.pausing
 				q.mu.Unlock()
 				if closing {
 					q.finish(job, "interrupted", &exitCode, errors.New("service stopped while job was running"))
+				} else if pausing {
+					q.finish(job, "paused", &exitCode, nil)
 				} else {
 					q.finish(job, "cancelled", &exitCode, nil)
 				}
@@ -385,7 +399,7 @@ func (q *Queue) execute(job Job) {
 			return
 		case <-ticker.C:
 			statsCtx, statsCancel := context.WithTimeout(context.Background(), 2*time.Second)
-			stats, statsErr := q.client.Stats(statsCtx, rcPort)
+			stats, statsErr := client.Stats(statsCtx, rcPort)
 			statsCancel()
 			if statsErr == nil {
 				applyStats(&job, stats)
@@ -413,7 +427,7 @@ func (q *Queue) validateImmutableSource(job Job) error {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
-	raw, err := (RcloneClient{Path: q.rclone}).command(ctx, "lsjson", job.Source, "--stat")
+	raw, err := q.engineClient().command(ctx, "lsjson", job.Source, "--stat")
 	if err != nil {
 		return err
 	}
@@ -424,6 +438,18 @@ func (q *Queue) validateImmutableSource(job Job) error {
 		return errors.New("immutable copy requires a directory source")
 	}
 	return nil
+}
+
+func (q *Queue) setEngine(client RcloneClient) {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	q.client, q.rclone = client, client.Path
+}
+
+func (q *Queue) engineClient() RcloneClient {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	return q.client
 }
 
 func applyStats(job *Job, stats *RCStats) {
@@ -492,10 +518,31 @@ func (q *Queue) finish(job Job, status string, exitCode *int, runErr error) {
 
 func (q *Queue) Cancel(id string) error {
 	q.mu.Lock()
+	if q.running == id && q.cancel != nil {
+		q.cancel()
+		q.mu.Unlock()
+		return nil
+	}
+	q.mu.Unlock()
+	return q.store.Update(func(state *State) error {
+		for i := range state.Jobs {
+			if state.Jobs[i].ID == id && (state.Jobs[i].Status == "pending" || state.Jobs[i].Status == "paused") {
+				now := time.Now().UTC()
+				state.Jobs[i].Status, state.Jobs[i].FinishedAt = "cancelled", &now
+				return nil
+			}
+		}
+		return errors.New("job is not running, pending or paused")
+	})
+}
+
+func (q *Queue) Pause(id string) error {
+	q.mu.Lock()
 	defer q.mu.Unlock()
 	if q.running != id || q.cancel == nil {
 		return errors.New("job is not running")
 	}
+	q.pausing = true
 	q.cancel()
 	return nil
 }

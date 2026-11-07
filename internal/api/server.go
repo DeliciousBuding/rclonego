@@ -11,12 +11,15 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 )
 
 type Server struct {
-	app   *core.App
-	token string
+	app        *core.App
+	token      string
+	tokensMu   sync.Mutex
+	readTokens map[[32]byte]readToken
 }
 
 const headerGuard = "X-RcloneGo-Client"
@@ -24,8 +27,19 @@ const headerGuard = "X-RcloneGo-Client"
 func (a *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api", a.handleAPIInfo)
+	mux.HandleFunc("GET /api/v1", a.handleAPIInfo)
+	mux.HandleFunc("GET /api/v1/schema", a.handleSchema)
+	mux.HandleFunc("POST /api/v1/tokens/read", a.mutating(a.handleTokens))
 	mux.HandleFunc("GET /api/v1/health", a.handleHealth)
 	mux.HandleFunc("GET /api/v1/doctor", a.handleDoctor)
+	mux.HandleFunc("GET /api/v1/diagnostics", a.handleDiagnostics)
+	mux.HandleFunc("GET /api/v1/events", a.handleEvents)
+	mux.HandleFunc("GET /api/v1/engine", a.handleEngine)
+	mux.HandleFunc("POST /api/v1/engine/{action}", a.mutating(a.handleEngine))
+	mux.HandleFunc("GET /api/v1/providers", a.handleProviders)
+	mux.HandleFunc("POST /api/v1/accounts", a.mutating(a.handleAccounts))
+	mux.HandleFunc("GET /api/v1/accounts/{id}", a.handleAccounts)
+	mux.HandleFunc("POST /api/v1/accounts/{id}/{action}", a.mutating(a.handleAccounts))
 	mux.HandleFunc("GET /api/v1/settings", a.handleSettings)
 	mux.HandleFunc("PUT /api/v1/settings", a.mutating(a.handleSaveSettings))
 	mux.HandleFunc("GET /api/v1/runtime", a.handleRuntime)
@@ -42,12 +56,16 @@ func (a *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/v1/jobs", a.handleJobs)
 	mux.HandleFunc("GET /api/v1/workflow-definitions", a.handleDefinitions)
 	mux.HandleFunc("POST /api/v1/workflow-definitions", a.mutating(a.handleDefinitions))
+	mux.HandleFunc("PUT /api/v1/workflow-definitions", a.mutating(a.handleDefinitions))
+	mux.HandleFunc("DELETE /api/v1/workflow-definitions/{id}", a.mutating(a.handleDefinitions))
 	mux.HandleFunc("GET /api/v1/runs", a.handleRuns)
 	mux.HandleFunc("POST /api/v1/runs", a.mutating(a.handleRuns))
 	mux.HandleFunc("GET /api/v1/runs/{id}", a.handleReport)
 	mux.HandleFunc("GET /api/v1/runs/{id}/report", a.handleReport)
+	mux.HandleFunc("POST /api/v1/runs/{id}/{action}", a.mutating(a.handleRunAction))
 	mux.HandleFunc("GET /api/v1/jobs/{id}", a.handleJob)
 	mux.HandleFunc("POST /api/v1/jobs", a.mutating(a.handleAddJob))
+	mux.HandleFunc("POST /api/v1/jobs/preview", a.mutating(a.handlePreview))
 	mux.HandleFunc("PUT /api/v1/jobs/{id}", a.mutating(a.handleUpdateJob))
 	mux.HandleFunc("POST /api/v1/workflows", a.mutating(a.handleWorkflow))
 	mux.HandleFunc("POST /api/v1/jobs/action", a.mutating(a.handleJobAction))
@@ -156,9 +174,14 @@ func (a *Server) handleAPIInfo(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{
 		"name": "RcloneGo", "api_version": 1,
 		"listen": "loopback HTTP", "mutation_header": headerGuard + ": 1",
-		"operations":     []string{"copy", "copyto", "sync", "check", "oauth-reconnect"},
+		"operations":     []string{"copy", "copyto", "sync", "check"},
 		"authentication": "Bearer token from the private api-token file",
 		"endpoints": map[string]string{
+			"engine": "GET /api/v1/engine", "install_engine": "POST /api/v1/engine/install",
+			"select_engine": "POST /api/v1/engine/select", "providers": "GET /api/v1/providers",
+			"accounts": "POST /api/v1/accounts", "account": "GET /api/v1/accounts/{id}",
+			"account_action": "POST /api/v1/accounts/{id}/{answer|cancel}", "events": "GET /api/v1/events",
+			"schema": "GET /api/v1/schema", "preview": "POST /api/v1/jobs/preview",
 			"settings": "GET /api/v1/settings", "save_settings": "PUT /api/v1/settings",
 			"runtime": "GET /api/v1/runtime", "external": "PUT /api/v1/external",
 			"resources": "GET /api/v1/runtime?view=resources", "job": "GET /api/v1/jobs/{id}",
@@ -262,37 +285,26 @@ func (a *Server) handleReconnect(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	job, err := a.app.AddJob(core.JobCreateRequest{
-		Name: "OAuth reconnect " + request.Name, IdempotencyKey: r.Header.Get("Idempotency-Key"),
-		Operation: "oauth-reconnect",
-		Source:    request.Name,
-	})
+	account, err := a.app.BeginAccount(r.Context(), core.AccountRequest{Name: request.Name, Reconnect: true})
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	writeJSON(w, http.StatusAccepted, job)
+	writeJSON(w, http.StatusAccepted, account)
 }
 
 func (a *Server) handleCreateRemote(w http.ResponseWriter, r *http.Request) {
-	var request struct {
-		Name string `json:"name"`
-		Type string `json:"type"`
-	}
+	var request core.AccountRequest
 	if err := decodeJSON(w, r, &request); err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	job, err := a.app.AddJob(core.JobCreateRequest{
-		Name: "OAuth create " + request.Name, IdempotencyKey: r.Header.Get("Idempotency-Key"),
-		Operation: "oauth-create",
-		Source:    request.Name, Destination: request.Type,
-	})
+	account, err := a.app.BeginAccount(r.Context(), request)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	writeJSON(w, http.StatusAccepted, job)
+	writeJSON(w, http.StatusAccepted, account)
 }
 
 func (a *Server) handleMounts(w http.ResponseWriter, r *http.Request) {
@@ -316,7 +328,7 @@ func (a *Server) handleSaveMounts(w http.ResponseWriter, r *http.Request) {
 	for i := range mounts {
 		mounts[i].ID = strings.TrimSpace(mounts[i].ID)
 		mounts[i].Remote = core.EnsureColonRemote(strings.TrimSpace(mounts[i].Remote))
-		mounts[i].Drive = strings.ToUpper(strings.TrimSpace(mounts[i].Drive))
+		mounts[i].Drive = core.NormalizeMountTarget(mounts[i].Drive)
 		if err := core.ValidateMountConfig(mounts[i]); err != nil {
 			writeError(w, http.StatusBadRequest, fmt.Sprintf("mount %d: %v", i+1, err))
 			return
@@ -327,10 +339,7 @@ func (a *Server) handleSaveMounts(w http.ResponseWriter, r *http.Request) {
 		}
 		ids[mounts[i].ID], drives[mounts[i].Drive] = true, true
 	}
-	if err := a.app.UpdateState(func(state *core.State) error {
-		state.Mounts = mounts
-		return nil
-	}); err != nil {
+	if err := a.app.SaveMounts(mounts); err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -459,6 +468,8 @@ func (a *Server) handleJobAction(w http.ResponseWriter, r *http.Request) {
 		err = a.app.Retry(request.ID)
 	case "cancel":
 		err = a.app.Cancel(request.ID)
+	case "pause":
+		err = a.app.Pause(request.ID)
 	case "delete":
 		err = a.app.Delete(request.ID)
 	case "move":
@@ -525,5 +536,11 @@ func writeJSON(w http.ResponseWriter, status int, value any) {
 }
 
 func writeError(w http.ResponseWriter, status int, message string) {
-	writeJSON(w, status, map[string]string{"error": message})
+	code := map[int]string{400: "invalid_request", 401: "authentication_required", 403: "permission_denied", 404: "not_found",
+		409: "conflict", 500: "internal_error", 502: "engine_failed", 503: "engine_unavailable"}[status]
+	if code == "" {
+		code = "request_failed"
+	}
+	writeJSON(w, status, map[string]any{"error": message, "code": code, "message": message,
+		"retryable": status == 502 || status == 503, "next_action": map[int]string{401: "use a local API token", 503: "install or select an engine"}[status]})
 }

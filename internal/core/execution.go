@@ -35,7 +35,7 @@ type Attempt struct {
 	Bytes      int64      `json:"bytes"`
 	Checks     int64      `json:"checks"`
 	Error      string     `json:"error,omitempty"`
-	LogPath    string     `json:"-"`
+	LogPath    string     `json:"log_path,omitempty"`
 }
 
 type RunReport struct {
@@ -70,15 +70,104 @@ func (a *App) SaveWorkflow(definition WorkflowDefinition) (WorkflowDefinition, e
 	}
 	definition.CreatedAt = time.Now().UTC()
 	err := a.store.Update(func(state *State) error {
-		for _, saved := range state.Workflows {
+		for i, saved := range state.Workflows {
 			if saved.ID == definition.ID {
-				return errors.New("workflow ID already exists")
+				definition.CreatedAt = saved.CreatedAt
+				state.Workflows[i] = definition
+				return nil
 			}
 		}
 		state.Workflows = append(state.Workflows, definition)
 		return nil
 	})
 	return definition, err
+}
+
+func (a *App) DeleteDefinition(id string) error {
+	return a.store.Update(func(state *State) error {
+		for i := range state.Workflows {
+			if state.Workflows[i].ID == id {
+				state.Workflows = append(state.Workflows[:i], state.Workflows[i+1:]...)
+				return nil
+			}
+		}
+		return errors.New("workflow definition not found")
+	})
+}
+
+func (a *App) ActOnRun(id, action string) error {
+	report, err := a.ReportRun(id)
+	if err != nil {
+		return err
+	}
+	switch action {
+	case "pause":
+		for _, job := range report.Steps {
+			if job.Status == "running" {
+				return a.Pause(job.ID)
+			}
+		}
+		return errors.New("run has no active step")
+	case "cancel":
+		a.queue.addMu.Lock()
+		defer a.queue.addMu.Unlock()
+		err := a.store.Update(func(state *State) error {
+			now := time.Now().UTC()
+			for i := range state.Jobs {
+				job := &state.Jobs[i]
+				if job.WorkflowID == id && (job.Status == "pending" || job.Status == "paused") {
+					job.Status, job.FinishedAt, job.LastUpdatedAt = "cancelled", &now, now
+				}
+			}
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+		for _, job := range report.Steps {
+			if job.Status == "running" {
+				return a.Cancel(job.ID)
+			}
+		}
+		return nil
+	case "retry", "resume":
+		if report.Status == "running" || report.Status == "pending" {
+			return errors.New("run is already active")
+		}
+		a.queue.addMu.Lock()
+		defer a.queue.addMu.Unlock()
+		err := a.store.Update(func(state *State) error {
+			for _, job := range state.Jobs {
+				if job.WorkflowID == id && job.Status == "running" {
+					return errors.New("run is already active")
+				}
+			}
+			changed := false
+			for i := range state.Jobs {
+				job := &state.Jobs[i]
+				if job.WorkflowID != id || job.Status == "completed" {
+					continue
+				}
+				changed = true
+				job.Status, job.Error, job.Speed = "pending", "", 0
+				job.StartedAt, job.FinishedAt, job.ExitCode = nil, nil, nil
+				job.Bytes, job.TotalBytes, job.FilesDone, job.FilesTotal, job.ChecksDone, job.ChecksTotal = 0, 0, 0, 0, 0, 0
+				job.PID, job.RCPort = 0, 0
+				job.ActiveFiles, job.CheckingFiles = nil, nil
+				job.LastUpdatedAt = time.Now().UTC()
+			}
+			if !changed {
+				return errors.New("completed runs should be executed again as a new run")
+			}
+			return nil
+		})
+		if err == nil {
+			a.Wake()
+		}
+		return err
+	default:
+		return errors.New("run action must be pause, resume, retry or cancel")
+	}
 }
 
 func (a *App) StartWorkflow(id, key string) (Run, error) {
@@ -92,6 +181,14 @@ func (a *App) StartWorkflow(id, key string) (Run, error) {
 			if err != nil {
 				return Run{}, err
 			}
+		}
+		if state, err := a.store.RunState(key); err != nil {
+			return Run{}, err
+		} else if len(state.Runs) > 0 {
+			if state.Runs[0].WorkflowID != definition.ID {
+				return Run{}, errors.New("idempotency key belongs to another workflow")
+			}
+			return state.Runs[0], nil
 		}
 		for _, run := range a.Snapshot().Runs {
 			if run.ID == key && run.WorkflowID != definition.ID {
@@ -119,6 +216,20 @@ func (a *App) StartWorkflow(id, key string) (Run, error) {
 
 func (a *App) ReportRun(id string) (RunReport, error) {
 	state := a.Snapshot()
+	found := false
+	for _, run := range state.Runs {
+		if run.ID == id {
+			found = true
+			break
+		}
+	}
+	if !found {
+		var err error
+		state, err = a.store.RunState(id)
+		if err != nil {
+			return RunReport{}, err
+		}
+	}
 	result := RunReport{Status: "completed", Verification: "not_run",
 		Scope: "one-way: only source entries; extra destination files are outside this report"}
 	for _, run := range state.Runs {
@@ -136,7 +247,7 @@ func (a *App) ReportRun(id string) (RunReport, error) {
 		}
 		stepIDs[job.ID] = true
 		result.Steps = append(result.Steps, job)
-		rank := map[string]int{"completed": 0, "pending": 1, "running": 2, "cancelled": 3, "interrupted": 4, "failed": 5}
+		rank := map[string]int{"completed": 0, "pending": 1, "running": 2, "paused": 3, "cancelled": 4, "interrupted": 5, "failed": 6}
 		if rank[job.Status] > rank[result.Status] {
 			result.Status = job.Status
 		}
@@ -161,6 +272,8 @@ func (a *App) ReportRun(id string) (RunReport, error) {
 	}
 	return result, nil
 }
+
+func (a *App) ListRuns(offset, limit int) ([]Run, error) { return a.store.Runs(offset, limit) }
 
 func beginAttempt(job *Job) {
 	job.Attempt++

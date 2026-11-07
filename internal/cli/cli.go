@@ -7,20 +7,23 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/DeliciousBuding/rclonego/internal/api"
 	"github.com/DeliciousBuding/rclonego/internal/core"
 	"github.com/DeliciousBuding/rclonego/internal/session"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"sort"
 	"strings"
+	"syscall"
 	"text/tabwriter"
 	"time"
 )
 
-const appVersion = "0.1.0-dev"
+const appVersion = "0.1.0-alpha.1"
 
 const cliHelp = `RcloneGo — 本机数据工作台
 
@@ -58,6 +61,13 @@ const cliHelp = `RcloneGo — 本机数据工作台
   workflows list|save --file <json>|run <ID>  保存或执行工作流定义
   runs list|report|wait|watch <ID>            执行记录和校验结果
   doctor                                    引擎与平台诊断
+  jobs preview --file <json>                 预览，sync 提交时使用返回的 preview_id
+  jobs pause <ID>                            中断当前任务，保留可恢复状态
+  events [--after <cursor>] [--limit <count>] 持久状态事件，最多 500 条
+  schema                                    离线输出 OpenAPI 契约
+  diagnostics --json                        导出不含路径、账户、日志的诊断数据
+  engine status|install [--archive <zip>]|select <path>
+  accounts providers|create --file <json>|show <ID>|answer <ID> --stdin|cancel <ID>
   workflow --name <名称> --source <本机根目录> --destination <目标>
            --idempotency-key <标识> [--proof <排除证明.json>]
   api                                      查看 API 能力
@@ -73,9 +83,10 @@ const cliHelp = `RcloneGo — 本机数据工作台
 `
 
 type cliOptions struct {
-	api     string
-	json    bool
-	timeout time.Duration
+	api             string
+	json            bool
+	timeout         time.Duration
+	timeoutExplicit bool
 }
 
 func IsCLI(args []string) bool {
@@ -85,7 +96,7 @@ func IsCLI(args []string) bool {
 	switch args[0] {
 	case "status", "jobs", "mounts", "remotes", "queue", "theme", "api", "help", "--help", "-h", "--version":
 		return true
-	case "resources", "bandwidth", "workflow", "workflows", "runs", "doctor", "settings", "external":
+	case "resources", "bandwidth", "workflow", "workflows", "runs", "doctor", "settings", "external", "engine", "accounts", "events", "schema", "diagnostics":
 		return true
 	case "--api", "--json", "--timeout":
 		return true
@@ -106,6 +117,16 @@ func Run(args []string, stdout, stderr io.Writer) int {
 	if command[0] == "--version" {
 		fmt.Fprintln(stdout, appVersion)
 		return 0
+	}
+	if command[0] == "schema" {
+		if len(command) != 1 {
+			return cliError(stderr, options.json, errors.New("schema takes no arguments"))
+		}
+		fmt.Fprintln(stdout, string(api.Contract()))
+		return 0
+	}
+	if len(command) > 1 && command[0] == "engine" && command[1] == "install" && !options.timeoutExplicit {
+		options.timeout = 10 * time.Minute
 	}
 	if options.api == "" {
 		dir, err := session.DataDir()
@@ -132,7 +153,9 @@ func Run(args []string, stdout, stderr io.Writer) int {
 	if err != nil {
 		return cliError(stderr, options.json, err)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), options.timeout)
+	signalCtx, signalCancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer signalCancel()
+	ctx, cancel := context.WithTimeout(signalCtx, options.timeout)
 	defer cancel()
 	if len(command) == 3 && command[0] == "runs" && (command[1] == "wait" || command[1] == "watch") {
 		return waitRun(ctx, options, command, stdout, stderr)
@@ -182,6 +205,7 @@ func parseCLIOptions(args []string, options *cliOptions) ([]string, error) {
 					return nil, errors.New("--timeout must be a positive duration")
 				}
 				options.timeout = duration
+				options.timeoutExplicit = true
 			}
 		default:
 			rest = append(rest, arg)
@@ -195,6 +219,9 @@ func loopbackHost(host string) bool {
 }
 
 func cliRequest(args []string) (method, path string, body any, key string, err error) {
+	if args[0] == "engine" || args[0] == "accounts" {
+		return setupRequest(args)
+	}
 	if args[0] == "workflows" || args[0] == "runs" || args[0] == "doctor" {
 		return executionRequest(args)
 	}
@@ -207,6 +234,20 @@ func cliRequest(args []string) (method, path string, body any, key string, err e
 		return true
 	}
 	switch args[0] {
+	case "diagnostics":
+		if exact(1) {
+			path = "/api/v1/diagnostics"
+		}
+	case "events":
+		set := flag.NewFlagSet("events", flag.ContinueOnError)
+		set.SetOutput(io.Discard)
+		after := set.Int64("after", 0, "")
+		limit := set.Int("limit", 100, "")
+		err = set.Parse(args[1:])
+		if err == nil && set.NArg() != 0 {
+			err = errors.New("unexpected event arguments")
+		}
+		path = fmt.Sprintf("/api/v1/events?after=%d&limit=%d", *after, *limit)
 	case "settings", "external":
 		path = "/api/v1/settings"
 		if args[0] == "external" {
@@ -269,11 +310,14 @@ func cliRequest(args []string) (method, path string, body any, key string, err e
 			path = "/api/v1/jobs"
 			break
 		}
-		if len(args) >= 2 && args[1] == "add" {
+		if len(args) >= 2 && (args[1] == "add" || args[1] == "preview") {
 			request, idempotency, parseErr := parseJobCLI(args[2:])
 			err = parseErr
 			method = http.MethodPost
 			path = "/api/v1/jobs"
+			if args[1] == "preview" {
+				path += "/preview"
+			}
 			body = request
 			key = idempotency
 			break
@@ -297,7 +341,7 @@ func cliRequest(args []string) (method, path string, body any, key string, err e
 			path = "/api/v1/jobs/" + url.PathEscape(args[2])
 		case "log":
 			path = "/api/v1/jobs/log?id=" + url.QueryEscape(args[2])
-		case "retry", "cancel", "delete":
+		case "retry", "cancel", "delete", "pause":
 			method = http.MethodPost
 			path = "/api/v1/jobs/action"
 			body = map[string]string{"id": args[2], "action": args[1]}
@@ -393,6 +437,9 @@ func parseJobCLI(args []string) (core.JobCreateRequest, string, error) {
 	set.StringVar(&request.Bandwidth, "bandwidth", "", "")
 	set.BoolVar(&request.Checksum, "checksum", false, "")
 	set.BoolVar(&request.AllowDelete, "allow-delete", false, "")
+	set.BoolVar(&request.DryRun, "dry-run", false, "")
+	set.IntVar(&request.MaxDelete, "max-delete", 10, "")
+	set.StringVar(&request.PreviewID, "preview-id", "", "")
 	set.BoolVar(&request.Immutable, "immutable", false, "")
 	set.StringVar(&request.ChunkSize, "chunk-size", "", "")
 	set.StringVar(&request.BufferSize, "buffer-size", "", "")
@@ -498,11 +545,16 @@ func callAPI(ctx context.Context, base, method, path string, body any, key strin
 		return nil, err
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		var message struct {
-			Error string `json:"error"`
+		var failure APIError
+		_ = json.Unmarshal(raw, &failure)
+		failure.HTTPStatus = resp.StatusCode
+		if failure.Message == "" {
+			failure.Message = core.ValueOr(failure.LegacyError, resp.Status)
 		}
-		_ = json.Unmarshal(raw, &message)
-		return nil, fmt.Errorf("%s: %s", resp.Status, core.ValueOr(message.Error, strings.TrimSpace(string(raw))))
+		if failure.Code == "" {
+			failure.Code = "http_error"
+		}
+		return nil, &failure
 	}
 	return raw, nil
 }
@@ -567,6 +619,14 @@ func printCLIResult(out io.Writer, args []string, raw []byte) error {
 			fmt.Fprintln(w, "上传器\t未连接")
 		}
 	case "jobs":
+		if len(args) > 1 && args[1] == "preview" {
+			var preview core.Preview
+			if err := json.Unmarshal(raw, &preview); err != nil {
+				return err
+			}
+			fmt.Fprintf(out, "预览 ID: %s\n有效期: %s\n%s\n", preview.ID, preview.ExpiresAt.Local().Format(time.RFC3339), preview.Log)
+			return nil
+		}
 		if len(args) == 3 && args[1] == "log" {
 			var result struct {
 				Log string `json:"log"`
@@ -670,9 +730,32 @@ func contains(values []string, want string) bool {
 
 func cliError(out io.Writer, structured bool, err error) int {
 	if structured {
-		_ = json.NewEncoder(out).Encode(map[string]any{"ok": false, "error": err.Error()})
+		var failure *APIError
+		if errors.As(err, &failure) {
+			_ = json.NewEncoder(out).Encode(failure)
+		} else {
+			code := "client_error"
+			if errors.Is(err, context.DeadlineExceeded) {
+				code = "timeout"
+			}
+			if errors.Is(err, context.Canceled) {
+				code = "cancelled"
+			}
+			_ = json.NewEncoder(out).Encode(map[string]any{"ok": false, "error": err.Error(), "message": err.Error(), "code": code, "retryable": code == "timeout"})
+		}
 	} else {
 		fmt.Fprintln(out, "错误：", err)
 	}
 	return 1
 }
+
+type APIError struct {
+	HTTPStatus  int    `json:"http_status"`
+	Code        string `json:"code"`
+	Message     string `json:"message"`
+	Retryable   bool   `json:"retryable"`
+	NextAction  string `json:"next_action,omitempty"`
+	LegacyError string `json:"error"`
+}
+
+func (e *APIError) Error() string { return fmt.Sprintf("%d %s: %s", e.HTTPStatus, e.Code, e.Message) }

@@ -2,6 +2,7 @@ package desktop
 
 import (
 	"github.com/DeliciousBuding/rclonego/internal/core"
+	"strings"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
@@ -29,6 +30,58 @@ func TestNativeNavigationAndKeyActions(t *testing.T) {
 	tester.Key(0, ui.KeyEscape)
 	if model.showJobForm {
 		t.Fatal("Escape did not dismiss the task dialog")
+	}
+}
+
+func TestResourceControlsStayInsideScrollGutterWithLongPaths(t *testing.T) {
+	for _, width := range []int{900, 1120, 1440} {
+		for _, theme := range []string{"light", "dark"} {
+			model := New(testApp(t), "http://127.0.0.1:12345")
+			model.page, model.appearance = "resources", theme
+			model.enginePath = "/synthetic/" + strings.Repeat("long-directory/", 40) + "rclone"
+			model.engineArchive = model.enginePath + ".zip"
+			model.resources = core.ResourceSnapshot{LogicalCPUs: 128, Goroutines: 100000,
+				Processes: []core.ProcessResource{{PID: 1, Name: strings.Repeat("LongProcessName", 20), Threads: 10000}}}
+			tester := ui.NewTester(model.view, width, 740)
+			tester.Scroll(float32(width-60), 500, 0, 1)
+			for _, label := range []string{"运行计数", "引擎路径", "离线发行包路径", "使用此引擎", "导入发行包"} {
+				rect, ok := tester.Find(label)
+				if !ok {
+					t.Fatalf("%d/%s: missing %s", width, theme, label)
+				}
+				if rect.X < 208 || rect.X+rect.W > float32(width-12-28-16)+1 {
+					t.Fatalf("%d/%s: %s exceeds content gutter: %v", width, theme, label, rect)
+				}
+			}
+			input, _ := tester.Find("引擎路径")
+			button, _ := tester.Find("使用此引擎")
+			if input.X+input.W > button.X {
+				t.Fatalf("%d/%s: input overlaps action", width, theme)
+			}
+		}
+	}
+}
+
+func TestNarrowTaskDetailsHaveReadableHeightAndNoSideOverlap(t *testing.T) {
+	model := New(testApp(t), "http://127.0.0.1:12345")
+	model.page, model.logJobID = "queue", "synthetic-step"
+	model.jobs = []core.Job{{ID: model.logJobID, Name: strings.Repeat("Long synthetic name ", 12), Source: strings.Repeat("/source", 20),
+		Destination: strings.Repeat("/destination", 20), Status: "paused"}}
+	tester := ui.NewTester(model.view, 900, 560)
+	header, ok := tester.Find("任务详情")
+	if !ok {
+		t.Fatal("task details missing")
+	}
+	if header.X < 208 || header.X+header.W > 900-40 {
+		t.Fatalf("task details outside content: %v", header)
+	}
+	name, ok := tester.Find(model.jobs[0].Name)
+	if !ok || name.H < 18 {
+		t.Fatalf("task name clipped vertically: %v", name)
+	}
+	log, ok := tester.Find("日志")
+	if !ok || log.Y <= name.Y+name.H {
+		t.Fatalf("log overlaps detail: %v / %v", log, name)
 	}
 }
 

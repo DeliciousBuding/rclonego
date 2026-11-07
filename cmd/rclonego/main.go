@@ -19,6 +19,7 @@ import (
 	"github.com/DeliciousBuding/rclonego/internal/api"
 	"github.com/DeliciousBuding/rclonego/internal/cli"
 	"github.com/DeliciousBuding/rclonego/internal/core"
+	"github.com/DeliciousBuding/rclonego/internal/engine"
 	"github.com/DeliciousBuding/rclonego/internal/session"
 	desktop "github.com/DeliciousBuding/rclonego/internal/ui"
 )
@@ -85,7 +86,11 @@ func main() {
 		log.Fatal(err)
 	}
 	if rclonePath == "" {
-		rclonePath, _ = exec.LookPath("rclone")
+		if selected, err := (&engine.Manager{Dir: filepath.Join(dataDir, "engines")}).Selected(); err == nil {
+			rclonePath = selected.Path
+		} else {
+			rclonePath, _ = exec.LookPath("rclone")
+		}
 	}
 	store, err := core.OpenStore(dataDir)
 	if err != nil {
@@ -101,7 +106,7 @@ func main() {
 		log.Fatal(err)
 	}
 	server := &http.Server{Handler: handler.Handler(), ReadHeaderTimeout: 5 * time.Second,
-		ReadTimeout: 15 * time.Second, WriteTimeout: 30 * time.Second, IdleTimeout: 90 * time.Second}
+		ReadTimeout: 15 * time.Second, WriteTimeout: 11 * time.Minute, IdleTimeout: 90 * time.Second}
 	go func() {
 		if err := server.Serve(listener); err != nil && err != http.ErrServerClosed {
 			log.Printf("local API: %v", err)

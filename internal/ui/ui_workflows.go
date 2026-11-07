@@ -19,7 +19,7 @@ func (s *nativeUI) workflowsPage(c *ui.Context) {
 				s.jobWorkflow = true
 			})
 		})
-		ui.Scroll(c).Grow(1).MinHeight(0).Gap(18).Children(func() {
+		contentScroll(c).Grow(1).Gap(18).Children(func() {
 			sectionHeading(c, "已保存的工作流")
 			if len(s.workflows) == 0 {
 				emptyState(c, iconWorkflow, "保存一次，重复执行", "按目录分步复制，所有步骤完成后执行最终校验")
@@ -35,6 +35,10 @@ func (s *nativeUI) workflowsPage(c *ui.Context) {
 						id := definition.ID
 						s.run("启动工作流", func() error { _, err := s.app.StartWorkflow(id, ""); return err })
 					})
+					iconButton(c.Key("delete-definition-"+definition.ID), iconClose, "删除定义，保留执行记录").Disabled(s.busy).OnClick(func() {
+						id := definition.ID
+						s.run("删除定义", func() error { return s.app.DeleteDefinition(id) })
+					})
 				})
 			}
 			sectionHeading(c, "执行记录")
@@ -45,12 +49,18 @@ func (s *nativeUI) workflowsPage(c *ui.Context) {
 					continue
 				}
 				ui.Row(c.Key("run-report-"+run.ID)).Gap(10).Padding(12, 0).Children(func() {
-					ui.Column(c).Grow(1).Gap(3).Children(func() {
-						ui.Text(c, run.Name).FontSize(13).FontWeight(500)
+					ui.Column(c).Grow(1).MinWidth(0).Gap(3).Children(func() {
+						ui.Text(c, run.Name).FontSize(13).FontWeight(500).SingleLine().Tooltip(run.Name)
 						ui.Text(c, run.CreatedAt.Local().Format("01月02日 15:04")+" · "+fmt.Sprint(len(report.Steps))+" 个步骤").
 							FontSize(11).TextColor(t.TextMuted)
 					})
 					statusDot(c, statusLabel(report.Status), statusColor(c, report.Status))
+					if report.Status == "failed" || report.Status == "paused" || report.Status == "interrupted" || report.Status == "cancelled" {
+						ui.Button(c.Key("resume-run-"+run.ID), "恢复").Disabled(s.busy).OnClick(func() {
+							id := run.ID
+							s.run("恢复执行", func() error { return s.app.ActOnRun(id, "resume") })
+						})
+					}
 					ui.Button(c.Key("report-"+run.ID), "结果").Height(28).OnClick(func() {
 						var lines []string
 						lines = append(lines, run.Name+" · "+statusLabel(report.Status))

@@ -119,7 +119,7 @@ func (a *App) SetBandwidth(ctx context.Context, id, rate string) error {
 	if port == 0 {
 		return errors.New("running transfer not found")
 	}
-	if err := a.rclone.SetBandwidth(ctx, port, rate); err != nil {
+	if err := a.EngineClient().SetBandwidth(ctx, port, rate); err != nil {
 		return err
 	}
 	return a.store.Update(func(state *State) error {

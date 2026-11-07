@@ -7,35 +7,84 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 )
 
 func (s *nativeUI) resourcesPage(c *ui.Context) {
 	t := c.Theme()
-	ui.Scroll(c).Grow(1).Gap(22).Children(func() {
+	contentScroll(c).Grow(1).Gap(18).Children(func() {
 		ui.Row(c).Gap(10).Children(func() {
 			ui.Icon(c, iconResources).FontSize(25).TextColor(t.Accent)
-			ui.Column(c).Gap(4).Children(func() {
+			ui.Column(c).Grow(1).MinWidth(0).Gap(4).Children(func() {
 				ui.Text(c, "运行与资源").FontSize(22).FontWeight(600)
 				ui.Text(c, "资源计数每 15 秒采样一次，与 API 和 CLI 共用。").FontSize(12).TextColor(t.TextMuted)
 			})
 		})
-		ui.Row(c).Gap(32).Children(func() {
+		ui.Row(c).Gap(24).Wrap().Children(func() {
 			var cpu float64
 			var memory int64
 			threads := 0
+			cpuAvailable, memoryAvailable := len(s.resources.Processes) > 0, len(s.resources.Processes) > 0
 			for _, process := range s.resources.Processes {
 				cpu += process.CPUPercent
 				memory += process.MemoryBytes
 				threads += process.Threads
+				cpuAvailable = cpuAvailable && process.CPUAvailable
+				memoryAvailable = memoryAvailable && process.MemoryAvailable
 			}
-			s.metric(c, "CPU 总占用", fmt.Sprintf("%.1f%%", cpu))
-			s.metric(c, "私有提交内存", formatBytes(memory))
+			cpuText, memoryText := "—", "—"
+			if cpuAvailable {
+				cpuText = fmt.Sprintf("%.1f%%", cpu)
+			}
+			if memoryAvailable {
+				memoryText = formatBytes(memory)
+			}
+			s.metric(c, "CPU 总占用", cpuText)
+			s.metric(c, "进程内存", memoryText)
 			s.metric(c, "系统线程", fmt.Sprint(threads))
-			ui.Spacer(c)
-			ui.Text(c, fmt.Sprintf("%d 核 · %d 个 Go 协程", s.resources.LogicalCPUs, s.resources.Goroutines)).FontSize(11).TextColor(t.TextMuted)
 		})
+		ui.Text(c, fmt.Sprintf("%d 核 · %d 个 Go 协程", s.resources.LogicalCPUs, s.resources.Goroutines)).
+			FontSize(11).TextColor(t.TextMuted).Label("运行计数")
+		ui.Divider(c)
+		sectionHeading(c, "rclone 引擎")
+		ui.Text(c, core.ValueOr(s.version, "尚未安装引擎 · 窗口和设置仍可使用")).FontSize(12).TextColor(t.TextMuted)
+		ui.Row(c).Gap(8).Children(func() {
+			ui.PrimaryButton(c.Key("install-engine"), "下载推荐版本").Disabled(s.busy).OnClick(func() {
+				s.run("安装引擎", func() error {
+					ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+					defer cancel()
+					_, err := s.app.InstallEngine(ctx, "")
+					return err
+				})
+			})
+			ui.Text(c, "校验官方发行包，不修改系统 PATH").Grow(1).MinWidth(0).FontSize(11).TextColor(t.TextMuted)
+		})
+		ui.Row(c).Gap(8).Children(func() {
+			ui.TextInput(c.Key("engine-path"), &s.enginePath).Placeholder("已有 rclone 可执行文件路径").Grow(1).MinWidth(0).Label("引擎路径")
+			ui.Button(c.Key("select-engine"), "使用此引擎").Shrink(0).Disabled(s.busy || s.enginePath == "").OnClick(func() {
+				path := s.enginePath
+				s.run("选择引擎", func() error { _, err := s.app.SelectEngine(context.Background(), path); return err })
+			})
+		})
+		ui.Row(c).Gap(8).Children(func() {
+			ui.TextInput(c.Key("engine-archive"), &s.engineArchive).Placeholder("官方推荐版本 ZIP（离线安装）").Grow(1).MinWidth(0).Label("离线发行包路径")
+			ui.Button(c.Key("import-engine"), "导入发行包").Shrink(0).Disabled(s.busy || s.engineArchive == "").OnClick(func() {
+				path := s.engineArchive
+				s.run("导入引擎", func() error { _, err := s.app.InstallEngine(context.Background(), path); return err })
+			})
+		})
+		ui.Text(c, "活动任务保留启动时的引擎；新选择用于后续任务。").FontSize(11).TextColor(t.TextMuted)
+		sectionHeading(c, "后台运行")
+		ui.Text(c, map[bool]string{true: "关闭窗口后继续在托盘运行，选择“退出”才停止服务。", false: "当前桌面无法创建托盘，关闭窗口将退出服务。"}[s.trayAvailable]).FontSize(12).TextColor(t.TextMuted)
+		if ui.Checkbox(c.Key("open-at-login"), &s.openAtLogin, "登录时启动").Changed() {
+			if err := mygo.App.SetOpenAtLogin(s.openAtLogin); err != nil {
+				s.openAtLogin = mygo.App.OpenAtLogin()
+				s.setError(err)
+			}
+		}
 		ui.Divider(c)
 		sectionHeading(c, "进程")
 		if s.resources.Error != "" {
@@ -44,7 +93,7 @@ func (s *nativeUI) resourcesPage(c *ui.Context) {
 		ui.Column(c).Gap(0).Children(func() {
 			for _, process := range s.resources.Processes {
 				ui.Row(c).Padding(11, 0).Gap(16).BorderWidth(0, 0, 0.5, 0).BorderColor(t.Border).Children(func() {
-					ui.Column(c).Grow(1).Gap(3).Children(func() {
+					ui.Column(c).Grow(1).MinWidth(0).Gap(3).Children(func() {
 						ui.Text(c, processLabel(process, s.jobs, s.mounts, os.Getpid())).FontWeight(500).SingleLine()
 						ui.Text(c, fmt.Sprintf("PID %d · %d 个系统线程", process.PID, process.Threads)).FontSize(11).TextColor(t.TextMuted)
 						if process.Error != "" {
@@ -63,7 +112,7 @@ func (s *nativeUI) resourcesPage(c *ui.Context) {
 				})
 			}
 		})
-		ui.Text(c, "CPU 按整机 100% 计算；内存为私有提交量。系统线程由引擎调度。").FontSize(11).TextColor(t.TextMuted)
+		ui.Text(c, "CPU 按整机 100% 计算；Windows 内存为私有提交，Linux 为私有驻留估算。不可读时显示未知。").FontSize(11).TextColor(t.TextMuted)
 		ui.Divider(c)
 		sectionHeading(c, "运行参数")
 		for _, job := range s.jobs {

@@ -60,43 +60,54 @@ type nativeUI struct {
 	mountMax     string
 	mountAge     string
 
-	jobName          string
-	jobOperation     string
-	jobSource        string
-	jobDestination   string
-	jobIncludes      string
-	jobTransfers     string
-	jobCheckers      string
-	jobBandwidth     string
-	jobChunk         string
-	jobBuffer        string
-	jobSchedule      string
-	liveBandwidth    string
-	liveTarget       string
-	defaultTransfers string
-	defaultCheckers  string
-	defaultChunk     string
-	defaultBuffer    string
-	defaultBandwidth string
-	defaultCPU       string
-	jobCPU           string
-	showDefaults     bool
-	jobChecksum      bool
-	jobCreateDirs    bool
-	jobAllowDelete   bool
-	jobSelected      int
-	jobTable         ui.ListState
-	logJobID         string
-	logText          string
-	jobSpeeds        map[string][]float64
-	showJobForm      bool
-	editingJobID     string
-	jobWorkflow      bool
-	jobProof         string
-	saveDefinition   bool
-	workflows        []core.WorkflowDefinition
-	runs             []core.Run
-	runReport        string
+	jobName             string
+	jobOperation        string
+	jobSource           string
+	jobDestination      string
+	jobIncludes         string
+	jobTransfers        string
+	jobCheckers         string
+	jobBandwidth        string
+	jobChunk            string
+	jobBuffer           string
+	jobSchedule         string
+	liveBandwidth       string
+	liveTarget          string
+	defaultTransfers    string
+	defaultCheckers     string
+	defaultChunk        string
+	defaultBuffer       string
+	defaultBandwidth    string
+	defaultCPU          string
+	jobCPU              string
+	showDefaults        bool
+	jobChecksum         bool
+	jobCreateDirs       bool
+	jobAllowDelete      bool
+	jobSelected         int
+	jobTable            ui.ListState
+	logJobID            string
+	logText             string
+	jobSpeeds           map[string][]float64
+	showJobForm         bool
+	editingJobID        string
+	jobWorkflow         bool
+	jobProof            string
+	saveDefinition      bool
+	workflows           []core.WorkflowDefinition
+	runs                []core.Run
+	runReport           string
+	enginePath          string
+	engineArchive       string
+	providers           []core.Provider
+	account             core.AccountView
+	accountAnswer       string
+	accountClientID     string
+	accountClientSecret string
+	openAtLogin         bool
+	trayAvailable       bool
+	jobPreview          core.Preview
+	previewOnly         bool
 }
 
 func New(app *core.App, api string) *nativeUI {
@@ -141,6 +152,16 @@ func (s *nativeUI) refresh(ctx context.Context, includeRemoteState bool) {
 	if ctx.Err() != nil {
 		return
 	}
+	if s.win == nil {
+		return
+	}
+	s.win.Update(func() {
+		if s.account.ID != "" {
+			if account, err := s.app.Account(s.account.ID); err == nil {
+				s.account = account
+			}
+		}
+	})
 	state := s.app.Snapshot()
 	runtime := s.app.RuntimeSnapshot()
 	activity := core.ActivityStatus{}
@@ -181,7 +202,7 @@ func (s *nativeUI) refresh(ctx context.Context, includeRemoteState bool) {
 			s.defaultTransfers, s.defaultCheckers, s.defaultCPU = itoa(d.Transfers), itoa(d.Checkers), itoa(d.CPUParallelism)
 			s.defaultChunk, s.defaultBuffer, s.defaultBandwidth = d.ChunkSize, d.BufferSize, d.Bandwidth
 		}
-		if includeRemoteState && runtime.CatalogError != "" {
+		if includeRemoteState && runtime.CatalogError != "" && runtime.Version != "" {
 			s.setError(fmt.Errorf("%s", runtime.CatalogError))
 		}
 		s.jobs, s.paused, s.activity = jobs, state.QueuePaused, activity
@@ -272,7 +293,7 @@ func (s *nativeUI) mountsPage(c *ui.Context) {
 				s.beginMountEdit(core.MountConfig{})
 			})
 		})
-		ui.Scroll(c).Grow(1).Gap(0).Padding(0, 2).Children(func() {
+		contentScroll(c).Grow(1).Gap(0).Children(func() {
 			for _, mount := range s.mounts {
 				s.mountRow(c, mount)
 			}
@@ -286,8 +307,8 @@ func (s *nativeUI) mountRow(c *ui.Context, mount core.MountView) {
 		ui.Box(c).Size(42, 34).Radius(8).Center().Background(t.Accent.Alpha(0.10)).Children(func() {
 			ui.Text(c, mount.Drive).FontSize(14).Bold().TextColor(t.Accent)
 		})
-		ui.Column(c).Grow(1).Gap(2).Children(func() {
-			ui.Text(c, mount.Name).Bold()
+		ui.Column(c).Grow(1).MinWidth(0).Gap(2).Children(func() {
+			ui.Text(c, mount.Name).Bold().SingleLine().Tooltip(mount.Name)
 			ui.Text(c, mount.Remote).FontSize(12).TextColor(t.TextMuted).SingleLine()
 		})
 		if mount.Running {
@@ -357,6 +378,7 @@ func (s *nativeUI) addJob() {
 		Bandwidth: s.jobBandwidth, Checksum: s.jobChecksum,
 		CreateDirs: s.jobCreateDirs, AllowDelete: s.jobAllowDelete,
 		ChunkSize: s.jobChunk, BufferSize: s.jobBuffer,
+		PreviewID: s.jobPreview.ID,
 	}
 	cpus, err := strconv.Atoi(s.jobCPU)
 	if err != nil {
@@ -376,6 +398,18 @@ func (s *nativeUI) addJob() {
 		if value := strings.TrimSpace(line); value != "" {
 			request.Includes = append(request.Includes, value)
 		}
+	}
+	if s.previewOnly || request.Operation == "sync" && s.jobPreview.ID == "" {
+		s.previewOnly = false
+		var preview core.Preview
+		s.runAfter("预览更改", func() error {
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+			defer cancel()
+			var err error
+			preview, err = s.app.PreviewJob(ctx, request)
+			return err
+		}, func() { s.jobPreview = preview })
+		return
 	}
 	editID, workflow, proof := s.editingJobID, s.jobWorkflow, s.jobProof
 	saveDefinition := s.saveDefinition
@@ -406,6 +440,7 @@ func (s *nativeUI) addJob() {
 }
 
 func (s *nativeUI) beginJobForm(job *core.Job) {
+	s.jobPreview, s.previewOnly = core.Preview{}, false
 	s.showJobForm, s.showJobAdvanced, s.jobWorkflow = true, false, false
 	s.saveDefinition = false
 	s.editingJobID, s.jobProof = "", ""
@@ -520,6 +555,8 @@ func statusColor(c *ui.Context, status string) ui.Color {
 
 func statusLabel(status string) string {
 	switch status {
+	case "paused":
+		return "已暂停"
 	case "pending":
 		return "等待中"
 	case "running":

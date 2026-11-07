@@ -38,6 +38,8 @@ func formatBytes(n int64) string {
 
 func statusLabel(status string) string {
 	switch status {
+	case "paused":
+		return "已暂停"
 	case "pending":
 		return "等待"
 	case "running":

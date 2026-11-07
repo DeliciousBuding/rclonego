@@ -11,6 +11,11 @@ import (
 
 func itoa(value int) string { return strconv.Itoa(value) }
 
+// MyGo scrollbars overlay the viewport. Reserve a strip for the visible bar.
+func contentScroll(c *ui.Context) ui.Element {
+	return ui.Scroll(c).MinWidth(0).MinHeight(0).Padding(0, 16, 0, 0)
+}
+
 //go:embed assets/google-drive.svg
 var googleDriveSVG []byte
 

@@ -119,6 +119,9 @@ func pathExists(path string) bool {
 }
 
 func ValidateMountConfig(cfg MountConfig) error {
+	if cfg.ID == "" || strings.ContainsAny(cfg.ID, `/\\`) || validateSafeText(cfg.ID) != nil {
+		return errors.New("invalid mount id")
+	}
 	if strings.TrimSpace(cfg.Name) == "" {
 		return errors.New("mount name is required")
 	}
@@ -131,6 +134,15 @@ func ValidateMountConfig(cfg MountConfig) error {
 	}
 	if cfg.CacheDir == "" || strings.ContainsAny(cfg.CacheDir, "\r\n\x00") {
 		return errors.New("invalid cache directory")
+	}
+	if cfg.CacheMax != "" && !bandwidthPattern.MatchString(cfg.CacheMax) {
+		return errors.New("invalid cache size")
+	}
+	if cfg.CacheMaxAge != "" {
+		duration, err := time.ParseDuration(cfg.CacheMaxAge)
+		if err != nil || duration <= 0 {
+			return errors.New("invalid cache age")
+		}
 	}
 	return nil
 }
@@ -193,17 +205,38 @@ func startMount(ctx context.Context, client RcloneClient, dataDir string, cfg Mo
 		return 0, err
 	}
 	pid := cmd.Process.Pid
-	if err := cmd.Process.Release(); err != nil {
-		return 0, err
-	}
+	done := make(chan error, 1)
+	go func() { done <- cmd.Wait() }()
 	deadline := time.Now().Add(8 * time.Second)
 	for time.Now().Before(deadline) {
 		if pathExists(cfg.Drive + `\`) {
 			return pid, nil
 		}
-		time.Sleep(250 * time.Millisecond)
+		select {
+		case <-ctx.Done():
+			_ = cmd.Process.Kill()
+			<-done
+			return 0, ctx.Err()
+		case <-done:
+			return 0, errors.New("mount process exited before drive became ready")
+		case <-time.After(250 * time.Millisecond):
+		}
 	}
-	return pid, errors.New("mount process started but drive did not become ready")
+	_ = cmd.Process.Kill()
+	<-done
+	return 0, errors.New("mount did not become ready; failed process stopped")
+}
+
+func mountDependency() Diagnostic {
+	for _, root := range []string{os.Getenv("ProgramFiles(x86)"), os.Getenv("ProgramFiles")} {
+		if root == "" {
+			continue
+		}
+		if _, err := os.Stat(filepath.Join(root, "WinFsp", "bin", "winfsp-x64.dll")); err == nil {
+			return Diagnostic{ID: "mount", Status: "ready", Message: "WinFsp installation detected"}
+		}
+	}
+	return Diagnostic{ID: "mount", Status: "missing", Message: "WinFsp is not installed; transfers remain available", NextAction: "install WinFsp from https://winfsp.dev"}
 }
 
 func stopMount(ctx context.Context, cfg MountConfig, ownedPID int, rcToken string) error {

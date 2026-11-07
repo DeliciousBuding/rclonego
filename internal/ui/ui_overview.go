@@ -10,12 +10,12 @@ import (
 
 func (s *nativeUI) overviewPage(c *ui.Context) {
 	t := c.Theme()
-	ui.Scroll(c).Grow(1).MinHeight(0).Gap(24).Children(func() {
+	contentScroll(c).Grow(1).Gap(24).Children(func() {
 		s.activityCard(c)
 		ui.Divider(c)
 		ui.Row(c).Gap(32).AlignItems(ui.Stretch).Children(func() {
-			s.activeMountCard(c).Basis(0).Grow(1)
-			s.recentJobCard(c).Basis(0).Grow(1)
+			s.activeMountCard(c).Basis(0).Grow(1).MinWidth(0)
+			s.recentJobCard(c).Basis(0).Grow(1).MinWidth(0)
 		})
 		ui.Row(c).Gap(8).Padding(4, 0).Children(func() {
 			ui.Text(c, fmt.Sprintf("%d 个云端账户", len(s.remotes))).FontSize(11).TextColor(t.TextMuted)
@@ -216,7 +216,7 @@ func (s *nativeUI) activeMountCard(c *ui.Context) ui.Element {
 				BorderColor(c.Theme().Border).Children(func() {
 				ui.Icon(c, iconMounts).FontSize(18).TextColor(c.Theme().TextMuted)
 				ui.Text(c, mount.Drive).Width(28).FontWeight(500)
-				ui.Text(c, mount.Name).Grow(1).SingleLine()
+				ui.Text(c, mount.Name).Grow(1).MinWidth(0).SingleLine().Tooltip(mount.Name)
 				label, color := "未挂载", c.Theme().TextMuted
 				if mount.Running {
 					label, color = "已挂载", c.Theme().Success
@@ -245,7 +245,7 @@ func (s *nativeUI) recentJobCard(c *ui.Context) ui.Element {
 			ui.Row(c).Padding(10, 0).Gap(10).BorderWidth(0, 0, 0.5, 0).
 				BorderColor(c.Theme().Border).Children(func() {
 				ui.Icon(c, iconFile).FontSize(18).TextColor(c.Theme().TextMuted)
-				ui.Column(c).Grow(1).Gap(2).Children(func() {
+				ui.Column(c).Grow(1).MinWidth(0).Gap(2).Children(func() {
 					ui.Text(c, job.Name).SingleLine()
 					ui.Text(c, operationLabel(job.Operation)).FontSize(11).TextColor(c.Theme().TextMuted)
 				})

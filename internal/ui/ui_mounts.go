@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/DeliciousBuding/rclonego/internal/core"
 	"github.com/egoist/mygo/ui"
+	"runtime"
 	"strings"
 )
 
@@ -11,7 +12,11 @@ func (s *nativeUI) mountEditor(c *ui.Context) {
 	ui.Form(c, func() {
 		ui.Field(c, "名称", func() { ui.TextInput(c.Key("mount-name"), &s.mountName).AutoFocus() })
 		ui.Field(c, "远端", func() { ui.TextInput(c.Key("mount-remote"), &s.mountRemote).Placeholder("drive:") })
-		ui.Field(c, "盘符", func() { ui.TextInput(c.Key("mount-drive"), &s.mountDrive).Placeholder("K:") })
+		label, placeholder := "挂载目录", "/path/to/empty-directory"
+		if runtime.GOOS == "windows" {
+			label, placeholder = "盘符", "K:"
+		}
+		ui.Field(c, label, func() { ui.TextInput(c.Key("mount-drive"), &s.mountDrive).Placeholder(placeholder) })
 		ui.Field(c, "缓存目录", func() { ui.TextInput(c.Key("mount-cache"), &s.mountCache).Placeholder("选择本机 SSD 目录") })
 	})
 	ui.Collapsible(c.Key("mount-advanced"), "更多选项", &s.showMountAdvanced, func() {
@@ -28,7 +33,8 @@ func (s *nativeUI) mountEditor(c *ui.Context) {
 }
 
 func (s *nativeUI) saveMount() {
-	cfg := core.MountConfig{ID: s.mountID, Name: strings.TrimSpace(s.mountName), Remote: core.EnsureColonRemote(strings.TrimSpace(s.mountRemote)), Drive: strings.ToUpper(strings.TrimSpace(s.mountDrive)), VolumeName: strings.TrimSpace(s.mountVolume), CacheDir: strings.TrimSpace(s.mountCache), CacheMax: strings.TrimSpace(s.mountMax), CacheMaxAge: strings.TrimSpace(s.mountAge)}
+	target := core.NormalizeMountTarget(s.mountDrive)
+	cfg := core.MountConfig{ID: s.mountID, Name: strings.TrimSpace(s.mountName), Remote: core.EnsureColonRemote(strings.TrimSpace(s.mountRemote)), Drive: target, VolumeName: strings.TrimSpace(s.mountVolume), CacheDir: strings.TrimSpace(s.mountCache), CacheMax: strings.TrimSpace(s.mountMax), CacheMaxAge: strings.TrimSpace(s.mountAge)}
 	if cfg.ID == "" {
 		id, err := core.RandomID()
 		if err != nil {
@@ -41,18 +47,16 @@ func (s *nativeUI) saveMount() {
 		if err := core.ValidateMountConfig(cfg); err != nil {
 			return err
 		}
-		return s.app.UpdateState(func(state *core.State) error {
-			for i := range state.Mounts {
-				if state.Mounts[i].ID == cfg.ID {
-					state.Mounts[i] = cfg
-					return nil
-				}
-				if strings.EqualFold(state.Mounts[i].Drive, cfg.Drive) {
-					return fmt.Errorf("drive %s is already mapped", cfg.Drive)
-				}
+		mounts := s.app.Snapshot().Mounts
+		for i := range mounts {
+			if mounts[i].ID == cfg.ID {
+				mounts[i] = cfg
+				return s.app.SaveMounts(mounts)
 			}
-			state.Mounts = append(state.Mounts, cfg)
-			return nil
-		})
+			if core.MountTargetsEqual(mounts[i].Drive, cfg.Drive) {
+				return fmt.Errorf("target %s is already mapped", cfg.Drive)
+			}
+		}
+		return s.app.SaveMounts(append(mounts, cfg))
 	}, func() { s.editingMount = false })
 }

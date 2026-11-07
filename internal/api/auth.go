@@ -1,10 +1,12 @@
 package api
 
 import (
+	"crypto/sha256"
 	"crypto/subtle"
 	"errors"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/DeliciousBuding/rclonego/internal/core"
 )
@@ -21,8 +23,18 @@ func (a *Server) authenticate(next http.Handler) http.Handler {
 		if r.URL.Path != "/api/v1/health" {
 			token := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
 			if subtle.ConstantTimeCompare([]byte(token), []byte(a.token)) != 1 {
-				writeError(w, http.StatusUnauthorized, "local API token required")
-				return
+				hash := sha256.Sum256([]byte(token))
+				a.tokensMu.Lock()
+				grant, exists := a.readTokens[hash]
+				a.tokensMu.Unlock()
+				if !exists || time.Now().After(grant.ExpiresAt) {
+					writeError(w, http.StatusUnauthorized, "local API token required")
+					return
+				}
+				if r.Method != http.MethodGet {
+					writeError(w, 403, "delegated token is read-only")
+					return
+				}
 			}
 		}
 		if origin := r.Header.Get("Origin"); origin != "" {
