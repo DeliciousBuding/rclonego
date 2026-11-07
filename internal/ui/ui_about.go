@@ -1,9 +1,11 @@
 package desktop
 
 import (
+	distribution "github.com/DeliciousBuding/rclonego"
 	"github.com/DeliciousBuding/rclonego/internal/version"
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
+	"sort"
 )
 
 const projectURL = "https://github.com/DeliciousBuding/rclonego"
@@ -37,4 +39,22 @@ func (s *nativeUI) aboutContent(c *ui.Context) {
 	})
 	ui.Text(c, "WinFsp / FUSE 是单独安装的挂载组件。").FontSize(11).TextColor(t.TextMuted)
 	ui.Text(c, "许可证和图标来源见仓库 docs/third-party.md。").FontSize(11).TextColor(t.TextMuted)
+	actionButton(c.Key("licenses"), iconFile, "查看许可文本", false).OnClick(func() { s.showAbout = false; s.showLicenses = true })
+}
+
+var licenseDocuments = distribution.LicenseDocuments()
+
+func (s *nativeUI) licensesContent(c *ui.Context) {
+	names := make([]string, 0, len(licenseDocuments))
+	for name := range licenseDocuments {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	if s.licenseChoice == "" {
+		s.licenseChoice = "LICENSE"
+	}
+	ui.Select(c.Key("license-document"), &s.licenseChoice, names).Label("许可文档")
+	contentScroll(c).Height(280).Children(func() {
+		ui.Text(c, licenseDocuments[s.licenseChoice]).FontSize(11).TextColor(c.Theme().TextMuted)
+	})
 }

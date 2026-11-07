@@ -312,6 +312,7 @@ func (s *nativeUI) editOverlays(c *ui.Context) {
 	dialog("mount-editor", &s.editingMount, "映射配置", 500, func() { s.mountEditor(c) })
 	dialog("remote-editor", &s.showRemoteForm, "添加云端账户", 460, func() { s.remoteEditor(c) })
 	dialog("about", &s.showAbout, "关于", 440, func() { s.aboutContent(c) })
+	dialog("licenses", &s.showLicenses, "许可文本", 560, func() { s.licensesContent(c) })
 }
 
 func (s *nativeUI) jobForm(c *ui.Context) {

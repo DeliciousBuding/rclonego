@@ -19,6 +19,8 @@ one persistent scheduler.
 This is an independent community project under active alpha development.
 It is not an official rclone or MyGo application.
 
+<p align="center"><img src="assets/screenshots/resources-light.png" width="900" alt="RcloneGo native resource and engine controls"></p>
+
 ## What it does
 
 - **Transfer with evidence.** Copy, single-file copy, one-way mirror and checks.
@@ -113,3 +115,5 @@ Read [CONTRIBUTING](CONTRIBUTING.md) for focused changes and UI verification,
 [releasing](docs/releasing.md) for packaging, and [SECURITY](SECURITY.md) for private
 security reports. Source uses [Apache-2.0](LICENSE); dependencies and service
 marks retain their [own terms](docs/third-party.md).
+License texts are embedded in the portable executable and available through
+About or `rclonego licenses`.

@@ -9,6 +9,15 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--directory", default="dist")
 args = parser.parse_args()
 root = Path(args.directory)
+if not (root/"SHA256SUMS").is_file():
+    import subprocess
+    import sys
+    manifests=list(root.rglob("SHA256SUMS"))
+    if not manifests:
+        raise SystemExit("no release checksum manifests")
+    for path in manifests:
+        subprocess.run([sys.executable,__file__,"--directory",str(path.parent)],check=True)
+    raise SystemExit(0)
 manifest = root / "SHA256SUMS"
 for line in manifest.read_text(encoding="utf-8").splitlines():
     expected, name = line.split("  ", 1)

@@ -12,6 +12,8 @@ RcloneGo is Apache-2.0. This license does not replace dependency licenses.
 | rclone | MIT | Separately selected transfer engine |
 
 Dependency license texts are in `third_party/licenses`.
+The standalone executable embeds these notices. Read them in About or with
+`rclonego licenses`; copying only the executable preserves the license texts.
 
 RcloneGo's geometric mark and action icons are project assets. System fonts are
 provided by the operating system; Apple fonts and SF Symbols are not bundled.

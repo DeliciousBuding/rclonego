@@ -14,9 +14,9 @@ root = Path(__file__).resolve().parents[1]
 version = json.loads((root / "mygo.json").read_text(encoding="utf-8"))["version"]
 operating_system, architecture = args.platform.split("/")
 build = root / "build" / f"{operating_system}-{architecture}"
-dist = root / "dist"
-dist.mkdir(exist_ok=True)
 prefix = f"rclonego-{version}-{operating_system}-{architecture}"
+dist = root / "dist" / prefix
+dist.mkdir(parents=True,exist_ok=True)
 if operating_system == "windows":
     executable = dist / f"{prefix}.exe"
     shutil.copy2(build / "RcloneGo.exe", executable)

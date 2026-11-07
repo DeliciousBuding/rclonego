@@ -48,3 +48,9 @@ SVG rendering tests cover regression boundaries alongside native inspection.
 
 SVG service assets use paths supported by MyGo, avoiding embedded images, masks
 and CSS-dependent fills. Their [sources and licenses](third-party.md) are recorded.
+
+Brand assets include the [wordmark](../assets/wordmark.svg),
+[standalone mark](../assets/mark.svg) and [motion study](../assets/motion.gif).
+The app uses the static mark to avoid continuous animation at idle.
+The [account screenshot](../assets/screenshots/accounts-light.png) uses an empty
+synthetic profile with no account credentials.

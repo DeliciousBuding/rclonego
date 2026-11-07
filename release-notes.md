@@ -12,6 +12,8 @@ The preview includes verified rclone installation/offline import, isolated
 provider-driven account sessions, copy/mirror/check workflows, retained attempts,
 pause/resume, tray operation, CLI JSON, OpenAPI and read-only observation tokens.
 Repository guides, Issue/PR forms and Release notes support English and Chinese.
+The portable executable embeds license notices, available in About or
+`rclonego licenses`.
 
 CI runs once per main push or PR, cancels stale PR jobs, and uses one verified
 integration engine per job. Linux runs the race detector. Tag versions are checked
@@ -39,6 +41,7 @@ automatically.
 预览版包括官方引擎校验与离线导入、独立账户配置会话、复制/镜像/校验工作流、
 尝试记录、暂停恢复、托盘运行、CLI JSON、OpenAPI 和只读观察 token。
 README、贡献说明、Issue/PR 表单与 Release 说明支持中英文。
+便携 exe 已嵌入许可文本，可通过“关于”或 `rclonego licenses` 查看。
 
 CI 只对 main push 和 PR 验证，取消过时 PR 任务；每个 job 只准备一次校验过的测试引擎。
 Linux 运行 race 检查。tag 与版本一致后才打包，平台校验和与归档内容检查通过后组装草稿发行。

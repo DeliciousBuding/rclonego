@@ -7,6 +7,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	distribution "github.com/DeliciousBuding/rclonego"
 	"github.com/DeliciousBuding/rclonego/internal/api"
 	"github.com/DeliciousBuding/rclonego/internal/core"
 	"github.com/DeliciousBuding/rclonego/internal/session"
@@ -67,6 +68,7 @@ const cliHelp = `RcloneGo — 本机数据工作台
   jobs pause <ID>                            中断当前任务，保留可恢复状态
   events [--after <cursor>] [--limit <count>] 持久状态事件，最多 500 条
   schema                                    离线输出 OpenAPI 契约
+  licenses                                  离线查看随程序嵌入的许可文本
   diagnostics --json                        导出不含路径、账户、日志的诊断数据
   engine status|install [--archive <zip>]|select <path>
   accounts providers|create --file <json>|show <ID>|answer <ID> --stdin|cancel <ID>
@@ -98,7 +100,7 @@ func IsCLI(args []string) bool {
 	switch args[0] {
 	case "status", "jobs", "mounts", "remotes", "queue", "theme", "api", "help", "--help", "-h", "--version":
 		return true
-	case "resources", "bandwidth", "workflow", "workflows", "runs", "doctor", "settings", "external", "engine", "accounts", "events", "schema", "diagnostics":
+	case "resources", "bandwidth", "workflow", "workflows", "runs", "doctor", "settings", "external", "engine", "accounts", "events", "schema", "diagnostics", "licenses":
 		return true
 	case "--api", "--json", "--timeout":
 		return true
@@ -118,6 +120,25 @@ func Run(args []string, stdout, stderr io.Writer) int {
 	}
 	if command[0] == "--version" {
 		fmt.Fprintln(stdout, appVersion)
+		return 0
+	}
+	if command[0] == "licenses" {
+		if len(command) != 1 {
+			return cliError(stderr, options.json, errors.New("licenses takes no arguments"))
+		}
+		documents := distribution.LicenseDocuments()
+		if options.json {
+			_ = json.NewEncoder(stdout).Encode(documents)
+			return 0
+		}
+		names := make([]string, 0, len(documents))
+		for name := range documents {
+			names = append(names, name)
+		}
+		sort.Strings(names)
+		for _, name := range names {
+			fmt.Fprintf(stdout, "%s\n\n%s\n", name, documents[name])
+		}
 		return 0
 	}
 	if command[0] == "schema" {

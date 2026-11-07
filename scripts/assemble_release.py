@@ -8,9 +8,8 @@ import sys
 source, destination = map(Path, sys.argv[1:3])
 destination.mkdir(exist_ok=True)
 seen = set()
-for platform in sorted(source.iterdir()):
-    if not platform.is_dir():
-        continue
+for manifest in sorted(source.rglob("SHA256SUMS")):
+    platform=manifest.parent
     subprocess.run([sys.executable, "scripts/check_artifacts.py", "--directory", str(platform)], check=True)
     for line in (platform / "SHA256SUMS").read_text(encoding="utf-8").splitlines():
         expected, name = line.split("  ", 1)

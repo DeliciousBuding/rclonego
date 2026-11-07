@@ -17,6 +17,8 @@ RcloneGo 是管理传输、挂载与校验的原生桌面客户端，由
 
 项目处于 alpha 开发阶段，是独立社区项目，不代表 rclone 或 MyGo 官方。
 
+<p align="center"><img src="assets/screenshots/resources-light.png" width="900" alt="RcloneGo 原生资源与引擎管理"></p>
+
 ## 主要能力
 
 - **可核验的传输。** 复制、单文件复制、单向镜像与校验。保存工作流，
@@ -106,3 +108,4 @@ Windows 构建添加 `--installer` 生成安装器。
 贡献和界面验收见 [CONTRIBUTING](CONTRIBUTING.md)，
 打包见[发行指南](docs/releasing.md)，私密安全报告见 [SECURITY](SECURITY.md)。
 源码采用 [Apache-2.0](LICENSE)，依赖与服务标志保留[各自的许可](docs/third-party.md)。
+便携 exe 已嵌入许可文本，可在“关于”或 `rclonego licenses` 中查看。

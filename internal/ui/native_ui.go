@@ -109,6 +109,8 @@ type nativeUI struct {
 	jobPreview          core.Preview
 	previewOnly         bool
 	showAbout           bool
+	showLicenses        bool
+	licenseChoice       string
 }
 
 func New(app *core.App, api string) *nativeUI {
