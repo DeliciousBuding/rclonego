@@ -58,18 +58,23 @@ func TestWorkflowRecoveryKeepsAttemptsAndVerifiesContent(t *testing.T) {
 	observed := false
 	for time.Now().Before(deadline) {
 		jobs := app.Snapshot().Jobs
-		if len(jobs) > 0 && jobs[0].PID > 0 && jobs[0].Bytes > 0 {
-			observed = true
+		for _, job := range jobs {
+			if job.Status == "running" && job.PID > 0 {
+				observed = true
+				break
+			}
+		}
+		if observed {
 			break
 		}
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(5 * time.Millisecond)
 	}
 	app.Close()
 	if err := store.Close(); err != nil {
 		t.Fatal(err)
 	}
 	if !observed {
-		t.Fatal("did not observe real file transfer before interruption")
+		t.Fatal("did not observe a real engine process before interruption")
 	}
 	store, err = OpenStore(filepath.Join(dir, "state"))
 	if err != nil {
@@ -79,7 +84,15 @@ func TestWorkflowRecoveryKeepsAttemptsAndVerifiesContent(t *testing.T) {
 	app = NewApp(store, engine, filepath.Join(dir, "state"))
 	app.ConfigureEngine(config, strings.Repeat("t", 64))
 	snapshot := app.Snapshot()
-	if snapshot.Jobs[0].Status != "interrupted" || len(snapshot.Attempts) == 0 || snapshot.Attempts[0].Status != "interrupted" {
+	// Local copy/clone may finish a step before the next polling sample.
+	// Assert the step actually interrupted, rather than assuming the first.
+	interrupted := map[string]bool{}
+	for _, attempt := range snapshot.Attempts {
+		if attempt.Status == "interrupted" {
+			interrupted[attempt.StepID] = true
+		}
+	}
+	if len(interrupted) == 0 {
 		t.Fatalf("interruption was not retained: %+v", snapshot.Attempts)
 	}
 	for _, job := range snapshot.Jobs {
@@ -113,7 +126,13 @@ func TestWorkflowRecoveryKeepsAttemptsAndVerifiesContent(t *testing.T) {
 	if report.Status != "completed" || report.Verification != "content_compared" {
 		t.Fatalf("run did not complete verified: %+v", report)
 	}
-	if len(report.Attempts) < 4 || report.Steps[0].Attempt != 2 {
+	retried := false
+	for _, step := range report.Steps {
+		if interrupted[step.ID] && step.Attempt >= 2 {
+			retried = true
+		}
+	}
+	if len(report.Attempts) < 4 || !retried {
 		t.Fatalf("previous attempt was overwritten: %+v", report.Attempts)
 	}
 	actual, err := os.ReadFile(filepath.Join(destination, "part-a", "sample.bin"))
