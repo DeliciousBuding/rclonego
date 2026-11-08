@@ -18,6 +18,13 @@ system Glass material. Toolbar buttons sit directly on that material; transient 
 use MyGo Glass over the content. A fine canvas border separates content without
 adding another full-window blur.
 
+Dark appearance uses a lighter cool-gray canvas, pale blue accents and a faint
+blue-white tint over the native material. Selection uses the same muted accent
+instead of a separate saturated blue. Primary controls use dark text on the pale
+accent for contrast. The base is MyGo's matching light/dark theme, preserving its
+native scrollbar, selection and inactive-control behavior. Text-heavy content
+stays opaque; transparency is concentrated in navigation and window chrome.
+
 ## Window frame and navigation
 
 Windows and Linux keep system decorations, including minimize, maximize/restore,
@@ -96,6 +103,7 @@ and recovery stays in the fixed action row. Successful copying does not imply
 separate content verification.
 
 These choices follow [Apple's layout guidance](https://developer.apple.com/design/human-interface-guidelines/layout),
+[Apple's material guidance](https://developer.apple.com/design/human-interface-guidelines/materials),
 [Fluent productivity guidance](https://learn.microsoft.com/en-us/windows/apps/get-started/line-of-business/design-for-lob),
 and [Mica layering](https://learn.microsoft.com/en-us/windows/apps/design/style/mica).
 Operation forms also follow [Rclone UI's path-first and collapsible-options pattern](https://rcloneui.com/docs/ui/operations)

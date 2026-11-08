@@ -3,6 +3,7 @@ package desktop
 import (
 	"github.com/DeliciousBuding/rclonego/internal/core"
 	"github.com/DeliciousBuding/rclonego/internal/version"
+	"math"
 	"strings"
 	"testing"
 
@@ -203,6 +204,46 @@ func TestWindowMaterialAndCaptionClearance(t *testing.T) {
 		tester.SetWindowActive(true)
 		if pixel := tester.Image().RGBAAt(100, 300); pixel.A >= 128 {
 			t.Fatalf("%s active tint obscures the native material: %v", theme, pixel)
+		}
+	}
+	for _, preferences := range []ui.Preferences{
+		{ReduceTransparency: true}, {HighContrast: true},
+	} {
+		tester.SetPreferences(preferences)
+		if pixel := tester.Image().RGBAAt(100, 300); pixel.A != 255 {
+			t.Fatalf("accessibility preference leaves chrome transparent: preferences=%+v pixel=%v", preferences, pixel)
+		}
+	}
+}
+
+func TestThemeTextContrastAcrossAppearance(t *testing.T) {
+	luminance := func(c ui.Color) float64 {
+		linear := func(value uint8) float64 {
+			v := float64(value) / 255
+			if v <= 0.04045 {
+				return v / 12.92
+			}
+			return math.Pow((v+0.055)/1.055, 2.4)
+		}
+		return 0.2126*linear(c.R) + 0.7152*linear(c.G) + 0.0722*linear(c.B)
+	}
+	for _, dark := range []bool{false, true} {
+		theme := modernTheme(dark, ui.Preferences{})
+		for _, pair := range []struct {
+			name       string
+			text, fill ui.Color
+		}{
+			{"body", theme.Text, theme.Background},
+			{"secondary", theme.TextMuted, theme.Background},
+			{"primary", theme.AccentText, theme.Accent},
+			{"primary hover", theme.AccentText, theme.AccentHover},
+			{"primary pressed", theme.AccentText, theme.AccentPressed},
+		} {
+			text, fill := luminance(pair.text), luminance(pair.fill)
+			ratio := (max(text, fill) + 0.05) / (min(text, fill) + 0.05)
+			if ratio < 4.5 {
+				t.Fatalf("dark=%v %s: text contrast %.2f is below 4.5", dark, pair.name, ratio)
+			}
 		}
 	}
 }
