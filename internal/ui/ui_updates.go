@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/DeliciousBuding/rclonego/internal/core"
+	"github.com/DeliciousBuding/rclonego/internal/version"
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/plugins/updater"
 	nativeupdater "github.com/egoist/mygo/plugins/updater/native"
@@ -37,7 +38,7 @@ func configureUpdates(_ *core.App) {
 	}))
 	mygo.App.WhenReady(func() {
 		updateSettings.ready = true
-		updateSettings.channel = "stable"
+		updateSettings.channel = defaultUpdateChannel()
 		directory, err := mygo.App.Path(mygo.PathUserData)
 		if err == nil {
 			updateSettings.file = filepath.Join(directory, "update-channel.json")
@@ -68,7 +69,7 @@ func updatesMenuItem() *mygo.MenuItem {
 	item := updater.MenuItem()
 	click := item.Click
 	item.Click = func(item *mygo.MenuItem, window *mygo.Window) {
-		if updateSettings.renamed {
+		if updateSettings.ready && !updateSettings.enabled {
 			_ = mygo.Shell.OpenExternal(projectURL + "/releases")
 			return
 		}
@@ -127,7 +128,7 @@ func (s *nativeUI) updatesPreferences(c *ui.Context) {
 		})
 		actionButton(c.Key("check-client-updates"), iconDownload, "检查更新…", false).
 			Disabled(!updateSettings.ready).OnClick(func() {
-			if updateSettings.renamed {
+			if !updateSettings.enabled {
 				if err := mygo.Shell.OpenExternal(projectURL + "/releases"); err != nil {
 					s.setError(err)
 				}
@@ -179,21 +180,33 @@ func (s *nativeUI) updatesPreferences(c *ui.Context) {
 }
 
 func loadUpdateChannel(path string) (string, error) {
+	fallback := defaultUpdateChannel()
 	data, err := os.ReadFile(path)
 	if errors.Is(err, os.ErrNotExist) {
-		return "stable", nil
+		return fallback, nil
 	}
 	if err != nil {
-		return "stable", err
+		return fallback, err
 	}
 	var preference updateChannelPreference
 	if err := json.Unmarshal(data, &preference); err != nil {
-		return "stable", err
+		return fallback, err
 	}
 	if preference.Channel != "stable" && preference.Channel != "preview" {
-		return "stable", errors.New("invalid update channel")
+		return fallback, errors.New("invalid update channel")
 	}
 	return preference.Channel, nil
+}
+
+func defaultUpdateChannel() string {
+	return updateChannelForVersion(version.Version)
+}
+
+func updateChannelForVersion(value string) string {
+	if strings.Contains(strings.SplitN(value, "+", 2)[0], "-") {
+		return "preview"
+	}
+	return "stable"
 }
 
 func saveUpdateChannel(path, channel string) error {

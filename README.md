@@ -6,7 +6,7 @@
   <a href="docs/agents.md">Agent API</a>
 </p>
 <p align="center">
-  <a href="https://github.com/DeliciousBuding/rclonego/actions/workflows/check.yml"><img src="https://github.com/DeliciousBuding/rclonego/actions/workflows/check.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/DeliciousBuding/rclonego/actions/workflows/release.yml"><img src="https://github.com/DeliciousBuding/rclonego/actions/workflows/release.yml/badge.svg" alt="Manual release"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-318b9d" alt="Apache-2.0"></a>
   <a href="https://mygo.egoist.dev/"><img src="https://img.shields.io/badge/native_UI-MyGo-318b9d" alt="Built with MyGo"></a>
 </p>
@@ -51,17 +51,22 @@ Preview packages are marked as prereleases; no stable version is available yet.
 
 | Platform | Package and validation |
 | --- | --- |
-| Windows amd64 | Portable executable or installer; native UI and packaged CLI tested |
+| Windows amd64 | Per-user EXE installer recommended; no-install ZIP or executable available; native UI/CLI, upgrade and uninstall retention tested |
+| Windows arm64 | EXE installer and no-install packages; native release runner configured, manual validation pending |
 | Linux amd64 | `.deb` or `.tar.gz`; Ubuntu WSLg UI, transfers and FUSE mount/read/unmount tested |
-| macOS arm64 | `.dmg` or application ZIP; build and synthetic CI tests, manual native validation pending |
+| macOS amd64 / arm64 | DMG recommended, application ZIP available; native Intel/Apple Silicon release runners configured, manual native validation pending |
 
-Other amd64/arm64 combinations can be cross-built, with runtime support pending.
+Each release lists its actually available assets and validation; configured
+targets are not a claim that their packages have already been published.
 Windows packages are not Authenticode signed; macOS packages are not Developer ID
 notarized. SHA256SUMS verifies artifact integrity and does not replace OS signing.
 
-Windows portable users can copy the executable alone. SQLite is embedded and
-extracted to a verified private cache on first use. On Linux, use the packaged
-install script or the distribution package.
+On Windows, run the installer and launch from the Start menu. On macOS, open the
+DMG, drag RcloneGo to Applications, eject the image and launch the installed app.
+See [installation, updates and removal](docs/install.md) for detailed steps.
+No-install Windows users can run the executable alone; the default user-data
+directory still stores accounts and task history. SQLite is embedded and
+extracted to a verified private cache on first use.
 
 Open **Settings → rclone engine** to download the pinned official rclone release, select an
 existing executable or import its verified ZIP offline. This does not modify PATH
@@ -71,6 +76,8 @@ FUSE on Linux, or a compatible FUSE/engine combination on macOS.
 The [Settings page](assets/screenshots/settings-light.png) contains appearance, interface language, login startup,
 client updates and collapsible defaults for new tasks. **Resources** shows
 current process usage and live bandwidth controls.
+New profiles follow the system theme and language; manual choices persist.
+Login startup and automatic update checks are opt-in in the alpha.
 
 ## First workflow
 
@@ -120,16 +127,19 @@ Requires Go 1.27.3+ and Python 3.12+. Native UI needs no JavaScript toolchain.
 
 ```sh
 go run ./cmd/rclonego
-go test ./...
-go vet ./...
-python scripts/test.py
+go test ./internal/ui
+go vet ./internal/ui
 python scripts/build.py --platform windows/amd64
 ```
 
+Use the affected packages in place of `internal/ui` for other changes.
 `scripts/test.py` downloads a verified temporary integration engine. Add
 `--installer` to the Windows build to create an installer. `-data`, `-rclone`
 and `-config` select explicit private state, engine and config paths.
 The default app configuration starts empty and does not take over existing uploads.
+Routine changes use focused local checks. Pushes, pull requests and tags do not
+start Actions; a maintainer explicitly dispatches the Release workflow for an
+existing version tag when full platform packages are needed.
 
 Read [CONTRIBUTING](CONTRIBUTING.md) for focused changes and UI verification,
 [releasing](docs/releasing.md) for packaging, and [SECURITY](SECURITY.md) for private

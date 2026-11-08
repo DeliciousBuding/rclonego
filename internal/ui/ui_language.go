@@ -67,27 +67,44 @@ func durationText(c *ui.Context, seconds float64) string {
 	return format("%d 小时 %d 分", hours, minutes%60)
 }
 
-// MyGo owns the current language, system language matching and persistence.
-// The picker shows the effective language; the separate reset action restores
-// system matching without duplicating MyGo's saved preference.
+// MyGo owns language matching and persistence. languageOverride only remembers
+// the picker mode for this window; it is loaded from MyGo's existing preference.
 func (s *nativeUI) languagePreferences(c *ui.Context) {
-	language := c.Locale()
-	selected := i18n.Autonym(language)
-	ui.Column(c.Key("language-preferences")).Gap(8).Children(func() {
-		sectionHeading(c, locales.In(language).Language())
-		ui.Row(c).Gap(8).Wrap().Children(func() {
-			if ui.Select(c.Key("language"), &selected, []string{"English", "简体中文"}).
-				Width(180).Label(locales.In(language).Language()).Changed() {
-				tag := "en"
-				if selected == "简体中文" {
-					tag = "zh-Hans"
-				}
-				mygo.App.SetLocale(tag)
-			}
-			ui.Button(c.Key("system-language"), locales.In(language).UseSystemLanguage()).
-				OnClick(func() { mygo.App.SetLocale("") })
+	settingsPreferenceRow(c.Key("language-preferences"), locales.In(c.Locale()).Language(),
+		locales.In(c.Locale()).LanguageDescription(), func() {
+			languagePicker(c, &s.languageOverride, mygo.App.SetLocale)
+			ui.Text(c, locales.In(c.Locale()).CurrentLanguage(i18n.Autonym(c.Locale()))).
+				FontSize(11).TextColor(c.Theme().TextMuted)
 		})
-		ui.Text(c, locales.In(language).LanguageDescription()).
-			FontSize(12).TextColor(c.Theme().TextMuted).MaxLines(2)
+}
+
+func languagePicker(c *ui.Context, preference *string, apply func(string)) {
+	system := text(c, "跟随系统")
+	selected := system
+	if *preference != "" {
+		selected = i18n.Autonym(c.Locale())
+	}
+	if ui.Select(c.Key("language"), &selected, []string{system, "简体中文", "English"}).
+		FillWidth().Label(locales.In(c.Locale()).Language()).Changed() {
+		tag := ""
+		if selected == "English" {
+			tag = "en"
+		} else if selected == "简体中文" {
+			tag = "zh-Hans"
+		}
+		*preference = tag
+		apply(tag)
+	}
+}
+
+func settingsPreferenceRow(c *ui.Context, label, description string, controls func()) {
+	ui.Row(c).Gap(24).AlignItems(ui.Center).Children(func() {
+		ui.Column(c).Grow(1).MinWidth(0).Gap(4).Children(func() {
+			ui.Text(c, label).FontSize(13)
+			if description != "" {
+				ui.Text(c, description).FontSize(11).TextColor(c.Theme().TextMuted).MaxLines(3)
+			}
+		})
+		ui.Column(c).Width(220).Shrink(0).Gap(4).Children(controls)
 	})
 }

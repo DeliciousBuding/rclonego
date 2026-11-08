@@ -7,7 +7,6 @@ import (
 	"os/exec"
 	"strconv"
 	"syscall"
-	"unsafe"
 )
 
 func processIdentity(pid int) string {
@@ -78,16 +77,4 @@ func AcquireInstance(path string) (func(), error) {
 		return nil, err
 	}
 	return func() { syscall.CloseHandle(handle) }, nil
-}
-
-func FocusExistingWindow() bool {
-	dll := syscall.NewLazyDLL("user32.dll")
-	title, _ := syscall.UTF16PtrFromString("RcloneGo")
-	handle, _, _ := dll.NewProc("FindWindowW").Call(0, uintptr(unsafe.Pointer(title)))
-	if handle == 0 {
-		return false
-	}
-	dll.NewProc("ShowWindow").Call(handle, 9)
-	dll.NewProc("SetForegroundWindow").Call(handle)
-	return true
 }

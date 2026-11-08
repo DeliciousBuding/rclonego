@@ -31,5 +31,3 @@ func AcquireInstance(path string) (func(), error) {
 	}
 	return func() { file.Close() }, nil
 }
-
-func FocusExistingWindow() bool { return false }

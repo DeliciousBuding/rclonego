@@ -79,10 +79,17 @@ Text buttons stay labelled. Icon-only controls have an accessible name and toolt
 Native browse dialogs select local paths; the text field still accepts remote
 locations directly. Destructive mirror execution requires its own verified preview.
 
-The sidebar's **Settings** entry opens one page for appearance, language, login
-startup and client updates. Engine management and new-task defaults are collapsed
+The sidebar's **Settings** entry opens one page with General, Updates and Advanced
+groups. General uses aligned preference rows for appearance, language and login
+startup. New profiles follow the system appearance and language; existing manual
+choices are preserved. The language selector shows its automatic/manual mode and
+the current effective language separately. Login startup is available only for
+the default profile; an independent profile shows a disabled control with a
+short explanation. Engine management and new-task defaults are collapsed
 until needed. The engine status shortcut opens Settings with its engine section
 expanded. Resources keeps process observations and live transfer controls.
+The application menu and Ctrl+, / Cmd+, open the same Settings page.
+Ctrl+Q / Cmd+Q and the tray Quit action stop the application explicitly.
 
 ## Layout boundaries
 

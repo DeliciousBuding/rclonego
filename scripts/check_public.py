@@ -14,7 +14,7 @@ if args.tracked:
 else:
     files = [p for p in root.rglob("*") if p.is_file() and
              not set(p.relative_to(root).parts).intersection(
-                 {".git", ".local", ".worktrees", "build", "bin", "dist", "artifacts", "data"})]
+                 {".git", ".local", ".worktrees", "build", "bin", "dist", "artifacts", "data", "__pycache__"})]
 patterns = [
     re.compile(r"(?i)[A-Z]:[\\/](?:Users|Code)[\\/]"),
     re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),  # leak-guard-allow:LG-CCF1466D

@@ -15,6 +15,12 @@
   refresh throttling.
 - Keep appearance, language, login startup and updates in one Settings page,
   with engine management and new-task defaults collapsed until needed.
+- Follow the system theme and language on first launch, show manual language
+  overrides explicitly, and keep profile selection consistent across GUI and CLI.
+- Install per user on Windows without stopping running transfers; preserve
+  configuration on upgrade/uninstall and remove only owned startup entries.
+- Build releases only through manual Actions dispatch, with one pinned source
+  commit, native platform checks and an unpublished draft.
 - Align page headings and primary actions, move secondary workflow actions to
   More, and use Mica for the Windows main window.
 - Clarify activity phases, use file counts for verification, show mount routes
@@ -34,6 +40,9 @@
 - 最终校验遵循所选步骤范围；目录监听和周期工作流复用同一队列。
 - 使用 MyGo 官方 Glass 和语言目录，加入命令搜索与后台刷新降频。
 - 设置页统一管理主题、语言、登录启动与更新，引擎和新任务默认参数按需展开。
+- 首次启动跟随系统主题和语言，明确显示手动语言选择，GUI 与 CLI 使用同一配置目录。
+- Windows 按当前用户安装，运行中拒绝覆盖或卸载；保留升级与卸载后的配置，只清理所属启动项。
+- 发行仅由手动 Actions 触发，固定同一提交，完成原生平台检查后生成未公开草稿。
 - 统一页面标题与主操作，工作流低频操作收进“更多”，Windows 主窗口采用 Mica。
 - 区分活动阶段，校验按文件数显示进度；补齐映射路径，精简空历史与任务详情。
 - 固定任务操作区，就地显示输入问题；结果窗口展示校验依据与恢复入口，保留引擎关键错误。
@@ -42,7 +51,7 @@
 
 ## Validation and distribution
 
-Build packages target Windows amd64, Linux amd64 and macOS arm64. Runtime
+Build packages target Windows amd64/arm64, Linux amd64 and macOS amd64/arm64. Runtime
 validation is reported in README; macOS manual GUI, actual cloud sign-in,
 sleep/wake and OS signing are separate checks. Windows is not Authenticode
 signed and macOS is not Developer ID notarized. Signed update feeds must be
@@ -52,7 +61,7 @@ automatically.
 
 ## 验证与发行
 
-构建目标为 Windows amd64、Linux amd64 和 macOS arm64，实际运行证据见 README。
+构建目标为 Windows amd64/arm64、Linux amd64 和 macOS amd64/arm64，实际运行证据见 README。
 macOS 人工界面、真实云账户登录、休眠唤醒和系统签名分别验收。
 Windows 尚无 Authenticode 签名，macOS 尚无 Developer ID 公证。
 签名更新源发布后才能提供更新；重命名的 Windows 单独 exe 使用手动更新。

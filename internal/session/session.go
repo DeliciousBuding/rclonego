@@ -8,6 +8,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -17,8 +18,15 @@ type Info struct {
 }
 
 func DataDir() (string, error) {
+	if override := os.Getenv("RCLONEGO_DATA"); override != "" {
+		return filepath.Abs(override)
+	}
+	return DefaultDataDir()
+}
+
+func DefaultDataDir() (string, error) {
 	base, err := os.UserConfigDir()
-	if local := os.Getenv("LOCALAPPDATA"); local != "" {
+	if local := os.Getenv("LOCALAPPDATA"); runtime.GOOS == "windows" && local != "" {
 		base, err = local, nil
 	}
 	if err != nil {

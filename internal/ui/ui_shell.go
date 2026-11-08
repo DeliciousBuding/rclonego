@@ -59,6 +59,9 @@ func modernTheme(dark bool, prefs ui.Preferences) *ui.Theme {
 }
 
 func (s *nativeUI) view(c *ui.Context) {
+	if c.Shortcut(ui.Cmd, ui.KeyComma) {
+		s.page = "settings"
+	}
 	if c.Shortcut(ui.Cmd, ui.KeyK) {
 		s.commandOpen, s.commandQuery, s.commandIndex = true, "", 0
 	}

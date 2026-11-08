@@ -1,4 +1,4 @@
-"""Prepare public portable artifacts, checksums and dependency inventory."""
+"""Prepare public no-install artifacts, checksums and dependency inventory."""
 import argparse
 import hashlib
 import json
@@ -40,6 +40,7 @@ elif operating_system == "darwin":
                 archive.writestr(member, path.read_bytes())
         archive.write(root / "LICENSE", "LICENSE")
         archive.write(root / "NOTICE", "NOTICE")
+        archive.write(root / "docs/third-party.md", "docs/third-party.md")
     for image in build.glob(f"{slug}-{version}-{architecture}.dmg"):
         shutil.copy2(image, dist / image.name)
 else:

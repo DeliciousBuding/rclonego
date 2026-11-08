@@ -166,9 +166,6 @@ func Run(args []string, stdout, stderr io.Writer) int {
 		if err != nil {
 			return cliError(stderr, options.json, err)
 		}
-		if override := os.Getenv("RCLONEGO_DATA"); override != "" {
-			dir = override
-		}
 		info, _, err := session.Discover(dir)
 		if err != nil {
 			return cliError(stderr, options.json, errors.New("no running instance; start rclonego or rclonego serve"))
@@ -602,9 +599,6 @@ func authenticateCLIRequest(req *http.Request) {
 	if tokenFile == "" {
 		dir, err := session.DataDir()
 		if err == nil {
-			if override := os.Getenv("RCLONEGO_DATA"); override != "" {
-				dir = override
-			}
 			tokenFile = filepath.Join(dir, "api-token")
 		}
 	}

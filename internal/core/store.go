@@ -69,7 +69,7 @@ func OpenStore(dataDir string) (*Store, error) {
 		return nil, err
 	}
 	if len(records["settings"]) == 0 {
-		store.data = State{Version: stateVersion, Appearance: "light", Defaults: defaultTransferSettings()}
+		store.data = State{Version: stateVersion, Appearance: "system", Defaults: defaultTransferSettings()}
 		if err := store.saveLocked(); err != nil {
 			db.Close()
 			return nil, err
@@ -107,7 +107,7 @@ func OpenStore(dataDir string) (*Store, error) {
 		}
 	}
 	if !ValidAppearance(store.data.Appearance) {
-		store.data.Appearance = "light"
+		store.data.Appearance = "system"
 		changed = true
 	}
 	if changed {

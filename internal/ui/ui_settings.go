@@ -6,41 +6,47 @@ import (
 	"time"
 
 	"github.com/DeliciousBuding/rclonego/internal/core"
+	"github.com/DeliciousBuding/rclonego/locales"
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 )
 
 func (s *nativeUI) settingsPage(c *ui.Context) {
 	t := c.Theme()
+	loginAvailable := s.canConfigureLogin()
 	contentScroll(c).Grow(1).Gap(18).Children(func() {
 		pageHeading(c, "设置", "外观、语言与应用偏好", func() {
 			actionButton(c.Key("about"), iconInfo, "关于 RcloneGo", false).OnClick(func() { s.showAbout = true })
 		})
-		ui.Row(c).Gap(24).Wrap().AlignItems(ui.Start).Children(func() {
-			ui.Column(c).Width(180).Gap(8).Children(func() {
-				sectionHeading(c, "外观")
-				if translatedSelect(c.Key("appearance"), &s.appearanceChoice, []string{"浅色", "深色", "跟随系统"}).
-					Width(180).Label(text(c, "外观")).Disabled(s.busy).Changed() {
+		ui.Column(c).Gap(18).Children(func() {
+			sectionHeading(c, locales.In(c.Locale()).GeneralSettings())
+			settingsPreferenceRow(c.Key("theme-preferences"), text(c, "外观"), "", func() {
+				if translatedSelect(c.Key("appearance"), &s.appearanceChoice, []string{"跟随系统", "浅色", "深色"}).
+					FillWidth().Label(text(c, "外观")).Disabled(s.busy).Changed() {
 					mode := map[string]string{"浅色": "light", "深色": "dark", "跟随系统": "system"}[s.appearanceChoice]
 					s.setAppearance(mode)
 				}
 			})
-			ui.Column(c).Grow(1).MinWidth(350).Children(func() { s.languagePreferences(c) })
-		})
-		ui.Divider(c)
-		ui.Column(c).Gap(8).Children(func() {
-			sectionHeading(c, "后台运行")
-			ui.Text(c, text(c, map[bool]string{true: "关闭窗口后继续在托盘运行，选择“退出”才停止服务。", false: "当前桌面无法创建托盘，关闭窗口将退出服务。"}[s.trayAvailable])).FontSize(12).TextColor(t.TextMuted)
-			if ui.Checkbox(c.Key("open-at-login"), &s.openAtLogin, text(c, "登录时启动")).Changed() {
-				if err := mygo.App.SetOpenAtLogin(s.openAtLogin); err != nil {
-					s.openAtLogin = mygo.App.OpenAtLogin()
-					s.setError(err)
-				}
-			}
+			s.languagePreferences(c)
+			settingsPreferenceRow(c.Key("background-preferences"), text(c, "后台运行"),
+				text(c, map[bool]string{true: "关闭窗口后继续在托盘运行，选择“退出”才停止服务。", false: "当前桌面无法创建托盘，关闭窗口将退出服务。"}[s.trayAvailable]), func() {
+					if ui.Checkbox(c.Key("open-at-login"), &s.openAtLogin, text(c, "登录时启动")).
+						Disabled(!loginAvailable).Changed() {
+						if err := mygo.App.SetOpenAtLogin(s.openAtLogin); err != nil {
+							s.openAtLogin = mygo.App.OpenAtLogin()
+							s.setError(err)
+						}
+					}
+					if !loginAvailable {
+						ui.Text(c, locales.In(c.Locale()).LoginUnavailableForProfile()).
+							FontSize(11).TextColor(t.TextMuted).MaxLines(2)
+					}
+				})
 		})
 		ui.Divider(c)
 		ui.Column(c).Gap(8).Children(func() { s.updatesPreferences(c) })
 		ui.Divider(c)
+		sectionHeading(c, locales.In(c.Locale()).AdvancedSettings())
 		ui.Collapsible(c.Key("engine-settings"), text(c, "rclone 引擎"), &s.showEngineSettings, func() {
 			ui.Text(c, core.ValueOr(s.version, text(c, "尚未安装引擎 · 窗口和设置仍可使用"))).FontSize(12).TextColor(t.TextMuted)
 			ui.Row(c).Gap(8).Children(func() {

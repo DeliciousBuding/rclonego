@@ -31,7 +31,7 @@ func TestUpdateRelaunchWaitsForOwnedWork(t *testing.T) {
 
 func TestUpdateChannelPersistsWithoutDowngradingPolicy(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "update-channel.json")
-	if channel, err := loadUpdateChannel(path); err != nil || channel != "stable" {
+	if channel, err := loadUpdateChannel(path); err != nil || channel != defaultUpdateChannel() {
 		t.Fatalf("initial channel=%s err=%v", channel, err)
 	}
 	for _, channel := range []string{"preview", "stable"} {
@@ -48,8 +48,21 @@ func TestUpdateChannelPersistsWithoutDowngradingPolicy(t *testing.T) {
 	if err := os.WriteFile(path, []byte(`{"channel":"unsupported"}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if channel, err := loadUpdateChannel(path); err == nil || channel != "stable" {
+	if channel, err := loadUpdateChannel(path); err == nil || channel != defaultUpdateChannel() {
 		t.Fatalf("invalid channel policy=%s err=%v", channel, err)
+	}
+}
+
+func TestFreshPreviewBuildsReceivePreviewUpdates(t *testing.T) {
+	for value, expected := range map[string]string{
+		"0.1.0-alpha.3": "preview",
+		"1.0.0-beta.1":  "preview",
+		"1.0.0":         "stable",
+		"1.0.0+build-1": "stable",
+	} {
+		if got := updateChannelForVersion(value); got != expected {
+			t.Fatalf("%s update channel = %s, want %s", value, got, expected)
+		}
 	}
 }
 

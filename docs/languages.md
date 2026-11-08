@@ -4,11 +4,19 @@ RcloneGo's language resources use the official MyGo catalogs and typed Go
 accessors. The catalogs cover English and Simplified Chinese. MyGo chooses the
 best supported language from the operating system preferences.
 
-The language selector in **Settings** changes the interface immediately. **Use system
-language** restores automatic matching. MyGo persists this choice using the
-platform's application preferences; RcloneGo does not create a second language
-setting. Native controls and the official update window follow the same
-application language.
+The language selector in **Settings** offers **Follow system**, **简体中文** and
+**English**. **Follow system** is the default and restores automatic matching. The
+selector shows the chosen mode separately from the language currently displayed,
+so a system-selected language stays automatic after restarting. A manual choice
+changes the interface immediately and lasts across launches. MyGo persists this
+choice using the platform's application preferences; RcloneGo does not create a
+second language setting. Native controls and the official update window follow
+the same application language.
+
+MyGo 0.8.3 does not expose its saved language override. A narrow compatibility
+adapter reads its existing preference solely for the selector: the `locale` file
+on Windows/Linux, or the app's `AppleLanguages` preference on macOS. MyGo remains
+responsible for language matching, persistence and system-change events.
 
 Task names, paths, provider questions and rclone logs retain their original
 content. Display language does not change API field names, command names,

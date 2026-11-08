@@ -3095,6 +3095,46 @@ func (msgs Messages) Language() string {
 	return Catalog.Format(msgs.locale, "language", nil)
 }
 
+// GeneralSettings says "General"
+// in the language the app shows.
+func GeneralSettings() string { return In(i18n.Locale()).GeneralSettings() }
+
+// GeneralSettings says "General"
+// in the language of msgs.
+func (msgs Messages) GeneralSettings() string {
+	return Catalog.Format(msgs.locale, "generalSettings", nil)
+}
+
+// AdvancedSettings says "Advanced"
+// in the language the app shows.
+func AdvancedSettings() string { return In(i18n.Locale()).AdvancedSettings() }
+
+// AdvancedSettings says "Advanced"
+// in the language of msgs.
+func (msgs Messages) AdvancedSettings() string {
+	return Catalog.Format(msgs.locale, "advancedSettings", nil)
+}
+
+// CurrentLanguage says "Current: {language}"
+// in the language the app shows.
+func CurrentLanguage(language string) string { return In(i18n.Locale()).CurrentLanguage(language) }
+
+// CurrentLanguage says "Current: {language}"
+// in the language of msgs.
+func (msgs Messages) CurrentLanguage(language string) string {
+	return Catalog.Format(msgs.locale, "currentLanguage", map[string]any{"language": language})
+}
+
+// LoginUnavailableForProfile says "Login startup is available only for the default profile."
+// in the language the app shows.
+func LoginUnavailableForProfile() string { return In(i18n.Locale()).LoginUnavailableForProfile() }
+
+// LoginUnavailableForProfile says "Login startup is available only for the default profile."
+// in the language of msgs.
+func (msgs Messages) LoginUnavailableForProfile() string {
+	return Catalog.Format(msgs.locale, "loginUnavailableForProfile", nil)
+}
+
 // UseSystemLanguage says "Use system language"
 // in the language the app shows.
 func UseSystemLanguage() string { return In(i18n.Locale()).UseSystemLanguage() }

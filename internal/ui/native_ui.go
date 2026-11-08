@@ -43,6 +43,7 @@ type nativeUI struct {
 	isError            bool
 	appearance         string
 	appearanceChoice   string
+	languageOverride   string
 	jobOperationChoice string
 	remoteTypeChoice   string
 	noticeUntil        time.Time
@@ -140,6 +141,7 @@ func New(app *core.App, api string) *nativeUI {
 	model := &nativeUI{
 		app: app, page: "overview", api: api, newRemoteType: "drive", appearance: state.Appearance,
 		appearanceChoice: appearanceLabel(state.Appearance),
+		languageOverride: savedLanguagePreference(app.DataDirectory()),
 		jobOperation:     "copy", jobOperationChoice: "复制", remoteTypeChoice: "Google Drive",
 		jobTransfers: itoa(defaults.Transfers), jobCheckers: itoa(defaults.Checkers), jobChunk: defaults.ChunkSize, jobBuffer: defaults.BufferSize,
 		jobCPU: itoa(defaults.CPUParallelism), defaults: defaults,

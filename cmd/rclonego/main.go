@@ -56,11 +56,11 @@ func main() {
 	if err := os.MkdirAll(dataDir, 0o700); err != nil {
 		log.Fatal(err)
 	}
+	if !headless && !desktop.ClaimInstance(dataDir) {
+		return
+	}
 	unlock, err := core.AcquireInstance(filepath.Join(dataDir, ".instance.lock"))
 	if err != nil {
-		if !headless && core.FocusExistingWindow() {
-			return
-		}
 		log.Fatal("state is already managed by another instance")
 	}
 	defer unlock()

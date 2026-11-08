@@ -31,10 +31,51 @@ func Open(app *core.App, address string) error {
 			Vibrancy: material, Content: ui.View(model.view),
 			AutoHideMenuBar: true, BackgroundColor: "light-dark(#eef2f5, #222a32)",
 			UseContentSize: true, DisableFullScreen: true,
+			Hidden: true,
 		})
 		model.Attach(window)
+		removeLanguagePreferenceListener := mygo.App.OnLocaleChanged(func(string) {
+			model.languageOverride = savedLanguagePreference(app.DataDirectory())
+			if !model.isError {
+				model.notice = ""
+			}
+			window.Invalidate()
+		})
+		window.OnClosed(removeLanguagePreferenceListener)
 		quitting, explicitQuit := false, false
 		show := func() { window.Show(); window.Focus() }
+		removeInstanceListener := mygo.App.OnSecondInstance(func([]string, string) { show() })
+		window.OnClosed(removeInstanceListener)
+		quit := func() { explicitQuit = true; mygo.App.Quit() }
+		makeApplicationMenu := func() *mygo.Menu {
+			applicationItems := []*mygo.MenuItem{
+				{Label: locales.AboutRcloneGo(), Click: func(*mygo.MenuItem, *mygo.Window) { model.showAbout = true; show() }},
+				{Label: locales.Text("设置"), Accelerator: "CmdOrCtrl+,", Click: func(*mygo.MenuItem, *mygo.Window) { model.page = "settings"; show() }},
+				updatesMenuItem(),
+				mygo.Separator(),
+			}
+			if runtime.GOOS == "darwin" {
+				applicationItems = append(applicationItems, &mygo.MenuItem{Role: mygo.RoleServices},
+					mygo.Separator(), &mygo.MenuItem{Role: mygo.RoleHide},
+					&mygo.MenuItem{Role: mygo.RoleHideOthers}, &mygo.MenuItem{Role: mygo.RoleUnhide},
+					mygo.Separator())
+			}
+			applicationItems = append(applicationItems, &mygo.MenuItem{
+				Label: locales.QuitRcloneGo(), Accelerator: "CmdOrCtrl+Q",
+				Click: func(*mygo.MenuItem, *mygo.Window) { quit() },
+			})
+			application := &mygo.MenuItem{Label: "RcloneGo", Submenu: applicationItems}
+			items := []*mygo.MenuItem{application}
+			if runtime.GOOS == "darwin" {
+				items = append(items, &mygo.MenuItem{Role: mygo.RoleEditMenu}, &mygo.MenuItem{Role: mygo.RoleWindowMenu})
+			}
+			return mygo.NewMenu(items)
+		}
+		mygo.App.SetMenu(makeApplicationMenu())
+		removeMenuLanguageListener := mygo.App.OnLocaleChanged(func(string) {
+			mygo.App.SetMenu(makeApplicationMenu())
+		})
+		window.OnClosed(removeMenuLanguageListener)
 		makeMenu := func() *mygo.Menu {
 			return mygo.NewMenu([]*mygo.MenuItem{
 				{Label: locales.OpenRcloneGo(), Click: func(*mygo.MenuItem, *mygo.Window) { show() }},
@@ -48,13 +89,13 @@ func Open(app *core.App, address string) error {
 				mygo.Separator(),
 				{Label: locales.AboutRcloneGo(), Click: func(*mygo.MenuItem, *mygo.Window) { model.showAbout = true; show(); window.Invalidate() }},
 				updatesMenuItem(),
-				{Label: locales.QuitRcloneGo(), Click: func(*mygo.MenuItem, *mygo.Window) { explicitQuit = true; mygo.App.Quit() }},
+				{Label: locales.QuitRcloneGo(), Click: func(*mygo.MenuItem, *mygo.Window) { quit() }},
 			})
 		}
 		tray, err := mygo.NewTray(mygo.TrayOptions{ID: "rclonego", Icon: trayIcon,
 			IconIsTemplate: runtime.GOOS == "darwin", ToolTip: locales.TrayTooltip(), Menu: makeMenu()})
 		model.trayAvailable = err == nil
-		model.openAtLogin = mygo.App.OpenAtLogin()
+		model.openAtLogin = model.canConfigureLogin() && mygo.App.OpenAtLogin()
 		if tray != nil {
 			tray.OnClick(show)
 			mygo.App.OnQuit(tray.Destroy)

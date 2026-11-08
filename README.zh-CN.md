@@ -6,7 +6,7 @@
   <a href="docs/agents.md">Agent API</a>
 </p>
 <p align="center">
-  <a href="https://github.com/DeliciousBuding/rclonego/actions/workflows/check.yml"><img src="https://github.com/DeliciousBuding/rclonego/actions/workflows/check.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/DeliciousBuding/rclonego/actions/workflows/release.yml"><img src="https://github.com/DeliciousBuding/rclonego/actions/workflows/release.yml/badge.svg" alt="手动发行"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-318b9d" alt="Apache-2.0"></a>
   <a href="https://mygo.egoist.dev/"><img src="https://img.shields.io/badge/native_UI-MyGo-318b9d" alt="Built with MyGo"></a>
 </p>
@@ -45,16 +45,19 @@ RcloneGo 是管理传输、挂载与校验的原生桌面客户端，由
 
 | 平台 | 包形式与验证范围 |
 | --- | --- |
-| Windows amd64 | 单文件便携 exe 或安装器；已验证原生界面与打包后的 CLI |
+| Windows amd64 | 推荐当前用户 EXE 安装器，另提供免安装 ZIP/exe；已验证原生界面/CLI、升级与卸载的数据保留 |
+| Windows arm64 | EXE 安装器和免安装包；已配置原生发行 runner，人工验收待完成 |
 | Linux amd64 | `.deb` 或 `.tar.gz`；已验证 Ubuntu WSLg、传输及 FUSE 挂载读取与卸载 |
-| macOS arm64 | `.dmg` 或 app ZIP；构建与合成 CI 测试通过，人工原生验收待完成 |
+| macOS amd64 / arm64 | 推荐 DMG，另提供 app ZIP；已配置 Intel/Apple Silicon 原生发行 runner，人工原生验收待完成 |
 
-其他 amd64/arm64 组合可交叉构建，实际运行支持仍待验证。
+每次发行会列明实际可下载的包与验证范围，已配置构建目标不等于已经公开发行。
 Windows 包尚无 Authenticode 签名，macOS 包尚无 Developer ID 公证。
 SHA256SUMS 用于校验产物完整性，不能替代系统签名。
 
-Windows 便携模式只需一个 exe。SQLite 已嵌入程序，首次使用时释放到经过校验的私人缓存。
-Linux 使用随包的安装脚本或发行版包。
+Windows 双击安装器后从开始菜单启动。macOS 打开 DMG，将 RcloneGo 拖入
+Applications，弹出磁盘映像后启动已安装的应用。详细步骤见[安装、更新与卸载](docs/install.md)。
+Windows 免安装版可单独运行 exe，但账户与任务历史默认仍保存在用户目录。
+SQLite 已嵌入程序，首次使用时释放到经过校验的私人缓存。
 
 在“设置 → rclone 引擎”中下载推荐的官方 rclone、选择已有引擎，或离线导入经过校验的 ZIP。
 客户端不修改 PATH，也不覆盖包管理器安装。挂载组件单独安装：
@@ -62,6 +65,7 @@ Windows 使用 WinFsp，Linux 使用 FUSE，macOS 需要兼容的 FUSE 与引擎
 
 [“设置”页面](assets/screenshots/settings-light.png)统一管理外观、语言、登录启动、客户端更新和新任务默认参数；
 引擎与默认参数可按需展开。“运行与资源”显示当前占用和即时限速控制。
+新配置默认跟随系统主题与语言，手动选择会保留。alpha 的登录启动与自动检查更新默认关闭。
 
 ## 开始第一个工作流
 
@@ -108,16 +112,18 @@ MyGo 官方原生更新器支持签名发行包及稳定版/预览版通道，�
 
 ```sh
 go run ./cmd/rclonego
-go test ./...
-go vet ./...
-python scripts/test.py
+go test ./internal/ui
+go vet ./internal/ui
 python scripts/build.py --platform windows/amd64
 ```
 
+其他改动将示例中的 `internal/ui` 替换为受影响的包。
 `scripts/test.py` 提供经过校验的临时集成测试引擎。
 Windows 构建添加 `--installer` 生成安装器。
 `-data`、`-rclone` 和 `-config` 分别指定私人状态、引擎与配置；
 默认使用空白应用配置，不自动接管已有上传。
+日常改动使用针对受影响部分的本地检查。push、PR 和 tag 都不触发 Actions；
+需要完整平台发行包时，由维护者针对已有版本 tag 手动运行 Release。
 
 贡献和界面验收见 [CONTRIBUTING](CONTRIBUTING.md)，
 打包见[发行指南](docs/releasing.md)，私密安全报告见 [SECURITY](SECURITY.md)。

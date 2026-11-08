@@ -257,8 +257,10 @@ func mountDependency() Diagnostic {
 		if root == "" {
 			continue
 		}
-		if _, err := os.Stat(filepath.Join(root, "WinFsp", "bin", "winfsp-x64.dll")); err == nil {
-			return Diagnostic{ID: "mount", Status: "ready", Message: "WinFsp installation detected"}
+		for _, library := range []string{"winfsp-x64.dll", "winfsp-a64.dll"} {
+			if _, err := os.Stat(filepath.Join(root, "WinFsp", "bin", library)); err == nil {
+				return Diagnostic{ID: "mount", Status: "ready", Message: "WinFsp installation detected"}
+			}
 		}
 	}
 	return Diagnostic{ID: "mount", Status: "missing", Message: "WinFsp is not installed; transfers remain available", NextAction: "install WinFsp from https://winfsp.dev"}

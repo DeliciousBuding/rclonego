@@ -31,6 +31,85 @@ func TestTranslatedSelectionKeepsCanonicalValuesAcrossLanguages(t *testing.T) {
 	}
 }
 
+func TestLanguagePickerDistinguishesSystemFromMatchingManualLanguage(t *testing.T) {
+	for _, initial := range []string{"", "en"} {
+		preference := initial
+		applied := "not-called"
+		tester := ui.NewTester(func(c *ui.Context) {
+			languagePicker(c, &preference, func(tag string) { applied = tag })
+		}, 360, 180)
+		tester.SetLocale("en")
+		expected := "English"
+		if initial == "" {
+			expected = "Follow system"
+		}
+		if !tester.HasText(expected) {
+			t.Fatalf("%q language mode does not show %q: %v", initial, expected, tester.Texts())
+		}
+		if initial != "" {
+			if err := tester.Click("Language"); err != nil {
+				t.Fatal(err)
+			}
+			if err := tester.Click("Follow system"); err != nil {
+				t.Fatal(err)
+			}
+			if preference != "" || applied != "" {
+				t.Fatalf("System did not clear the manual override: %q / %q", preference, applied)
+			}
+		}
+		if err := tester.Click("Language"); err != nil {
+			t.Fatal(err)
+		}
+		if err := tester.Click("English"); err != nil {
+			t.Fatal(err)
+		}
+		if preference != "en" || applied != "en" {
+			t.Fatalf("manual selection did not choose its canonical tag: %q / %q", preference, applied)
+		}
+	}
+}
+
+func TestGeneralPreferencesFitMinimumWindowInBothLanguages(t *testing.T) {
+	for _, language := range []string{"en", "zh-Hans"} {
+		model := New(testApp(t), "")
+		model.page = "settings"
+		tester := ui.NewTester(model.view, 900, 560)
+		tester.SetLocale(language)
+		for _, source := range []string{"外观", "语言", "登录时启动"} {
+			label := locales.TextIn(language, source)
+			bounds, found := tester.Find(label)
+			if !found || bounds.X < 208 || bounds.X+bounds.W > 860 || bounds.Y+bounds.H > 560 {
+				t.Fatalf("%s general preference %s exceeds minimum viewport: %+v", language, label, bounds)
+			}
+		}
+		if !tester.HasText(locales.In(language).CurrentLanguage(map[string]string{"en": "English", "zh-Hans": "简体中文"}[language])) {
+			t.Fatalf("%s system-selected effective language is not visible", language)
+		}
+	}
+}
+
+func TestIndependentProfileShowsUnavailableLoginStartup(t *testing.T) {
+	for _, language := range []string{"en", "zh-Hans"} {
+		model := New(testApp(t), "")
+		model.page = "settings"
+		tester := ui.NewTester(model.view, 900, 560)
+		tester.SetLocale(language)
+		if !tester.HasText(locales.In(language).LoginUnavailableForProfile()) {
+			t.Fatalf("%s independent profile does not explain unavailable startup", language)
+		}
+		label := locales.TextIn(language, "登录时启动")
+		if control, found := tester.Access(label); !found || !control.Disabled {
+			t.Fatal("independent profile's startup control was not disabled")
+		}
+		if err := tester.Click(label); err != nil {
+			t.Fatal(err)
+		}
+		if model.openAtLogin {
+			t.Fatal("disabled startup checkbox changed its state")
+		}
+	}
+}
+
 func TestEnglishPagesAndFormsUseOneLanguage(t *testing.T) {
 	for _, page := range []string{"overview", "queue", "workflows", "automations", "mounts", "remotes", "resources", "settings"} {
 		model := New(testApp(t), "")
