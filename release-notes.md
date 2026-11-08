@@ -1,57 +1,53 @@
-# RcloneGo 0.1.0-alpha.2
+# RcloneGo 0.1.0-alpha.3
 
-## English
+### English
 
-This alpha improves the native interface and the public project experience.
-Service logos now use simple SVG paths that render in MyGo. Add/account/workflow
-actions share consistent icons, file paths have native browse buttons, the status
-bar opens relevant details, and About links to source, issues and releases.
-Scrollbars have reserved space; long names and narrow task details stay bounded.
+- Use MyGo's native update window, signed archive verification and stable/preview
+  channels. Active transfers and owned mounts defer update-triggered relaunch.
+- Verify generated update archives and delta signatures before drafting a release.
+- Recover durable task state, stop dispatch when storage fails, verify process
+  ownership and bound task logs.
+- Browse remote directories and inspect structured transfer previews.
+- Edit, clone, import and export workflows, page through history and verify only
+  selected entries.
+- Add opt-in directory watching and recurring workflows to the shared queue.
+- Use official MyGo Glass and language catalogs, command search and background
+  refresh throttling.
+- Keep appearance, language, login startup and updates in one Settings page,
+  with engine management and new-task defaults collapsed until needed.
+- Align page headings and primary actions, move secondary workflow actions to
+  More, and use Mica for the Windows main window.
+- Observe owned VFS cache/writeback state and queue persistent offline copies.
+- Extend Agent contracts, event streaming and revocable task permissions.
 
-The preview includes verified rclone installation/offline import, isolated
-provider-driven account sessions, copy/mirror/check workflows, retained attempts,
-pause/resume, tray operation, CLI JSON, OpenAPI and read-only observation tokens.
-Repository guides, Issue/PR forms and Release notes support English and Chinese.
-The portable executable embeds license notices, available in About or
-`rclonego licenses`.
+### 简体中文
 
-CI runs once per main push or PR, cancels stale PR jobs, and uses one verified
-integration engine per job. Linux runs the race detector. Tag versions are checked
-before packaging; platform hashes and archive contents are verified before a draft
-release is assembled. Go dependency and action updates are grouped.
+- 接入 MyGo 官方原生更新窗口、签名归档校验和稳定版/预览版通道。
+  活动传输与本实例拥有的挂载会推迟更新重启。
+- 创建发行草稿前核验更新归档与差量包签名。
+- 完善持久化恢复、存储失败时停止调度、进程归属校验与任务日志限制。
+- 新增云端目录浏览、结构化预览、工作流编辑/复制/导入导出和历史分页。
+- 最终校验遵循所选步骤范围；目录监听和周期工作流复用同一队列。
+- 使用 MyGo 官方 Glass 和语言目录，加入命令搜索与后台刷新降频。
+- 设置页统一管理主题、语言、登录启动与更新，引擎和新任务默认参数按需展开。
+- 统一页面标题与主操作，工作流低频操作收进“更多”，Windows 主窗口采用 Mica。
+- 展示本实例挂载的 VFS 缓存与写回状态，支持独立离线副本任务。
+- 完善 Agent 契约、事件流和可撤销的任务权限。
 
-Packages: Windows amd64 portable executable/installer, Linux amd64 deb/tar.gz,
-and macOS arm64 app/DMG. Windows/Linux native runtime and synthetic workflows have
-been inspected; all three platforms run synthetic CI tests. macOS manual GUI and
-real cloud-provider browser sign-in still need validation.
+## Validation and distribution
 
-Windows is not Authenticode signed and macOS is not Developer ID notarized.
-SHA256SUMS covers integrity, not OS signing. Google Drive needs your own OAuth
-client. Automatic sync, separate-daemon GUI attachment and signed automatic client
-updates remain future work. Existing uploaders and mounts are never taken over
+Build packages target Windows amd64, Linux amd64 and macOS arm64. Runtime
+validation is reported in README; macOS manual GUI, actual cloud sign-in,
+sleep/wake and OS signing are separate checks. Windows is not Authenticode
+signed and macOS is not Developer ID notarized. Signed update feeds must be
+published before they can serve updates. Renamed standalone Windows executables
+use manual updates. Existing uploaders, accounts and mounts are not taken over
 automatically.
 
-## 简体中文
+## 验证与发行
 
-这个 alpha 继续打磨原生界面和开源项目入口。
-服务标志改用 MyGo 可正常渲染的简单 SVG；新增任务、账户和工作流使用统一的操作图标。
-路径支持系统文件选择器，状态栏可以进入相关详情，“关于”提供源码、Issue 和 Release 入口。
-滚动条预留空间，长名称和窄窗口详情不会挤到操作区域。
-
-预览版包括官方引擎校验与离线导入、独立账户配置会话、复制/镜像/校验工作流、
-尝试记录、暂停恢复、托盘运行、CLI JSON、OpenAPI 和只读观察 token。
-README、贡献说明、Issue/PR 表单与 Release 说明支持中英文。
-便携 exe 已嵌入许可文本，可通过“关于”或 `rclonego licenses` 查看。
-
-CI 只对 main push 和 PR 验证，取消过时 PR 任务；每个 job 只准备一次校验过的测试引擎。
-Linux 运行 race 检查。tag 与版本一致后才打包，平台校验和与归档内容检查通过后组装草稿发行。
-Go 依赖和 Action 更新按组管理。
-
-提供 Windows amd64 单文件/安装器、Linux amd64 deb/tar.gz 和 macOS arm64 app/DMG。
-Windows、Linux 原生运行与合成工作流已有验收；三个平台均运行合成 CI 测试。
-macOS 人工界面验收与真实云账户浏览器授权仍待验证。
-
+构建目标为 Windows amd64、Linux amd64 和 macOS arm64，实际运行证据见 README。
+macOS 人工界面、真实云账户登录、休眠唤醒和系统签名分别验收。
 Windows 尚无 Authenticode 签名，macOS 尚无 Developer ID 公证。
-SHA256SUMS 只校验完整性，不替代系统签名。Google Drive 使用自己的 OAuth 客户端。
-自动同步、独立 daemon 的 GUI 接入及签名自动更新属于后续工作。
-客户端不自动接管已有上传器或挂载。
+签名更新源发布后才能提供更新；重命名的 Windows 单独 exe 使用手动更新。
+客户端不会自动接管已有上传器、账户或挂载。

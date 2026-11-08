@@ -7,13 +7,26 @@ import hashlib
 import json
 import platform
 import urllib.request
+import urllib.parse
+import shutil
+import sys
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--platform", help="MyGo target, e.g. windows/amd64 or darwin/universal")
 parser.add_argument("--installer", action="store_true", help="also build a Windows installer")
+parser.add_argument("--require-signed-updates", action="store_true",
+                    help="fail unless official MyGo signed update artifacts are generated")
 args = parser.parse_args()
 root = Path(__file__).resolve().parents[1]
 env = os.environ.copy()
+config = json.loads((root / "mygo.json").read_text(encoding="utf-8"))
+updates = config.get("updates")
+if args.require_signed_updates and not updates:
+    raise SystemExit("Signed updates require updates.publicKey and updates.github/url in mygo.json.")
+if args.require_signed_updates and not (
+    env.get("MYGO_UPDATER_PRIVATE_KEY") or updates.get("privateKey")
+):
+    raise SystemExit("Signed updates require the matching MYGO_UPDATER_PRIVATE_KEY.")
 module = json.loads(subprocess.check_output(
     ["go", "mod", "download", "-json", "github.com/egoist/mygo"], cwd=root))
 manifest = json.loads((Path(module["Dir"]) / "plugins/sqlite/mygo-plugin.json").read_text())
@@ -44,6 +57,26 @@ for target in targets:
         "//go:build rclonego_embedded\n\npackage persistence\n\nimport _ \"embed\"\n\n"
         f"//go:embed native/{name}\nvar bundledLibrary []byte\n\n"
         f"const bundledLibraryName = {json.dumps(library['name'])}\n", encoding="utf-8")
+    # A previous signed build must not supply the manifest of a new unsigned
+    # build. Only remove this target's generated metadata, inside its stage.
+    stage = root / config.get("out", "build") / f"{operating_system}-{architecture}"
+    update_metadata = stage / f"update-{operating_system}-{architecture}.json"
+    if not update_metadata.resolve().is_relative_to((root / config.get("out", "build")).resolve()):
+        raise SystemExit("update output is outside the configured build directory")
+    update_metadata.unlink(missing_ok=True)
+    signed_destination = root / "dist" / f"signed-updates-{operating_system}-{architecture}"
+    if not signed_destination.resolve().is_relative_to((root / "dist").resolve()):
+        raise SystemExit("signed update output is outside dist")
+    previous_checksums = signed_destination / "SHA256SUMS"
+    if previous_checksums.is_file():
+        for line in previous_checksums.read_text(encoding="utf-8").splitlines():
+            _, previous_name = line.split("  ", 1)
+            if Path(previous_name).name != previous_name:
+                raise SystemExit("unsafe previous signed output name")
+            previous_file = signed_destination / previous_name
+            if previous_file.is_file() and not previous_file.is_symlink():
+                previous_file.unlink()
+        previous_checksums.unlink()
 env["GOFLAGS"] = (env.get("GOFLAGS", "") + " -trimpath -tags=rclonego_embedded").strip()
 command = ["go", "run", "github.com/egoist/mygo/cmd/mygo", "build"]
 if not args.installer:
@@ -51,3 +84,40 @@ if not args.installer:
 if args.platform:
     command += ["-platform", args.platform]
 subprocess.run(command, cwd=root, env=env, check=True)
+
+# Copy MyGo's update output without reimplementing its signing or installer.
+# package.py independently prepares portable packages; signed update archives
+# keep their original names because the generated manifests refer to them.
+for target in targets:
+    operating_system, architecture = target.split("/")
+    stage = root / config.get("out", "build") / f"{operating_system}-{architecture}"
+    manifest_path = stage / f"update-{operating_system}-{architecture}.json"
+    if not manifest_path.exists():
+        if args.require_signed_updates:
+            raise SystemExit(f"Missing signed update manifest for {target}.")
+        continue
+    if not updates:
+        raise SystemExit("Unexpected signed update output without public-key configuration.")
+    subprocess.run(
+        ["go", "run", "./internal/updates/cmd/verify", "--directory", str(stage),
+         "--config", str(root / "mygo.json"), "--required"],
+        cwd=root, check=True,
+    )
+    update_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    names = [manifest_path.name, Path(urllib.parse.urlparse(update_manifest["url"]).path).name]
+    names += [Path(urllib.parse.urlparse(delta["url"]).path).name
+              for delta in update_manifest.get("deltas", [])]
+    destination = root / "dist" / f"signed-updates-{operating_system}-{architecture}"
+    destination.mkdir(parents=True, exist_ok=True)
+    for name in names:
+        shutil.copy2(stage / name, destination / name)
+    checksums = []
+    for name in sorted(set(names)):
+        with (destination / name).open("rb") as stream:
+            checksums.append(f"{hashlib.file_digest(stream, 'sha256').hexdigest()}  {name}\n")
+    (destination / "SHA256SUMS").write_text("".join(checksums), encoding="utf-8")
+    subprocess.run(
+        [sys.executable, str(root / "scripts/check_artifacts.py"),
+         "--directory", str(destination), "--require-signed-updates"],
+        cwd=root, check=True,
+    )

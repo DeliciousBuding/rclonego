@@ -1,4 +1,4 @@
-name: Preview packages
+name: Release packages
 on:
   push:
     tags: ['v*']
@@ -35,11 +35,15 @@ jobs:
       - run: python scripts/test.py ${{ runner.os == 'Linux' && '--race' || '' }}
       - run: go vet ./...
       - if: runner.os == 'Windows'
-        run: python scripts/build.py --platform ${{ matrix.target }} --installer
+        env:
+          MYGO_UPDATER_PRIVATE_KEY: ${{ secrets.MYGO_UPDATER_PRIVATE_KEY }}
+        run: python scripts/build.py --platform ${{ matrix.target }} --installer --require-signed-updates
       - if: runner.os != 'Windows'
-        run: python scripts/build.py --platform ${{ matrix.target }}
+        env:
+          MYGO_UPDATER_PRIVATE_KEY: ${{ secrets.MYGO_UPDATER_PRIVATE_KEY }}
+        run: python scripts/build.py --platform ${{ matrix.target }} --require-signed-updates
       - run: python scripts/package.py --platform ${{ matrix.target }}
-      - run: python scripts/check_artifacts.py
+      - run: python scripts/check_artifacts.py --require-signed-updates
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: rclonego-${{ runner.os }}
@@ -66,7 +70,11 @@ jobs:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
           if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            gh release create "$RELEASE_TAG" --verify-tag --draft --prerelease --title "RcloneGo ${RELEASE_TAG#v}" --notes-file release-notes.md
+            release_args=("$RELEASE_TAG" --verify-tag --draft --title "RcloneGo ${RELEASE_TAG#v}" --notes-file release-notes.md)
+            if [[ "${RELEASE_TAG#v}" == *-* ]]; then
+              release_args+=(--prerelease)
+            fi
+            gh release create "${release_args[@]}"
           fi
           if [ "$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft)" != "true" ]; then
             echo "Published releases are immutable; create a new version." >&2

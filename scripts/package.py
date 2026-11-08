@@ -11,7 +11,8 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--platform", required=True)
 args = parser.parse_args()
 root = Path(__file__).resolve().parents[1]
-version = json.loads((root / "mygo.json").read_text(encoding="utf-8"))["version"]
+config = json.loads((root / "mygo.json").read_text(encoding="utf-8"))
+version, slug = config["version"], config["slug"]
 operating_system, architecture = args.platform.split("/")
 build = root / "build" / f"{operating_system}-{architecture}"
 prefix = f"rclonego-{version}-{operating_system}-{architecture}"
@@ -24,7 +25,7 @@ if operating_system == "windows":
         archive.write(executable, "RcloneGo.exe")
         for name in ["LICENSE", "NOTICE", "docs/third-party.md"]:
             archive.write(root / name, name)
-    for installer in build.glob("rclonego-setup-*.exe"):
+    for installer in build.glob(f"{slug}-setup-{version}-{architecture}.exe"):
         shutil.copy2(installer, dist / installer.name)
 elif operating_system == "darwin":
     # MyGo signs and prepares bundles on a macOS release runner. A .zip can
@@ -39,10 +40,12 @@ elif operating_system == "darwin":
                 archive.writestr(member, path.read_bytes())
         archive.write(root / "LICENSE", "LICENSE")
         archive.write(root / "NOTICE", "NOTICE")
-    for image in build.glob("*.dmg"):
+    for image in build.glob(f"{slug}-{version}-{architecture}.dmg"):
         shutil.copy2(image, dist / image.name)
 else:
-    for pattern in ["*.deb", "*.tar.gz"]:
+    debian_version = version.replace("-", "~", 1)
+    for pattern in [f"{slug}_{debian_version}_{architecture}.deb",
+                    f"{slug}-{version}-linux-{architecture}.tar.gz"]:
         for path in build.glob(pattern):
             name = f"{prefix}.deb" if path.suffix==".deb" else path.name
             shutil.copy2(path, dist / name)
