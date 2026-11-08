@@ -207,6 +207,48 @@ func TestWindowMaterialAndCaptionClearance(t *testing.T) {
 	}
 }
 
+func TestNavigationAdaptsToNativeAndInsetTitleBars(t *testing.T) {
+	for _, bar := range []ui.TitleBar{
+		{},                                 // System decorations outside content.
+		{Height: 28, Left: 80},             // macOS traffic lights.
+		{Height: 68, Left: 100},            // Larger system control area.
+		{Height: 56, Left: 80, Right: 138}, // Reserve both sides if requested.
+	} {
+		model := New(testApp(t), "127.0.0.1:8797")
+		tester := ui.NewTester(model.view, 900, 560)
+		tester.SetLocale("zh-Hans")
+		tester.SetTitleBar(bar)
+		search, foundSearch := tester.Find("搜索命令")
+		refresh, foundRefresh := tester.Find("刷新状态")
+		navigation, foundNavigation := tester.Find("总览")
+		if !foundSearch || !foundRefresh || !foundNavigation {
+			t.Fatalf("bar=%+v: missing navigation commands", bar)
+		}
+		if search.X+search.W > refresh.X || refresh.X+refresh.W > 900-bar.Right {
+			t.Fatalf("bar=%+v: commands overlap each other or window controls: %v / %v", bar, search, refresh)
+		}
+		if bar.Height == 0 {
+			if refresh.X+refresh.W > 208 || navigation.Y < search.Y+search.H {
+				t.Fatalf("native frame: commands did not stay above sidebar navigation: %v / %v", search, navigation)
+			}
+		} else {
+			if search.X < bar.Left || navigation.Y < max(52, bar.Height) {
+				t.Fatalf("bar=%+v: navigation enters the native title bar: %v / %v", bar, search, navigation)
+			}
+		}
+		if err := tester.Click("搜索命令"); err != nil {
+			t.Fatal(err)
+		}
+		if !model.commandOpen {
+			t.Fatal("navigation command button did not open the palette")
+		}
+		tester.Key(0, ui.KeyEscape)
+		if model.commandOpen {
+			t.Fatal("command palette did not dismiss")
+		}
+	}
+}
+
 func TestActivityStatusDistinguishesConnectionFromActivity(t *testing.T) {
 	model := New(testApp(t), "127.0.0.1:8797")
 	model.activity = core.ActivityStatus{Available: true, Stats: &core.RCStats{}}

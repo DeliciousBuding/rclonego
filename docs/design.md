@@ -18,6 +18,21 @@ system Glass material. Toolbar buttons sit directly on that material; transient 
 use MyGo Glass over the content. A fine canvas border separates content without
 adding another full-window blur.
 
+## Window frame and navigation
+
+Windows and Linux keep system decorations, including minimize, maximize/restore,
+close, resizing and the window menu. Application content does not draw replacement
+caption buttons or cover the system title bar. Search and refresh share the top
+of the sidebar; the content canvas starts close to the frame without a second,
+empty title row. Linux leaves button placement and decoration to GTK and the
+desktop instead of imposing the Windows arrangement.
+
+macOS uses a native inset title bar. One full-width draggable toolbar reserves
+the control area reported by MyGo before placing the product mark and commands.
+Sidebar navigation and the content canvas both start below this row. The toolbar
+height also accommodates a larger reported control area. Full screen and native
+title bars report no inset area, so no extra caption row is reserved.
+
 ## Page structure and density
 
 Each management page starts with a 22px title, one short description or count,
@@ -49,7 +64,7 @@ action icon system.
 Activity identifies who manages a transfer. Imported active work shows the old
 client as owner until it records completion; pending steps and whole-run progress
 remain visible. Passive external observations do not imply ownership of their
-controls or final result. The title bar carries window commands while the page
+controls or final result. Global commands stay with navigation while the page
 heading carries its title and primary action, avoiding repeated headings.
 
 File browsing offers current-page search, name/size sorting and native list

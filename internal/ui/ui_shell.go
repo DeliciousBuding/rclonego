@@ -82,10 +82,15 @@ func (s *nativeUI) view(c *ui.Context) {
 		}
 		// Windows replaces inactive Acrylic with gray. An opaque themed
 		// fallback keeps inactive and reduced-transparency chrome readable.
-		shell := ui.Row(c).Fill().AlignItems(ui.Stretch).Background(chrome)
+		shell := ui.Column(c).Fill().Background(chrome)
 		shell.Children(func() {
-			s.sidebar(c)
-			s.main(c)
+			if c.TitleBar().Height > 0 {
+				s.titleBar(c)
+			}
+			ui.Row(c).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
+				s.sidebar(c)
+				s.main(c)
+			})
 		})
 		s.editOverlays(c)
 		s.workflowOverlays(c)
@@ -94,6 +99,39 @@ func (s *nativeUI) view(c *ui.Context) {
 		s.commandPalette(c)
 		s.browserOverlay(c)
 	})
+}
+
+func (s *nativeUI) titleBar(c *ui.Context) {
+	bar := c.TitleBar()
+	ui.Row(c).Height(max(52, bar.Height)).Shrink(0).
+		Padding(0, bar.Right+16, 0, max(20, bar.Left+12)).Gap(8).
+		DragWindow().Children(func() {
+		ui.Icon(c, appMark).FontSize(17).TextColor(c.Theme().Accent)
+		ui.Text(c, "RcloneGo").FontSize(14).FontWeight(600)
+		ui.Spacer(c)
+		s.navigationCommands(c)
+	})
+}
+
+func (s *nativeUI) navigationCommands(c *ui.Context) {
+	command := ui.ButtonBase(c.Key("commands")).Height(30).Padding(0, 8).Gap(7).
+		Radius(7).Role(ui.RoleButton).Label(text(c, "搜索命令")).Tooltip(text(c, "搜索命令")).
+		KeyShortcuts(ui.Cmd, ui.KeyK).
+		OnClick(func() { s.commandOpen, s.commandQuery, s.commandIndex = true, "", 0 })
+	if command.Hovered() {
+		command.Background(c.Theme().SurfaceHover)
+	}
+	if command.Pressed() {
+		command.Background(c.Theme().SurfacePressed)
+	}
+	command.Children(func() {
+		ui.Icon(c, iconSearch).FontSize(15).TextColor(c.Theme().TextMuted)
+		ui.Text(c, text(c, "搜索命令")).FontSize(12).TextColor(c.Theme().TextMuted).SingleLine()
+	})
+	iconButton(c.Key("refresh"), iconRefresh, "刷新状态").OnClick(func() {
+		s.app.RefreshRuntime()
+		go s.refresh(context.Background(), true)
+	}).Disabled(s.busy)
 }
 
 func (s *nativeUI) sidebar(c *ui.Context) {
@@ -107,14 +145,11 @@ func (s *nativeUI) sidebar(c *ui.Context) {
 	side := ui.Column(c).Width(208).Shrink(0).FillHeight()
 	side.Background(ui.Transparent)
 	side.Children(func() {
-		ui.Row(c).Height(56).Shrink(0).Padding(0, 20, 0, max(20, c.TitleBar().Left)).
-			DragWindow().Children(func() {
-			if c.TitleBar().Left == 0 {
-				ui.Icon(c, appMark).FontSize(19).TextColor(t.Accent)
-				ui.Box(c).Width(8)
-				ui.Text(c, "RcloneGo").FontSize(15).FontWeight(600)
-			}
-		})
+		if c.TitleBar().Height == 0 {
+			ui.Row(c).Height(48).Shrink(0).Padding(0, 12).Gap(4).Children(func() {
+				s.navigationCommands(c)
+			})
+		}
 		ui.Sidebar(c.Key("navigation"), &s.page, func() {
 			for _, item := range []struct {
 				id, label string
@@ -166,21 +201,12 @@ func (s *nativeUI) main(c *ui.Context) {
 	t := c.Theme()
 	pane := ui.Column(c).Grow(1).MinWidth(0).FillHeight()
 	pane.Children(func() {
-		ui.Row(c).Height(56).Shrink(0).Padding(0, c.TitleBar().Right+16, 0, 28).Gap(12).AlignItems(ui.Center).
-			Background(ui.Transparent).
-			DragWindow().Children(func() {
-			ui.Spacer(c)
-			ui.Row(c).Gap(4).Children(func() {
-				iconButton(c.Key("commands"), iconOverview, "搜索命令").KeyShortcuts(ui.Cmd, ui.KeyK).
-					OnClick(func() { s.commandOpen, s.commandQuery, s.commandIndex = true, "", 0 })
-				iconButton(c.Key("refresh"), iconRefresh, "刷新状态").OnClick(func() {
-					s.app.RefreshRuntime()
-					go s.refresh(context.Background(), true)
-				}).Disabled(s.busy)
-			})
-		})
+		top := float32(0)
+		if c.TitleBar().Height == 0 {
+			top = 12
+		}
 		body := ui.Column(c).Grow(1).MinHeight(0).Padding(24, 28, 24, 28).Gap(16).
-			Radius(12).Margin(0, 12, 12, 0).Background(t.Background).
+			Radius(12).Margin(top, 12, 12, 0).Background(t.Background).
 			Border(0.5, t.Border.Alpha(0.45))
 		body.Children(func() {
 			if s.notice != "" && s.isError {
