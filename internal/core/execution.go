@@ -61,6 +61,9 @@ func (a *App) SaveWorkflow(definition WorkflowDefinition) (WorkflowDefinition, e
 	if definition.VerificationMode != "" && definition.VerificationMode != "backend" && definition.VerificationMode != "content" && definition.VerificationMode != "size" {
 		return definition, errors.New("verification_mode must be backend, content or size")
 	}
+	if err := validateWorkflowEntries(definition.Entries); err != nil {
+		return definition, err
+	}
 	if definition.ID == "" {
 		id, err := RandomID()
 		if err != nil {
@@ -262,6 +265,9 @@ func (a *App) ReportRun(id string) (RunReport, error) {
 			} else {
 				result.Verification = "backend_check_completed: size and available hashes; hash availability not attested"
 			}
+		}
+		if job.Operation == "check" && len(job.Includes) > 0 {
+			result.Scope = "one-way: selected top-level workflow entries and their descendants; extra destination files are outside this report"
 		}
 	}
 	for _, attempt := range state.Attempts {

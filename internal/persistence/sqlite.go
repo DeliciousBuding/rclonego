@@ -30,6 +30,8 @@ type Event struct {
 	Kind       string `json:"kind"`
 }
 
+const schemaVersion = 1
+
 func Open(path string) (*DB, error) {
 	if err := prepareNative(); err != nil {
 		return nil, err
@@ -38,8 +40,22 @@ func Open(path string) (*DB, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Inspect the version before changing pragmas or creating any tables.
+	version, err := db.Query(context.Background(), "PRAGMA user_version")
+	if err != nil || len(version.Values) != 1 {
+		db.Close()
+		if err == nil {
+			err = fmt.Errorf("invalid database schema version")
+		}
+		return nil, err
+	}
+	current, ok := version.Values[0][0].(int64)
+	if !ok || current < 0 || current > schemaVersion {
+		db.Close()
+		return nil, fmt.Errorf("unsupported database schema %v; use a compatible RcloneGo version", version.Values[0][0])
+	}
 	result := &DB{db: db, cached: map[string]map[string][]byte{}}
-	for _, statement := range []string{
+	statements := []string{
 		"PRAGMA journal_mode=WAL",
 		"PRAGMA synchronous=FULL",
 		"CREATE TABLE IF NOT EXISTS settings (id INTEGER PRIMARY KEY CHECK(id=1), payload BLOB NOT NULL)",
@@ -49,13 +65,25 @@ func Open(path string) (*DB, error) {
 		"CREATE INDEX IF NOT EXISTS steps_idempotency ON steps(json_extract(CAST(payload AS TEXT),'$.idempotency_key'))",
 		"CREATE TABLE IF NOT EXISTS attempts (id TEXT PRIMARY KEY, step_id TEXT NOT NULL, payload BLOB NOT NULL)",
 		"CREATE TABLE IF NOT EXISTS events (seq INTEGER PRIMARY KEY AUTOINCREMENT, occurred_at TEXT NOT NULL, subject TEXT NOT NULL, kind TEXT NOT NULL)",
-	} {
+	}
+	for _, statement := range statements {
 		if _, err := db.Execute(context.Background(), statement); err != nil {
 			db.Close()
 			return nil, err
 		}
 	}
+	if current == 0 {
+		if _, err := db.Execute(context.Background(), "PRAGMA user_version=1"); err != nil {
+			db.Close()
+			return nil, err
+		}
+	}
 	return result, nil
+}
+
+func (d *DB) Check() error {
+	_, err := d.db.Query(context.Background(), "SELECT 1")
+	return err
 }
 
 func (d *DB) JobByKey(key string) (json.RawMessage, error) {

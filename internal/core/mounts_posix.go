@@ -6,9 +6,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -43,6 +45,70 @@ func inspectMounts(ctx context.Context, configs []MountConfig) ([]MountView, err
 		result = append(result, MountView{MountConfig: cfg, Running: ready, DriveAvailable: ready})
 	}
 	return result, nil
+}
+
+var posixMountRCPortPattern = regexp.MustCompile(`(?:^|\s)--rc-addr(?:\s+|=)127\.0\.0\.1:([0-9]+)(?:\s|$)`)
+
+func mountProcessRCPort(ctx context.Context, cfg MountConfig, pid int) (int, error) {
+	if err := ctx.Err(); err != nil {
+		return 0, err
+	}
+	if runtime.GOOS == "linux" {
+		file, err := os.Open("/proc/" + strconv.Itoa(pid) + "/cmdline")
+		if err != nil {
+			return 0, errors.New("owned mount process is unavailable")
+		}
+		raw, err := io.ReadAll(io.LimitReader(file, 65537))
+		file.Close()
+		if err != nil || len(raw) > 65536 {
+			return 0, errors.New("owned mount command is unavailable")
+		}
+		return mountArgsRCPort(strings.Split(strings.TrimSuffix(string(raw), "\x00"), "\x00"), cfg)
+	}
+	readCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	command, err := exec.CommandContext(readCtx, "ps", "-p", strconv.Itoa(pid), "-o", "command=").Output()
+	if err != nil || len(command) > 65536 {
+		return 0, errors.New("owned mount command is unavailable")
+	}
+	text := strings.TrimSpace(string(command))
+	// The persisted start identity has already been verified. macOS ps flattens
+	// arguments, so keep path text intact rather than splitting a spaced path.
+	if !strings.Contains(text, " mount "+cfg.Remote+" "+cfg.Drive+" ") {
+		return 0, errors.New("owned process no longer matches the configured mount")
+	}
+	match := posixMountRCPortPattern.FindStringSubmatch(text)
+	if len(match) != 2 {
+		return 0, errors.New("owned mount has no discoverable loopback RC endpoint")
+	}
+	port, err := strconv.Atoi(match[1])
+	if err != nil || port < 1 || port > 65535 {
+		return 0, errors.New("owned mount has an invalid RC port")
+	}
+	return port, nil
+}
+
+func mountArgsRCPort(args []string, cfg MountConfig) (int, error) {
+	if len(args) < 4 || args[1] != "mount" || args[2] != cfg.Remote || !MountTargetsEqual(args[3], cfg.Drive) {
+		return 0, errors.New("owned process no longer matches the configured mount")
+	}
+	for i := 4; i < len(args); i++ {
+		value, found := strings.CutPrefix(args[i], "--rc-addr=")
+		if args[i] == "--rc-addr" && i+1 < len(args) {
+			i++
+			value, found = args[i], true
+		}
+		if !found {
+			continue
+		}
+		portText, loopback := strings.CutPrefix(value, "127.0.0.1:")
+		port, err := strconv.Atoi(portText)
+		if !loopback || err != nil || port < 1 || port > 65535 {
+			return 0, errors.New("owned mount has an invalid loopback RC endpoint")
+		}
+		return port, nil
+	}
+	return 0, errors.New("owned mount has no discoverable loopback RC endpoint")
 }
 
 func ValidateMountConfig(cfg MountConfig) error {
@@ -97,7 +163,8 @@ func startMount(ctx context.Context, client RcloneClient, dataDir string, cfg Mo
 	if err := os.MkdirAll(logDir, 0o700); err != nil {
 		return 0, err
 	}
-	log, err := os.OpenFile(filepath.Join(logDir, cfg.ID+".log"), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
+	logPath := filepath.Join(logDir, cfg.ID+".log")
+	log, err := os.OpenFile(logPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
 	if err != nil {
 		return 0, err
 	}
@@ -108,7 +175,9 @@ func startMount(ctx context.Context, client RcloneClient, dataDir string, cfg Mo
 	}
 	args := []string{"mount", cfg.Remote, cfg.Drive, "--config", client.ConfigPath,
 		"--vfs-cache-mode", "full", "--cache-dir", cfg.CacheDir, "--vfs-cache-max-size", ValueOr(cfg.CacheMax, "15G"),
-		"--vfs-cache-max-age", ValueOr(cfg.CacheMaxAge, "24h"), "--rc", "--rc-addr", fmt.Sprintf("127.0.0.1:%d", port)}
+		"--vfs-cache-max-age", ValueOr(cfg.CacheMaxAge, "24h"), "--rc", "--rc-addr", fmt.Sprintf("127.0.0.1:%d", port),
+		"--log-level", "INFO", "--log-file", logPath, "--log-file-max-size", "8M",
+		"--log-file-max-backups", "2", "--log-file-max-age", "30d", "--log-file-compress"}
 	cmd := exec.Command(client.Path, args...)
 	cmd.Env, cmd.Stdout, cmd.Stderr = client.environment(), log, log
 	if err := cmd.Start(); err != nil {

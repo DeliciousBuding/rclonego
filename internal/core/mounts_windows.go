@@ -105,6 +105,26 @@ func inspectMounts(ctx context.Context, configs []MountConfig) ([]MountView, err
 	return result, nil
 }
 
+func mountProcessRCPort(ctx context.Context, cfg MountConfig, pid int) (int, error) {
+	if err := ctx.Err(); err != nil {
+		return 0, err
+	}
+	command := processCommandLine(uint32(pid))
+	match := mountCommandPattern.FindStringSubmatch(command)
+	if len(match) != 3 || !strings.EqualFold(match[1], cfg.Remote) || !MountTargetsEqual(match[2], cfg.Drive) {
+		return 0, errors.New("owned process no longer matches the configured mount")
+	}
+	portMatch := mountRCPortPattern.FindStringSubmatch(command)
+	if len(portMatch) != 2 {
+		return 0, errors.New("owned mount has no discoverable loopback RC endpoint")
+	}
+	port, err := strconv.Atoi(portMatch[1])
+	if err != nil || port < 1 || port > 65535 {
+		return 0, errors.New("owned mount has an invalid RC port")
+	}
+	return port, nil
+}
+
 func pathExists(path string) bool {
 	if len(path) == 3 && path[1] == ':' {
 		root, err := syscall.UTF16PtrFromString(path)
@@ -129,10 +149,10 @@ func ValidateMountConfig(cfg MountConfig) error {
 		return errors.New("invalid drive")
 	}
 	cfg.Drive = strings.ToUpper(cfg.Drive)
-	if !strings.HasSuffix(cfg.Remote, ":") || strings.ContainsAny(cfg.Remote, " \t\r\n\x00") {
+	if _, _, kind, err := browsePath(cfg.Remote); err != nil || kind != "remote" || strings.ContainsAny(cfg.Remote, " \t\r\n\x00") {
 		return errors.New("invalid remote")
 	}
-	if cfg.CacheDir == "" || strings.ContainsAny(cfg.CacheDir, "\r\n\x00") {
+	if !filepath.IsAbs(cfg.CacheDir) || strings.ContainsAny(cfg.CacheDir, "\r\n\x00") {
 		return errors.New("invalid cache directory")
 	}
 	if cfg.CacheMax != "" && !bandwidthPattern.MatchString(cfg.CacheMax) {
@@ -188,15 +208,20 @@ func startMount(ctx context.Context, client RcloneClient, dataDir string, cfg Mo
 		"--vfs-cache-max-size", ValueOr(cfg.CacheMax, "15G"),
 		"--vfs-cache-max-age", ValueOr(cfg.CacheMaxAge, "24h"),
 		"--log-level", "INFO",
+		"--log-file", logPath,
+		"--log-file-max-size", "8M",
+		"--log-file-max-backups", "2",
+		"--log-file-max-age", "30d",
+		"--log-file-compress",
 	}
 	rcPort, err := freePort()
 	if err != nil {
 		return 0, err
 	}
 	args = append(args, "--config", client.ConfigPath, "--rc", "--rc-addr", fmt.Sprintf("127.0.0.1:%d", rcPort))
-	if cfg.VolumeName != "" {
-		args = append(args, "--volname", cfg.VolumeName)
-	}
+	// WinFsp network volumes need a valid share name. A local/alias backend's
+	// default name can contain a drive colon and make an assigned drive unusable.
+	args = append(args, "--volname", ValueOr(cfg.VolumeName, "RcloneGo-"+cfg.ID))
 	cmd := exec.Command(client.Path, args...)
 	cmd.Env = client.environment()
 	hideProcess(cmd)

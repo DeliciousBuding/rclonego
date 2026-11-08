@@ -70,6 +70,17 @@ func (s TransferSettings) BufferBudget() int64 {
 	return int64(s.Transfers) * (chunk + buffer)
 }
 
+// BufferBudgetFor excludes a Drive upload chunk when the destination backend
+// does not use it. This is a buffer estimate, not a process memory limit.
+func (s TransferSettings) BufferBudgetFor(capabilities BackendCapabilities) int64 {
+	buffer, _ := sizeBytes(s.BufferSize)
+	if capabilities.DriveChunkSize {
+		chunk, _ := sizeBytes(s.ChunkSize)
+		buffer += chunk
+	}
+	return int64(s.Transfers) * buffer
+}
+
 type SettingsRequest struct {
 	Appearance *string           `json:"appearance,omitempty"`
 	Defaults   *TransferSettings `json:"defaults,omitempty"`

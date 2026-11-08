@@ -6,8 +6,9 @@ RcloneGo is Apache-2.0. This license does not replace dependency licenses.
 | --- | --- | --- |
 | MyGo | MIT | Native UI, desktop APIs and SQLite binding |
 | purego | Apache-2.0 | Native library bindings |
+| fsnotify | BSD-3-Clause | Filesystem notifications with periodic scan fallback |
 | go-text/typesetting | BSD-3-Clause or Unlicense, with included notices | Text shaping |
-| Go extended libraries | BSD-3-Clause | Text, image and network support |
+| Go extended libraries | BSD-3-Clause | Text, image, network and OS support |
 | SQLite | Public domain, with MyGo shim under its terms | Local state |
 | rclone | MIT | Separately selected transfer engine |
 

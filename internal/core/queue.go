@@ -31,6 +31,11 @@ type Queue struct {
 	closed       bool
 	closing      bool
 	pausing      bool
+	fault        error
+	faultAt      time.Time
+	unsavedFinal *Job
+	cleanupAt    time.Time
+	cleanupError error
 	externalBusy func() bool
 }
 
@@ -83,6 +88,80 @@ func (q *Queue) Wake() {
 	}
 }
 
+func (q *Queue) Health() ServiceHealth {
+	q.mu.Lock()
+	failed, since, cleanupFailed := q.fault != nil, q.faultAt, q.cleanupError != nil
+	q.mu.Unlock()
+	if failed {
+		return storageHealth(since)
+	}
+	if health := q.store.Health(); !health.Ready {
+		return health
+	}
+	for _, job := range q.store.Snapshot().Jobs {
+		if job.Status == "interrupted" && interruptedProcessActive(job) {
+			return ServiceHealth{Code: "previous_process_running",
+				Message:    "A previous transfer process may still be running",
+				NextAction: "Wait for that process to stop before resuming this queue"}
+		}
+	}
+	if cleanupFailed {
+		return ServiceHealth{Ready: true, Code: "log_cleanup_failed",
+			Message:    "Some completed logs could not be removed",
+			NextAction: "Check permissions in the application's task log directory"}
+	}
+	return readyHealth()
+}
+
+func (q *Queue) storageFailure(err error, final *Job) {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	if q.fault == nil {
+		q.faultAt = time.Now().UTC()
+	}
+	q.fault = err
+	if final != nil {
+		copy := *final
+		q.unsavedFinal = &copy
+	}
+}
+
+// Recover persists a completion that could not be recorded before allowing
+// another launch. It never guesses that an unrecorded transfer succeeded.
+func (q *Queue) Recover() error {
+	q.mu.Lock()
+	pending := q.unsavedFinal
+	active := q.running != ""
+	if q.running != "" && (q.fault != nil || pending != nil) {
+		q.mu.Unlock()
+		return errors.New("wait for the active process to stop before recovering storage")
+	}
+	q.mu.Unlock()
+	if pending != nil {
+		if err := q.store.SaveJob(*pending); err != nil {
+			q.storageFailure(err, pending)
+			return err
+		}
+	}
+	if err := q.store.CheckStorage(); err != nil {
+		q.storageFailure(err, pending)
+		return err
+	}
+	if active {
+		q.Wake()
+		return nil
+	}
+	if err := q.ResumeInterrupted(); err != nil {
+		q.storageFailure(err, nil)
+		return err
+	}
+	q.mu.Lock()
+	q.fault, q.unsavedFinal, q.faultAt = nil, nil, time.Time{}
+	q.mu.Unlock()
+	q.Wake()
+	return nil
+}
+
 func (q *Queue) loop() {
 	q.mu.Lock()
 	done := q.done
@@ -90,6 +169,7 @@ func (q *Queue) loop() {
 	defer close(done)
 	ticker := time.NewTicker(2 * time.Second)
 	defer ticker.Stop()
+	q.cleanupLogsIfDue(false)
 	for {
 		select {
 		case <-q.stop:
@@ -97,11 +177,17 @@ func (q *Queue) loop() {
 		case <-q.wake:
 		case <-ticker.C:
 		}
+		q.cleanupLogsIfDue(false)
 		q.mu.Lock()
-		active := q.running != ""
+		active := q.running != "" || q.closed
 		missing := q.client.Path == ""
+		failed := q.fault != nil
 		q.mu.Unlock()
-		if active || missing {
+		if active || missing || failed || !q.store.Health().Ready {
+			continue
+		}
+		if err := q.ResumeInterrupted(); err != nil {
+			q.storageFailure(err, nil)
 			continue
 		}
 		if q.externalBusy != nil && q.externalBusy() {
@@ -118,9 +204,11 @@ func (q *Queue) loop() {
 		err := q.store.SaveJob(job)
 		q.addMu.Unlock()
 		if err != nil {
+			q.storageFailure(err, nil)
 			continue
 		}
 		q.execute(job)
+		q.cleanupLogsIfDue(true)
 	}
 }
 
@@ -310,7 +398,7 @@ func (q *Queue) execute(job Job) {
 		q.finish(job, "failed", nil, err)
 		return
 	}
-	logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
+	logFile, err := openTaskLog(logPath)
 	if err != nil {
 		q.finish(job, "failed", nil, err)
 		return
@@ -339,6 +427,7 @@ func (q *Queue) execute(job Job) {
 	}()
 
 	cmd := exec.CommandContext(ctx, client.Path, args...)
+	cmd.WaitDelay = 5 * time.Second
 	cmd.Env = client.environment()
 	if job.CPUParallelism > 0 {
 		cmd.Env = append(cmd.Env, "GOMAXPROCS="+strconv.Itoa(job.CPUParallelism))
@@ -347,6 +436,7 @@ func (q *Queue) execute(job Job) {
 	cmd.Stdout, cmd.Stderr = logFile, logFile
 	now := time.Now().UTC()
 	job.Status, job.StartedAt, job.PID, job.RCPort = "running", &now, 0, rcPort
+	job.ProcessIdentity = ""
 	job.LogPath, job.LastUpdatedAt = logPath, now
 	if err := q.store.SaveJob(job); err != nil {
 		q.finish(job, "failed", nil, err)
@@ -357,12 +447,26 @@ func (q *Queue) execute(job Job) {
 		return
 	}
 	job.PID = cmd.Process.Pid
+	job.ProcessIdentity = processIdentity(job.PID)
 	job.LastUpdatedAt = time.Now().UTC()
-	_ = q.store.SaveJob(job)
 	done := make(chan error, 1)
 	go func() { done <- cmd.Wait() }()
+	if job.ProcessIdentity == "" {
+		cancel()
+		<-done
+		q.finish(job, "failed", nil, errors.New("process stopped because its start identity could not be verified"))
+		return
+	}
+	if err := q.store.SaveJob(job); err != nil {
+		q.storageFailure(err, nil)
+		cancel()
+		<-done
+		q.finish(job, "interrupted", nil, errors.New("process stopped because its ownership could not be saved"))
+		return
+	}
 	ticker := time.NewTicker(2 * time.Second)
 	defer ticker.Stop()
+	var saveErr error
 	for {
 		select {
 		case waitErr := <-done:
@@ -378,6 +482,10 @@ func (q *Queue) execute(job Job) {
 				}
 			}
 			if ctx.Err() != nil {
+				if saveErr != nil {
+					q.finish(job, "interrupted", &exitCode, errors.New("process stopped because task state could not be saved"))
+					return
+				}
 				q.mu.Lock()
 				closing := q.closing
 				pausing := q.pausing
@@ -405,7 +513,11 @@ func (q *Queue) execute(job Job) {
 				applyStats(&job, stats)
 			}
 			job.LastUpdatedAt = time.Now().UTC()
-			_ = q.store.SaveJob(job)
+			if err := q.store.SaveJob(job); err != nil {
+				saveErr = err
+				q.storageFailure(err, nil)
+				cancel()
+			}
 		}
 	}
 }
@@ -507,7 +619,9 @@ func (q *Queue) finish(job Job, status string, exitCode *int, runErr error) {
 	if runErr != nil {
 		job.Error = runErr.Error()
 	}
-	_ = q.store.SaveJob(job)
+	if err := q.store.SaveJob(job); err != nil {
+		q.storageFailure(err, &job)
+	}
 	logFile, err := os.OpenFile(job.LogPath, os.O_APPEND|os.O_WRONLY, 0o600)
 	if err == nil {
 		fmt.Fprintf(logFile, "%s END status=%s error=%s\n", now.Format(time.RFC3339), status, job.Error)
@@ -581,6 +695,7 @@ func (q *Queue) Retry(id string) error {
 			job.Bytes, job.TotalBytes, job.Speed, job.Error = 0, 0, 0, ""
 			job.FilesDone, job.FilesTotal, job.ChecksDone, job.ChecksTotal = 0, 0, 0, 0
 			job.PID, job.RCPort = 0, 0
+			job.ProcessIdentity = ""
 			job.ActiveFiles = nil
 			job.CheckingFiles = nil
 			job.LastUpdatedAt = time.Now().UTC()
@@ -599,7 +714,7 @@ func (q *Queue) ResumeInterrupted() error {
 		if job.Status != "interrupted" {
 			continue
 		}
-		if job.PID > 0 && processExists(job.PID) {
+		if interruptedProcessActive(job) {
 			continue
 		}
 		if err := q.Retry(job.ID); err != nil {
@@ -662,6 +777,11 @@ func (q *Queue) DeleteWorkflow(workflowID string) error {
 }
 
 func (q *Queue) SetPaused(paused bool) error {
+	if !paused {
+		if err := q.Recover(); err != nil {
+			return err
+		}
+	}
 	q.addMu.Lock()
 	defer q.addMu.Unlock()
 	if err := q.store.Update(func(state *State) error {

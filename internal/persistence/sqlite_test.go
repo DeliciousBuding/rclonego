@@ -1,9 +1,44 @@
 package persistence
 
 import (
+	"context"
 	"path/filepath"
 	"testing"
+
+	"github.com/egoist/mygo/plugins/sqlite"
 )
+
+func TestFutureDatabaseSchemaIsRejectedWithoutChangingTables(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "state.db")
+	if err := prepareNative(); err != nil {
+		t.Fatal(err)
+	}
+	db, err := sqlite.Open(context.Background(), path, sqlite.OpenOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Execute(context.Background(), "PRAGMA user_version=999"); err != nil {
+		t.Fatal(err)
+	}
+	db.Close()
+	if upgraded, err := Open(path); err == nil {
+		upgraded.Close()
+		t.Fatal("future database schema was silently accepted")
+	}
+	db, err = sqlite.Open(context.Background(), path, sqlite.OpenOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	rows, err := db.Query(context.Background(), "SELECT name FROM sqlite_master WHERE type='table'")
+	if err != nil || len(rows.Values) != 0 {
+		t.Fatal("opening a future schema created application tables")
+	}
+	version, err := db.Query(context.Background(), "PRAGMA user_version")
+	if err != nil || version.Values[0][0] != int64(999) {
+		t.Fatal("future schema version was changed")
+	}
+}
 
 func TestIncrementalSaveReopenAndEventCursor(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "state.db")
