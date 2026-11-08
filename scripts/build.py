@@ -84,7 +84,7 @@ def verify_os_signing(stage, operating_system, architecture, config):
         subprocess.run(["xcrun", "stapler", "validate", str(image)], check=True)
 
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument("--platform", help="MyGo target, e.g. windows/amd64 or darwin/universal")
+parser.add_argument("--platform", help="desktop targets, e.g. windows/amd64 or darwin/arm64")
 parser.add_argument("--installer", action="store_true", help="also build a Windows installer")
 parser.add_argument("--require-signed-updates", action="store_true",
                     help="fail unless official MyGo signed update artifacts are generated")
@@ -109,9 +109,9 @@ libraries = manifest["libraries"][0]["files"]
 host_os = {"Windows": "windows", "Darwin": "darwin", "Linux": "linux"}[platform.system()]
 host_arch = {"amd64": "amd64", "x86_64": "amd64", "arm64": "arm64", "aarch64": "arm64"}[platform.machine().lower()]
 targets = (args.platform or f"{host_os}/{host_arch}").split(",")
-if "darwin/universal" in targets:
-    targets.remove("darwin/universal")
-    targets += ["darwin/amd64", "darwin/arm64"]
+supported = {name.replace("-", "/", 1) for name in libraries}
+if any(target not in supported for target in targets):
+    parser.error("Use explicit supported OS/architecture targets; macOS packages use darwin/amd64 and darwin/arm64.")
 if any(target.split("/")[0] != host_os for target in targets) and (
     args.require_signed_updates or env.get("MYGO_UPDATER_PRIVATE_KEY")
     or updates and updates.get("privateKey")

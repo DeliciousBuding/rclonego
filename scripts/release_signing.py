@@ -34,7 +34,7 @@ def write_private(path, data):
 
 def certificate(name):
     try:
-        return base64.b64decode(required(name), validate=True)
+        return base64.b64decode("".join(required(name).split()), validate=True)
     except ValueError:
         raise SystemExit(f"{name} must be base64-encoded certificate data.")
 
