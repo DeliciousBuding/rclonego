@@ -570,6 +570,9 @@ func applyStats(job *Job, stats *RCStats) {
 	job.FilesDone, job.FilesTotal = stats.Transfers, stats.TotalTransfers
 	job.ChecksDone, job.ChecksTotal = stats.Checks, stats.TotalChecks
 	job.CheckingFiles = append([]string(nil), stats.Checking...)
+	job.EngineErrors, job.EngineListed = stats.Errors, stats.Listed
+	job.EngineElapsed, job.EngineETA = stats.ElapsedTime, stats.ETA
+	job.EngineFatalError, job.EngineRetryError, job.EngineLastError = stats.FatalError, stats.RetryError, stats.LastError
 }
 
 func finalLogStats(path string) *RCStats {

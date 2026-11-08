@@ -168,7 +168,9 @@ for endpoint, kind in {
     "/api/v1/health": "Health", "/api/v1/doctor": "[]Diagnostic", "/api/v1/diagnostics": "DiagnosticReport",
     "/api/v1/events": "EventsResponse", "/api/v1/engine": "Installation", "/api/v1/providers": "[]Provider",
     "/api/v1/accounts/{id}": "AccountView", "/api/v1/settings": "Settings", "/api/v1/overview": "Overview",
-    "/api/v1/remotes": "[]RemoteInfo", "/api/v1/mounts": "[]MountView", "/api/v1/jobs": "Jobs",
+    "/api/v1/remotes": "[]RemoteInfo", "/api/v1/remotes/{name}/quota": "RemoteQuota",
+    "/api/v1/remotes/{name}/info": "StorageInfo", "/api/v1/storage/usage": "DirectoryUsage",
+    "/api/v1/mounts": "[]MountView", "/api/v1/jobs": "Jobs",
     "/api/v1/workflow-definitions": "[]WorkflowDefinition", "/api/v1/runs": "[]Run",
     "/api/v1/runs/{id}": "RunReport", "/api/v1/runs/{id}/report": "RunReport",
     "/api/v1/jobs/{id}": "Job", "/api/v1/jobs/log": "JobLog", "/api/v1/browse": "BrowseResult",
@@ -271,6 +273,9 @@ for method, path in re.findall(r'mux\.HandleFunc\("(\w+) ([^"]+)"', transport):
             {"name": "limit", "in": "query", "schema": {"type": "integer", "minimum": 1, "maximum": 500}},
             {"name": "directories_only", "in": "query", "schema": {"type": "boolean", "default": False}},
         ]
+    if path == "/api/v1/storage/usage":
+        operation["parameters"].append(
+            {"name": "path", "in": "query", "required": True, "schema": {"type": "string"}})
     if path == "/api/v1/runs" and method == "GET":
         operation["parameters"] += [
             {"name": "offset", "in": "query", "schema": {"type": "integer", "minimum": 0}},

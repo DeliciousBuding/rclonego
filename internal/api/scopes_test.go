@@ -99,7 +99,8 @@ func TestTaskGrantEnforcesOperationsPathBoundariesAndRevocation(t *testing.T) {
 			t.Fatalf("configuration endpoint %s status %d", endpoint, recorder.Code)
 		}
 	}
-	for _, endpoint := range []string{"/api/v1/events", "/api/v1/runtime", "/api/v1/workflow-definitions", "/api/v1/automations"} {
+	for _, endpoint := range []string{"/api/v1/events", "/api/v1/runtime", "/api/v1/workflow-definitions", "/api/v1/automations",
+		"/api/v1/remotes/storage/quota", "/api/v1/remotes/storage/info", "/api/v1/storage/usage?path=storage:"} {
 		if recorder := apiRequest(t, server, grant.Token, "GET", endpoint, nil); recorder.Code != 403 {
 			t.Fatalf("global state endpoint %s status %d", endpoint, recorder.Code)
 		}

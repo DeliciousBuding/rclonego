@@ -29,6 +29,12 @@ each provider. The Drive mark uses its path-only revision
 `c1a8f4dfd9334aeb28220dbad6175d47e6332823` for native SVG compatibility.
 Other action icons and the wordmark are project-owned vectors.
 
+The rclone symbol comes from the official
+[rclone SVG](https://github.com/rclone/rclone/blob/5d4d5d2b073ec0a20a30d00438ad891b6681e772/docs/static/img/logo_on_light__horizontal_color.svg).
+The asset retains its three symbol paths and colors, omits the wordmark and
+converts inline styles to SVG attributes for native rendering. rclone retains
+its own identity; the symbol identifies the transfer engine.
+
 WinFsp is a separate Windows mount dependency licensed under GPLv3 with a
 FLOSS exception. It is not bundled in this development baseline. Distribution
 must follow the [WinFsp license](https://github.com/winfsp/winfsp/blob/master/License.txt),

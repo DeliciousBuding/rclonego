@@ -56,8 +56,11 @@ Inherited `RCLONE_*` environment settings are removed.
 
 Only a mount recorded as belonging to this instance may be stopped. Discovery of
 a visible drive alone does not grant ownership. PID and process start identity
-must both match before stopping it. Resource sampling shows the application and
-its direct children, with availability flags for counters.
+must both match before stopping it. Resource sampling shows the application,
+its direct children and other processes named rclone. External processes carry
+an explicit `external` flag and are excluded from the client's aggregate
+counters. Discovery reads executable names and resource counters, not command
+lines, credentials or configuration. Discovery grants no process control.
 
 The engine installer accepts pinned official archives, verifies SHA-256, rejects
 unsafe archive members and stages a complete version before selection. Existing
@@ -68,6 +71,14 @@ request bodies carry configuration answers; secrets do not appear in process
 arguments or application logs. Read verification and an unchanged original
 configuration are required before committing the draft. Cancellation discards
 the draft and stops its configuration process.
+
+Storage inspection calls the selected engine directly through typed application
+methods shared by GUI, API and CLI. Account capabilities and quota are fetched
+on request; UI results are retained only for configured accounts and show their
+timestamp. Directory inventory is a separate, cancellable user action. These
+read-only operations do not create jobs or introduce another scheduler.
+Transfer steps retain the engine's error, listing and timing counters for their
+current attempt; starting a new attempt clears the previous diagnosis.
 
 ## Verification
 

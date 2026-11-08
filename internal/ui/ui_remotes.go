@@ -43,9 +43,28 @@ func (s *nativeUI) remotesPage(c *ui.Context) {
 						ui.Text(c, remote.Name).FontSize(13).FontWeight(600).SingleLine().Tooltip(remote.Name)
 						label := providerName(remote.Type)
 						ui.Text(c, text(c, label)).FontSize(12).TextColor(t.TextMuted)
+						if state := s.storageUI[remote.Name]; state != nil {
+							caption := quotaSummary(c, state.quota)
+							if state.loading {
+								caption = text(c, "正在读取账户信息…")
+							} else if state.err != "" {
+								caption = text(c, "账户信息读取失败")
+							}
+							ui.Text(c, caption).FontSize(11).TextColor(t.TextMuted).SingleLine().Tooltip(caption)
+						}
 					})
-					ui.Button(c.Key("oauth-"+remote.Name), text(c, "重新授权…")).Height(28).Padding(4, 10).
-						Disabled(s.busy).OnClick(func() {
+					actionButton(c.Key("browse-"+remote.Name), iconFolder, "浏览文件", false).Disabled(s.busy).
+						OnClick(func() { s.beginStorageBrowse(remote.Name) })
+					iconButton(c.Key("details-"+remote.Name), iconInfo, "账户详情").OnClick(func() {
+						s.storageDetail, s.showStorageDetails = remote.Name, true
+						if s.storageUI[remote.Name] == nil {
+							s.loadStorage(remote.Name)
+						}
+					})
+					iconButton(c.Key("more-"+remote.Name), iconMore, "更多账户操作").Disabled(s.busy).Menu(func(m *ui.Menu) {
+						if !m.Item(text(c, "重新授权…")).Chosen() {
+							return
+						}
 						name := remote.Name
 						var account core.AccountView
 						s.runAfter(text(c, "重新授权"), func() error {

@@ -286,6 +286,8 @@ func (a *App) ListRuns(offset, limit int) ([]Run, error) { return a.store.Runs(o
 
 func beginAttempt(job *Job) {
 	job.Attempt++
+	job.EngineErrors, job.EngineListed, job.EngineElapsed, job.EngineETA = 0, 0, 0, 0
+	job.EngineFatalError, job.EngineRetryError, job.EngineLastError = false, false, ""
 	now := time.Now().UTC()
 	job.StartedAt = &now
 	job.LastUpdatedAt = now

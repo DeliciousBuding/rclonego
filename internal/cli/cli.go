@@ -55,6 +55,9 @@ const cliHelp = `RcloneGo — 本机数据工作台
   offline --file <副本.json>                创建持久化离线副本任务
   logs cleanup                             按保留规则清理任务日志
   remotes [list]                           列出云端账户
+  accounts quota <远端名称>                 读取服务提供的账户容量，不扫描文件
+  accounts info <远端名称>                  查看后端能力和校验算法
+  usage <本机绝对路径或remote:path>          按需统计文件数和目录大小
   remotes reconnect <远端名称>              开始独立账户授权会话
   queue pause|resume|recover               暂停、继续或恢复持久化故障后的队列
   theme [light|dark|system]                 查看或切换外观
@@ -107,7 +110,7 @@ func IsCLI(args []string) bool {
 	switch args[0] {
 	case "status", "jobs", "mounts", "remotes", "queue", "theme", "api", "help", "--help", "-h", "--version":
 		return true
-	case "resources", "bandwidth", "workflow", "workflows", "runs", "doctor", "settings", "external", "engine", "accounts", "events", "schema", "diagnostics", "licenses", "browse", "automations", "tokens", "offline", "logs":
+	case "resources", "bandwidth", "workflow", "workflows", "runs", "doctor", "settings", "external", "engine", "accounts", "events", "schema", "diagnostics", "licenses", "browse", "usage", "automations", "tokens", "offline", "logs":
 		return true
 	case "--api", "--json", "--timeout":
 		return true
@@ -252,7 +255,7 @@ func loopbackHost(host string) bool {
 }
 
 func cliRequest(args []string) (method, path string, body any, key string, err error) {
-	if args[0] == "browse" || args[0] == "tokens" || args[0] == "automations" || args[0] == "offline" || args[0] == "logs" || len(args) == 3 && args[0] == "mounts" && args[1] == "cache" {
+	if args[0] == "browse" || args[0] == "usage" || args[0] == "tokens" || args[0] == "automations" || args[0] == "offline" || args[0] == "logs" || len(args) == 3 && args[0] == "mounts" && args[1] == "cache" {
 		return agentRequest(args)
 	}
 	if args[0] == "engine" || args[0] == "accounts" {
@@ -608,7 +611,7 @@ func authenticateCLIRequest(req *http.Request) {
 }
 
 func printCLIResult(out io.Writer, args []string, raw []byte) error {
-	if args[0] == "browse" || args[0] == "tokens" || args[0] == "automations" {
+	if args[0] == "browse" || args[0] == "usage" || args[0] == "tokens" || args[0] == "automations" {
 		return printAgentResult(out, args, raw)
 	}
 	if args[0] == "workflows" || args[0] == "runs" || args[0] == "doctor" {
@@ -622,7 +625,7 @@ func printCLIResult(out io.Writer, args []string, raw []byte) error {
 			return err
 		}
 		fmt.Fprintf(w, "采样时间\t%s\n逻辑核心\t%d\n客户端协程\t%d\n", snapshot.UpdatedAt.Local().Format("2006-01-02 15:04:05"), snapshot.LogicalCPUs, snapshot.Goroutines)
-		fmt.Fprintln(w, "PID\t进程\tCPU\t私有提交内存\t系统线程")
+		fmt.Fprintln(w, "PID\t进程\tCPU\t私有提交内存\t系统线程\t归属")
 		for _, p := range snapshot.Processes {
 			cpu, memory := "—", "—"
 			if p.CPUAvailable {
@@ -631,7 +634,11 @@ func printCLIResult(out io.Writer, args []string, raw []byte) error {
 			if p.MemoryAvailable {
 				memory = formatBytes(p.MemoryBytes)
 			}
-			fmt.Fprintf(w, "%d\t%s\t%s\t%s\t%d\n", p.PID, p.Name, cpu, memory, p.Threads)
+			scope := "本客户端"
+			if p.External {
+				scope = "其他 rclone"
+			}
+			fmt.Fprintf(w, "%d\t%s\t%s\t%s\t%d\t%s\n", p.PID, p.Name, cpu, memory, p.Threads, scope)
 		}
 	case "workflow":
 		var jobs []core.Job

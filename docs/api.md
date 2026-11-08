@@ -35,7 +35,11 @@ Engine, account, mount, workflow and global queue configuration require the owne
 | `POST /api/v1/accounts/{id}/answer` | Submit `answer` |
 | `POST /api/v1/accounts/{id}/cancel` | Discard draft |
 | `GET /api/v1/overview` | Current activity and queue |
+| `GET /api/v1/runtime?view=resources` | Client and external rclone process counters, with explicit ownership |
+| `GET /api/v1/remotes/{name}/quota` | Provider account quota; omitted values are unknown |
+| `GET /api/v1/remotes/{name}/info` | Backend capabilities and hash algorithms |
 | `GET /api/v1/browse?path=example-remote:archive` | One directory, sorted entries and pagination |
+| `GET /api/v1/storage/usage?path=example-remote:archive` | User-requested recursive file count and byte total |
 | `GET /api/v1/jobs` | Steps/jobs and queue paused state |
 | `POST /api/v1/jobs` | Create a job |
 | `POST /api/v1/jobs/preview` | Dry-run preview and expiring confirmation ID |
@@ -70,6 +74,20 @@ Engine, account, mount, workflow and global queue configuration require the owne
 Job and concrete workflow submission support idempotency keys. For run
 submission, pass `Idempotency-Key` or `idempotency_key`. Keep the key stable when
 retrying a request after a network failure.
+
+Quota comes from `rclone about --json`; `status: unsupported` means the provider
+does not report a quota. Missing fields are unknown, while `free: 0` means no
+free space. Google Drive can include other Google services in account usage.
+Capacity reads never fall back to enumerating files.
+When both total and free are reported, the GUI uses their difference for account
+occupancy and retains the provider's file/other-service breakdown. The API
+preserves the engine's original quota fields.
+
+`accounts quota <name>` and `accounts info <name>` expose the same read-only
+information through the CLI. `usage <path>` explicitly inventories a directory
+and has a one-minute server timeout; canceled or failed scans return an error,
+not a partial total. `sizeless` counts entries with unknown size. Storage reads
+require owner or global read access; task grants do not expose account-wide data.
 
 ## Example workflow
 

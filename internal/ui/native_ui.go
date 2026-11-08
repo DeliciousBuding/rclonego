@@ -89,6 +89,7 @@ type nativeUI struct {
 	showDefaults        bool
 	showEngineSettings  bool
 	showResourceDetails bool
+	externalOpen        bool
 	showJobDetails      bool
 	jobChecksum         bool
 	jobCreateDirs       bool
@@ -133,6 +134,9 @@ type nativeUI struct {
 	browserUI           browserUIState
 	health              core.ServiceHealth
 	cacheUI             cacheUIState
+	storageUI           map[string]*storageUIState
+	storageDetail       string
+	showStorageDetails  bool
 }
 
 func New(app *core.App, api string) *nativeUI {
@@ -150,7 +154,9 @@ func New(app *core.App, api string) *nativeUI {
 		defaultCPU:  itoa(defaults.CPUParallelism),
 		jobSelected: -1, jobTable: ui.ListState{}, jobSpeeds: map[string][]float64{},
 		treeOpen: map[string]*bool{}, waitingOpen: true,
-		pollWake: make(chan struct{}, 1),
+		storageUI:    map[string]*storageUIState{},
+		externalOpen: true,
+		pollWake:     make(chan struct{}, 1),
 	}
 	model.pollVisible.Store(true)
 	return model
@@ -233,6 +239,8 @@ func (s *nativeUI) refresh(ctx context.Context, includeRemoteState bool) {
 					Transfers: job.FilesDone, TotalTransfers: job.FilesTotal,
 					Checks: job.ChecksDone, TotalChecks: job.ChecksTotal,
 					Transferring: job.ActiveFiles, Checking: job.CheckingFiles,
+					Errors: job.EngineErrors, Listed: job.EngineListed, ElapsedTime: job.EngineElapsed, ETA: job.EngineETA,
+					FatalError: job.EngineFatalError, RetryError: job.EngineRetryError, LastError: job.EngineLastError,
 				}}
 				break
 			}
@@ -255,6 +263,15 @@ func (s *nativeUI) refresh(ctx context.Context, includeRemoteState bool) {
 			mygo.Theme.SetSource(mygo.ThemeSource(s.appearance))
 		}
 		s.remotes, s.mounts, s.version = runtime.Remotes, runtime.Mounts, runtime.Version
+		for name := range s.storageUI {
+			found := false
+			for _, remote := range s.remotes {
+				found = found || remote.Name == name
+			}
+			if !found {
+				delete(s.storageUI, name)
+			}
+		}
 		s.defaults = state.Defaults
 		if !s.showDefaults {
 			d := state.Defaults

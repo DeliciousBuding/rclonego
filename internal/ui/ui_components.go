@@ -32,11 +32,15 @@ var dropboxSVG []byte
 //go:embed assets/github.svg
 var githubSVG []byte
 
+//go:embed assets/rclone.svg
+var rcloneSVG []byte
+
 var googleDriveLogo = ui.MustParseSVG(googleDriveSVG)
 var googleGLogo = ui.MustParseSVG(googleGSVG)
 var oneDriveLogo = ui.MustParseSVG(oneDriveSVG)
 var dropboxLogo = ui.MustParseSVG(dropboxSVG)
 var githubLogo = ui.MustParseSVG(githubSVG)
+var rcloneLogo = ui.MustParseSVG(rcloneSVG)
 
 type providerStyle struct {
 	label string
@@ -45,8 +49,9 @@ type providerStyle struct {
 
 var providerStyles = map[string]providerStyle{
 	"drive": {"Google Drive", googleDriveLogo}, "onedrive": {"OneDrive", oneDriveLogo},
-	"dropbox": {"Dropbox", dropboxLogo}, "s3": {"S3 storage", nil},
-	"local": {"本机存储", iconMounts}, "alias": {"位置别名", iconFolder}, "crypt": {"加密存储", nil},
+	"dropbox": {"Dropbox", dropboxLogo}, "s3": {"S3 storage", iconBucket},
+	"local": {"本机存储", iconMounts}, "alias": {"位置别名", iconFolder}, "crypt": {"加密存储", iconLock},
+	"sftp": {"SFTP", iconServer}, "webdav": {"WebDAV", iconGlobe},
 }
 
 func providerName(kind string) string {
@@ -102,6 +107,10 @@ var (
 	iconTrash     = lineIcon(`<path d="M3 6h18m-13 0V3h8v3m-11 0 1 15h12l1-15m-9 4v7m4-7v7"/>`)
 	iconWarning   = lineIcon(`<path d="m12 3 10 18H2Z"/><path d="M12 9v5m0 3h.01"/>`)
 	iconSchedule  = lineIcon(`<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>`)
+	iconBucket    = lineIcon(`<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="m4 5 2 14c1 3 11 3 12 0l2-14M5 12c2 3 12 3 14 0"/>`)
+	iconLock      = lineIcon(`<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 4v3"/>`)
+	iconServer    = lineIcon(`<rect x="3" y="3" width="18" height="7" rx="2"/><rect x="3" y="14" width="18" height="7" rx="2"/><path d="M7 6.5h.01M7 17.5h.01m5-11h5m-5 11h5"/>`)
+	iconGlobe     = lineIcon(`<circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/>`)
 )
 
 func actionButton(c *ui.Context, icon *ui.SVG, label string, primary bool) ui.Element {

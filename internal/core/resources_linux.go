@@ -42,11 +42,13 @@ func sampleResources(ctx context.Context, appPID int, previous map[int]cpuReadin
 			continue
 		}
 		parent, _ := strconv.Atoi(fields[1])
-		if pid != appPID && parent != appPID {
+		name := text[start+1 : end]
+		external := pid != appPID && parent != appPID
+		if external && !isRcloneProcess(name) {
 			continue
 		}
 		number := func(index int) uint64 { value, _ := strconv.ParseUint(fields[index], 10, 64); return value }
-		row := ProcessResource{PID: pid, Name: text[start+1 : end], Threads: int(number(17))}
+		row := ProcessResource{PID: pid, Name: name, Threads: int(number(17)), External: external}
 		// Linux exposes CPU accounting in USER_HZ (100 ticks/s) on our targets.
 		reading := cpuReading{Created: number(19), Ticks: (number(11) + number(12)) * 100000, At: result.UpdatedAt}
 		if old, ok := previous[pid]; ok && old.Created == reading.Created && reading.Ticks >= old.Ticks {

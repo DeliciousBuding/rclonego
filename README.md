@@ -36,6 +36,9 @@ It is not an official rclone or MyGo application.
   directory watching and recurring workflows submit to the same queue.
 - **Choose and inspect paths.** Browse cloud folders, inspect structured dry-run
   changes, observe owned VFS cache/writeback state and save independent offline copies.
+- **Understand storage.** Read provider quota, hash algorithms and backend
+  capabilities. Browse files with sizes and request cancellable directory
+  statistics. See other rclone processes separately from this client's usage.
 
 A mirror requires a matching dry-run preview and explicit deletion permission.
 Verification reports distinguish sizes, available hashes and content-download

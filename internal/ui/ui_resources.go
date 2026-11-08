@@ -16,6 +16,17 @@ func (s *nativeUI) resourcesPage(c *ui.Context) {
 	t := c.Theme()
 	contentScroll(c).Grow(1).Gap(18).Children(func() {
 		pageHeading(c, "运行与资源", "资源计数每 15 秒采样一次，与 API 和 CLI 共用。", nil)
+		ui.Row(c).Gap(12).Children(func() {
+			brandIcon(c, rcloneLogo, 32).Label("rclone")
+			ui.Column(c).Grow(1).MinWidth(0).Gap(3).Children(func() {
+				ui.Text(c, core.ValueOr(s.version, text(c, "引擎未就绪"))).FontSize(15).FontWeight(600)
+				path := s.app.EngineClient().Path
+				ui.Text(c, path).FontSize(11).TextColor(t.TextMuted).SingleLine().Tooltip(path)
+			})
+			actionButton(c.Key("manage-engine"), iconSettings, "管理引擎", false).OnClick(func() {
+				s.page, s.showEngineSettings = "settings", true
+			})
+		})
 		if s.health.Code != "" && !s.health.Ready {
 			ui.Column(c).Padding(12).Gap(8).Radius(8).Background(t.Warning.Alpha(0.08)).Children(func() {
 				ui.Text(c, text(c, "任务调度需要处理")).FontSize(13).FontWeight(600)
@@ -32,6 +43,9 @@ func (s *nativeUI) resourcesPage(c *ui.Context) {
 			threads := 0
 			cpuAvailable, memoryAvailable := len(s.resources.Processes) > 0, len(s.resources.Processes) > 0
 			for _, process := range s.resources.Processes {
+				if process.External {
+					continue
+				}
 				cpu += process.CPUPercent
 				memory += process.MemoryBytes
 				threads += process.Threads
@@ -52,7 +66,7 @@ func (s *nativeUI) resourcesPage(c *ui.Context) {
 		ui.Text(c, fmt.Sprintf(text(c, "%d 核 · %d 个 Go 协程"), s.resources.LogicalCPUs, s.resources.Goroutines)).
 			FontSize(11).TextColor(t.TextMuted).Label(text(c, "运行计数"))
 		ui.Divider(c)
-		sectionHeading(c, "进程")
+		sectionHeading(c, "本客户端")
 		ui.Row(c).Gap(16).Children(func() {
 			ui.Text(c, text(c, "名称")).Grow(1).MinWidth(0).FontSize(11).TextColor(t.TextMuted)
 			ui.Text(c, "CPU").Width(66).FontSize(11).TextColor(t.TextMuted)
@@ -63,27 +77,49 @@ func (s *nativeUI) resourcesPage(c *ui.Context) {
 		}
 		ui.Column(c).Gap(0).Children(func() {
 			for _, process := range s.resources.Processes {
-				ui.Row(c).Padding(11, 0).Gap(16).BorderWidth(0, 0, 0.5, 0).BorderColor(t.Border).Children(func() {
-					ui.Column(c).Grow(1).MinWidth(0).Gap(3).Children(func() {
-						ui.Text(c, processLabel(process, s.jobs, s.mounts, os.Getpid())).FontWeight(500).SingleLine()
-						ui.Text(c, fmt.Sprintf(text(c, "PID %d · %d 个系统线程"), process.PID, process.Threads)).FontSize(11).TextColor(t.TextMuted)
-						if process.Error != "" {
-							ui.Text(c, process.Error).FontSize(11).TextColor(t.TextMuted)
-						}
-					})
-					cpu, memory := "—", "—"
-					if process.CPUAvailable {
-						cpu = fmt.Sprintf("%.1f%%", process.CPUPercent)
-					}
-					if process.MemoryAvailable {
-						memory = formatBytes(process.MemoryBytes)
-					}
-					ui.Text(c, cpu).FontSize(13).Width(66)
-					ui.Text(c, memory).FontSize(13).Width(96)
-				})
+				if !process.External {
+					s.processResourceRow(c, process)
+				}
 			}
 		})
 		ui.Text(c, text(c, "CPU 按整机 100% 计算；Windows 内存为私有提交，Linux 为私有驻留估算。不可读时显示未知。")).FontSize(11).TextColor(t.TextMuted)
+		externalCount := 0
+		for _, process := range s.resources.Processes {
+			if process.External {
+				externalCount++
+			}
+		}
+		if externalCount > 0 {
+			ui.Divider(c)
+			ui.Collapsible(c.Key("external-processes"), fmt.Sprintf(text(c, "其他 rclone · %d"), externalCount), &s.externalOpen, func() {
+				ui.Text(c, text(c, "由其他程序启动，仅观察资源，不计入本客户端总占用。")).FontSize(11).TextColor(t.TextMuted).MaxLines(2)
+				for _, process := range s.resources.Processes {
+					if process.External {
+						s.processResourceRow(c, process)
+					}
+				}
+			})
+		}
+		if s.activity.Available && s.activity.Stats != nil {
+			ui.Divider(c)
+			sectionHeading(c, "传输诊断")
+			st := s.activity.Stats
+			ui.Row(c).Gap(24).Wrap().Children(func() {
+				s.metric(c, "已列举", fmt.Sprint(st.Listed))
+				s.metric(c, "已校验", fmt.Sprintf("%d / %d", st.Checks, st.TotalChecks))
+				s.metric(c, "错误", fmt.Sprint(st.Errors))
+			})
+			if st.FatalError || st.RetryError {
+				ui.Text(c, text(c, map[bool]string{true: "引擎报告不可恢复的错误", false: "引擎将重试可恢复的错误"}[st.FatalError])).
+					FontSize(12).TextColor(t.Warning)
+			}
+			if st.LastError != "" {
+				ui.Text(c, st.LastError).FontSize(12).TextColor(t.Warning).MaxLines(3).Selectable()
+			}
+			if st.ElapsedTime > 0 {
+				ui.Text(c, text(c, "已运行 ")+durationText(c, st.ElapsedTime)).FontSize(11).TextColor(t.TextMuted)
+			}
+		}
 		ui.Divider(c)
 		sectionHeading(c, "运行参数")
 		for _, job := range s.jobs {
@@ -144,6 +180,34 @@ func (s *nativeUI) resourcesPage(c *ui.Context) {
 			ui.Text(c, text(c, "引擎负责传输、重试、校验和云端访问；客户端负责顺序、计划时间、资源观察和状态呈现。")).
 				FontSize(12).TextColor(t.TextMuted).MaxLines(2)
 		})
+	})
+}
+
+func (s *nativeUI) processResourceRow(c *ui.Context, process core.ProcessResource) {
+	t := c.Theme()
+	ui.Row(c).Padding(11, 0).Gap(16).BorderWidth(0, 0, 0.5, 0).BorderColor(t.Border).Children(func() {
+		if process.PID == os.Getpid() {
+			ui.Icon(c, appMark).FontSize(20).TextColor(t.Accent)
+		} else {
+			brandIcon(c, rcloneLogo, 20).Label("rclone")
+		}
+		ui.Column(c).Grow(1).MinWidth(0).Gap(3).Children(func() {
+			label := processLabel(process, s.jobs, s.mounts, os.Getpid())
+			ui.Text(c, label).FontWeight(500).SingleLine().Tooltip(label)
+			ui.Text(c, fmt.Sprintf(text(c, "PID %d · %d 个系统线程"), process.PID, process.Threads)).FontSize(11).TextColor(t.TextMuted)
+			if process.Error != "" {
+				ui.Text(c, process.Error).FontSize(11).TextColor(t.TextMuted).MaxLines(2)
+			}
+		})
+		cpu, memory := "—", "—"
+		if process.CPUAvailable {
+			cpu = fmt.Sprintf("%.1f%%", process.CPUPercent)
+		}
+		if process.MemoryAvailable {
+			memory = formatBytes(process.MemoryBytes)
+		}
+		ui.Text(c, cpu).FontSize(13).Width(66)
+		ui.Text(c, memory).FontSize(13).Width(96)
 	})
 }
 

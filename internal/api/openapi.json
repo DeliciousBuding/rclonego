@@ -524,6 +524,44 @@
         }
       }
     },
+    "/api/v1/storage/usage": {
+      "get": {
+        "operationId": "get_api_v1_storage_usage",
+        "summary": "GET /api/v1/storage/usage",
+        "parameters": [
+          {
+            "name": "path",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DirectoryUsage"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/automations": {
       "get": {
         "operationId": "get_api_v1_automations",
@@ -1328,6 +1366,82 @@
                   "items": {
                     "$ref": "#/components/schemas/RemoteInfo"
                   }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/remotes/{name}/quota": {
+      "get": {
+        "operationId": "get_api_v1_remotes_name_quota",
+        "summary": "GET /api/v1/remotes/{name}/quota",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemoteQuota"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/remotes/{name}/info": {
+      "get": {
+        "operationId": "get_api_v1_remotes_name_info",
+        "summary": "GET /api/v1/remotes/{name}/info",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageInfo"
                 }
               }
             }
@@ -3638,6 +3752,71 @@
         },
         "additionalProperties": false
       },
+      "RemoteQuota": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "used": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "free": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "trashed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "other": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "ProcessResource": {
         "type": "object",
         "properties": {
@@ -3667,6 +3846,9 @@
           },
           "error": {
             "type": "string"
+          },
+          "external": {
+            "type": "boolean"
           }
         }
       },
@@ -3796,6 +3978,86 @@
           }
         },
         "additionalProperties": false
+      },
+      "StorageCapabilities": {
+        "type": "object",
+        "properties": {
+          "quota": {
+            "type": "boolean"
+          },
+          "server_side_copy": {
+            "type": "boolean"
+          },
+          "server_side_move": {
+            "type": "boolean"
+          },
+          "public_link": {
+            "type": "boolean"
+          },
+          "empty_directories": {
+            "type": "boolean"
+          },
+          "recursive_listing": {
+            "type": "boolean"
+          },
+          "read_metadata": {
+            "type": "boolean"
+          },
+          "write_metadata": {
+            "type": "boolean"
+          },
+          "case_insensitive": {
+            "type": "boolean"
+          }
+        }
+      },
+      "StorageInfo": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "hashes": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "precision_ns": {
+            "type": "integer"
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/StorageCapabilities"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "DirectoryUsage": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "bytes": {
+            "type": "integer"
+          },
+          "sizeless": {
+            "type": "integer"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
       },
       "TransferNode": {
         "type": "object",
@@ -4285,6 +4547,27 @@
             "items": {
               "type": "string"
             }
+          },
+          "engine_errors": {
+            "type": "integer"
+          },
+          "engine_listed": {
+            "type": "integer"
+          },
+          "engine_elapsed": {
+            "type": "number"
+          },
+          "engine_eta": {
+            "type": "number"
+          },
+          "engine_fatal_error": {
+            "type": "boolean"
+          },
+          "engine_retry_error": {
+            "type": "boolean"
+          },
+          "engine_last_error": {
+            "type": "string"
           }
         }
       },
@@ -4481,6 +4764,9 @@
           },
           "retryError": {
             "type": "boolean"
+          },
+          "lastError": {
+            "type": "string"
           },
           "transferring": {
             "type": [

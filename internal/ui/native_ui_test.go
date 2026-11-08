@@ -13,7 +13,7 @@ func TestProviderLogosRenderAsColorVectors(t *testing.T) {
 	logos := []struct {
 		name string
 		svg  *ui.SVG
-	}{{"Google", googleGLogo}, {"Drive", googleDriveLogo}, {"OneDrive", oneDriveLogo}, {"Dropbox", dropboxLogo}}
+	}{{"Google", googleGLogo}, {"Drive", googleDriveLogo}, {"OneDrive", oneDriveLogo}, {"Dropbox", dropboxLogo}, {"rclone", rcloneLogo}}
 	for _, logo := range logos {
 		tester := ui.NewTester(func(c *ui.Context) {
 			ui.Column(c).Fill().Background(ui.Hex("#ffffff")).Center().Children(func() { brandIcon(c, logo.svg, 32).Label(logo.name) })

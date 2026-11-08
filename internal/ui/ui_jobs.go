@@ -375,6 +375,12 @@ func (s *nativeUI) editOverlays(c *ui.Context) {
 	dialog("job-editor", &s.showJobForm, title, 520, func() { s.jobForm(c) }, func() { s.jobFooter(c) })
 	dialog("mount-editor", &s.editingMount, "映射配置", 500, func() { s.mountEditor(c) }, nil)
 	dialog("remote-editor", &s.showRemoteForm, "添加云端账户", 460, func() { s.remoteEditor(c) }, nil)
+	dialog("storage-details", &s.showStorageDetails, "云端账户详情", 520, func() { s.storageDetails(c) }, func() {
+		actionButton(c.Key("browse-storage"), iconFolder, "浏览文件", false).OnClick(func() {
+			s.showStorageDetails = false
+			s.beginStorageBrowse(s.storageDetail)
+		})
+	})
 	dialog("about", &s.showAbout, "关于", 440, func() { s.aboutContent(c) }, nil)
 	dialog("licenses", &s.showLicenses, "许可文本", 560, func() { s.licensesContent(c) }, nil)
 }

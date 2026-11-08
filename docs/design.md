@@ -33,6 +33,19 @@ Advanced settings remain collapsed. Keep default text and control sizes; increas
 useful density through grouping and disclosure before reducing click targets or
 font sizes. Current task details replace the list at narrow widths.
 
+Account rows show the provider mark, name and provider, with Browse as the
+labelled primary action. Details groups capacity, shared hash algorithms and
+backend capabilities; reconnect sits in More. Unknown space stays unknown.
+Account quota and directory size are separate measurements. Directory statistics
+are requested inside the file browser and can be canceled. The browser shows
+file sizes and prepares a transfer through the existing task form.
+
+Resources starts with the official rclone symbol, selected version and engine
+shortcut. The client's process totals and other rclone processes are separate.
+Diagnostic counters expose listing, checks, elapsed time and engine errors.
+Provider colors identify services; controls keep the existing single-color
+action icon system.
+
 Active tasks distinguish preparation, comparison, transfer and verification.
 Unknown totals stay indeterminate; verification progress uses file counts rather
 than transfer bytes. The sidebar count includes queued and running work. Empty

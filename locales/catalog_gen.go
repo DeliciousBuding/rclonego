@@ -5548,3 +5548,603 @@ func AttemptCount(count int) string { return In(i18n.Locale()).AttemptCount(coun
 func (msgs Messages) AttemptCount(count int) string {
 	return Catalog.Format(msgs.locale, "attemptCount", map[string]any{"count": count})
 }
+
+// AccountQuotaUnavailable says "The provider does not report account capacity"
+// in the language the app shows.
+func AccountQuotaUnavailable() string { return In(i18n.Locale()).AccountQuotaUnavailable() }
+
+// AccountQuotaUnavailable says "The provider does not report account capacity"
+// in the language of msgs.
+func (msgs Messages) AccountQuotaUnavailable() string {
+	return Catalog.Format(msgs.locale, "accountQuotaUnavailable", nil)
+}
+
+// AccountQuotaUsedTotal says "Used %s / %s"
+// in the language the app shows.
+func AccountQuotaUsedTotal() string { return In(i18n.Locale()).AccountQuotaUsedTotal() }
+
+// AccountQuotaUsedTotal says "Used %s / %s"
+// in the language of msgs.
+func (msgs Messages) AccountQuotaUsedTotal() string {
+	return Catalog.Format(msgs.locale, "accountQuotaUsedTotal", nil)
+}
+
+// AccountQuotaFree says "Free %s"
+// in the language the app shows.
+func AccountQuotaFree() string { return In(i18n.Locale()).AccountQuotaFree() }
+
+// AccountQuotaFree says "Free %s"
+// in the language of msgs.
+func (msgs Messages) AccountQuotaFree() string {
+	return Catalog.Format(msgs.locale, "accountQuotaFree", nil)
+}
+
+// AccountQuotaUsed says "Used %s"
+// in the language the app shows.
+func AccountQuotaUsed() string { return In(i18n.Locale()).AccountQuotaUsed() }
+
+// AccountQuotaUsed says "Used %s"
+// in the language of msgs.
+func (msgs Messages) AccountQuotaUsed() string {
+	return Catalog.Format(msgs.locale, "accountQuotaUsed", nil)
+}
+
+// AccountQuotaTotal says "Capacity %s"
+// in the language the app shows.
+func AccountQuotaTotal() string { return In(i18n.Locale()).AccountQuotaTotal() }
+
+// AccountQuotaTotal says "Capacity %s"
+// in the language of msgs.
+func (msgs Messages) AccountQuotaTotal() string {
+	return Catalog.Format(msgs.locale, "accountQuotaTotal", nil)
+}
+
+// AccountQuotaNotLoaded says "Capacity has not been checked"
+// in the language the app shows.
+func AccountQuotaNotLoaded() string { return In(i18n.Locale()).AccountQuotaNotLoaded() }
+
+// AccountQuotaNotLoaded says "Capacity has not been checked"
+// in the language of msgs.
+func (msgs Messages) AccountQuotaNotLoaded() string {
+	return Catalog.Format(msgs.locale, "accountQuotaNotLoaded", nil)
+}
+
+// RefreshAccountInfo says "Refresh account information"
+// in the language the app shows.
+func RefreshAccountInfo() string { return In(i18n.Locale()).RefreshAccountInfo() }
+
+// RefreshAccountInfo says "Refresh account information"
+// in the language of msgs.
+func (msgs Messages) RefreshAccountInfo() string {
+	return Catalog.Format(msgs.locale, "refreshAccountInfo", nil)
+}
+
+// LoadingAccountInfo says "Reading account information…"
+// in the language the app shows.
+func LoadingAccountInfo() string { return In(i18n.Locale()).LoadingAccountInfo() }
+
+// LoadingAccountInfo says "Reading account information…"
+// in the language of msgs.
+func (msgs Messages) LoadingAccountInfo() string {
+	return Catalog.Format(msgs.locale, "loadingAccountInfo", nil)
+}
+
+// AccountInfoFailed says "Could not read account information"
+// in the language the app shows.
+func AccountInfoFailed() string { return In(i18n.Locale()).AccountInfoFailed() }
+
+// AccountInfoFailed says "Could not read account information"
+// in the language of msgs.
+func (msgs Messages) AccountInfoFailed() string {
+	return Catalog.Format(msgs.locale, "accountInfoFailed", nil)
+}
+
+// AccountCapacity says "Account capacity"
+// in the language the app shows.
+func AccountCapacity() string { return In(i18n.Locale()).AccountCapacity() }
+
+// AccountCapacity says "Account capacity"
+// in the language of msgs.
+func (msgs Messages) AccountCapacity() string {
+	return Catalog.Format(msgs.locale, "accountCapacity", nil)
+}
+
+// AccountSpaceUsage says "Account space usage"
+// in the language the app shows.
+func AccountSpaceUsage() string { return In(i18n.Locale()).AccountSpaceUsage() }
+
+// AccountSpaceUsage says "Account space usage"
+// in the language of msgs.
+func (msgs Messages) AccountSpaceUsage() string {
+	return Catalog.Format(msgs.locale, "accountSpaceUsage", nil)
+}
+
+// CapacityTotal says "Capacity"
+// in the language the app shows.
+func CapacityTotal() string { return In(i18n.Locale()).CapacityTotal() }
+
+// CapacityTotal says "Capacity"
+// in the language of msgs.
+func (msgs Messages) CapacityTotal() string {
+	return Catalog.Format(msgs.locale, "capacityTotal", nil)
+}
+
+// CapacityUsed says "Used"
+// in the language the app shows.
+func CapacityUsed() string { return In(i18n.Locale()).CapacityUsed() }
+
+// CapacityUsed says "Used"
+// in the language of msgs.
+func (msgs Messages) CapacityUsed() string {
+	return Catalog.Format(msgs.locale, "capacityUsed", nil)
+}
+
+// CapacityFree says "Free"
+// in the language the app shows.
+func CapacityFree() string { return In(i18n.Locale()).CapacityFree() }
+
+// CapacityFree says "Free"
+// in the language of msgs.
+func (msgs Messages) CapacityFree() string {
+	return Catalog.Format(msgs.locale, "capacityFree", nil)
+}
+
+// NotReported says "Not reported"
+// in the language the app shows.
+func NotReported() string { return In(i18n.Locale()).NotReported() }
+
+// NotReported says "Not reported"
+// in the language of msgs.
+func (msgs Messages) NotReported() string {
+	return Catalog.Format(msgs.locale, "notReported", nil)
+}
+
+// CapacityTrash says "Trash"
+// in the language the app shows.
+func CapacityTrash() string { return In(i18n.Locale()).CapacityTrash() }
+
+// CapacityTrash says "Trash"
+// in the language of msgs.
+func (msgs Messages) CapacityTrash() string {
+	return Catalog.Format(msgs.locale, "capacityTrash", nil)
+}
+
+// CapacityOther says "Other services"
+// in the language the app shows.
+func CapacityOther() string { return In(i18n.Locale()).CapacityOther() }
+
+// CapacityOther says "Other services"
+// in the language of msgs.
+func (msgs Messages) CapacityOther() string {
+	return Catalog.Format(msgs.locale, "capacityOther", nil)
+}
+
+// CapacityScope says "Account quota reported by the provider; it may include mail, photos or trash."
+// in the language the app shows.
+func CapacityScope() string { return In(i18n.Locale()).CapacityScope() }
+
+// CapacityScope says "Account quota reported by the provider; it may include mail, photos or trash."
+// in the language of msgs.
+func (msgs Messages) CapacityScope() string {
+	return Catalog.Format(msgs.locale, "capacityScope", nil)
+}
+
+// BackendCapabilities says "Backend capabilities"
+// in the language the app shows.
+func BackendCapabilities() string { return In(i18n.Locale()).BackendCapabilities() }
+
+// BackendCapabilities says "Backend capabilities"
+// in the language of msgs.
+func (msgs Messages) BackendCapabilities() string {
+	return Catalog.Format(msgs.locale, "backendCapabilities", nil)
+}
+
+// HashAlgorithms says "Hash algorithms"
+// in the language the app shows.
+func HashAlgorithms() string { return In(i18n.Locale()).HashAlgorithms() }
+
+// HashAlgorithms says "Hash algorithms"
+// in the language of msgs.
+func (msgs Messages) HashAlgorithms() string {
+	return Catalog.Format(msgs.locale, "hashAlgorithms", nil)
+}
+
+// HashScope says "Verification depends on algorithms shared by both endpoints. A completed copy does not imply a content check."
+// in the language the app shows.
+func HashScope() string { return In(i18n.Locale()).HashScope() }
+
+// HashScope says "Verification depends on algorithms shared by both endpoints. A completed copy does not imply a content check."
+// in the language of msgs.
+func (msgs Messages) HashScope() string {
+	return Catalog.Format(msgs.locale, "hashScope", nil)
+}
+
+// CapabilityQuota says "Quota queries"
+// in the language the app shows.
+func CapabilityQuota() string { return In(i18n.Locale()).CapabilityQuota() }
+
+// CapabilityQuota says "Quota queries"
+// in the language of msgs.
+func (msgs Messages) CapabilityQuota() string {
+	return Catalog.Format(msgs.locale, "capabilityQuota", nil)
+}
+
+// CapabilityCopy says "Server-side copy"
+// in the language the app shows.
+func CapabilityCopy() string { return In(i18n.Locale()).CapabilityCopy() }
+
+// CapabilityCopy says "Server-side copy"
+// in the language of msgs.
+func (msgs Messages) CapabilityCopy() string {
+	return Catalog.Format(msgs.locale, "capabilityCopy", nil)
+}
+
+// CapabilityMove says "Server-side move"
+// in the language the app shows.
+func CapabilityMove() string { return In(i18n.Locale()).CapabilityMove() }
+
+// CapabilityMove says "Server-side move"
+// in the language of msgs.
+func (msgs Messages) CapabilityMove() string {
+	return Catalog.Format(msgs.locale, "capabilityMove", nil)
+}
+
+// CapabilityPublicLink says "Public links"
+// in the language the app shows.
+func CapabilityPublicLink() string { return In(i18n.Locale()).CapabilityPublicLink() }
+
+// CapabilityPublicLink says "Public links"
+// in the language of msgs.
+func (msgs Messages) CapabilityPublicLink() string {
+	return Catalog.Format(msgs.locale, "capabilityPublicLink", nil)
+}
+
+// CapabilityEmptyDirs says "Empty directories"
+// in the language the app shows.
+func CapabilityEmptyDirs() string { return In(i18n.Locale()).CapabilityEmptyDirs() }
+
+// CapabilityEmptyDirs says "Empty directories"
+// in the language of msgs.
+func (msgs Messages) CapabilityEmptyDirs() string {
+	return Catalog.Format(msgs.locale, "capabilityEmptyDirs", nil)
+}
+
+// CapabilityListR says "Recursive listing"
+// in the language the app shows.
+func CapabilityListR() string { return In(i18n.Locale()).CapabilityListR() }
+
+// CapabilityListR says "Recursive listing"
+// in the language of msgs.
+func (msgs Messages) CapabilityListR() string {
+	return Catalog.Format(msgs.locale, "capabilityListR", nil)
+}
+
+// CapabilityReadMetadata says "Read metadata"
+// in the language the app shows.
+func CapabilityReadMetadata() string { return In(i18n.Locale()).CapabilityReadMetadata() }
+
+// CapabilityReadMetadata says "Read metadata"
+// in the language of msgs.
+func (msgs Messages) CapabilityReadMetadata() string {
+	return Catalog.Format(msgs.locale, "capabilityReadMetadata", nil)
+}
+
+// CapabilityWriteMetadata says "Write metadata"
+// in the language the app shows.
+func CapabilityWriteMetadata() string { return In(i18n.Locale()).CapabilityWriteMetadata() }
+
+// CapabilityWriteMetadata says "Write metadata"
+// in the language of msgs.
+func (msgs Messages) CapabilityWriteMetadata() string {
+	return Catalog.Format(msgs.locale, "capabilityWriteMetadata", nil)
+}
+
+// CapabilityCaseInsensitive says "Case insensitive"
+// in the language the app shows.
+func CapabilityCaseInsensitive() string { return In(i18n.Locale()).CapabilityCaseInsensitive() }
+
+// CapabilityCaseInsensitive says "Case insensitive"
+// in the language of msgs.
+func (msgs Messages) CapabilityCaseInsensitive() string {
+	return Catalog.Format(msgs.locale, "capabilityCaseInsensitive", nil)
+}
+
+// CapabilityUnavailable says "Unsupported"
+// in the language the app shows.
+func CapabilityUnavailable() string { return In(i18n.Locale()).CapabilityUnavailable() }
+
+// CapabilityUnavailable says "Unsupported"
+// in the language of msgs.
+func (msgs Messages) CapabilityUnavailable() string {
+	return Catalog.Format(msgs.locale, "capabilityUnavailable", nil)
+}
+
+// CapabilityAvailable says "Supported"
+// in the language the app shows.
+func CapabilityAvailable() string { return In(i18n.Locale()).CapabilityAvailable() }
+
+// CapabilityAvailable says "Supported"
+// in the language of msgs.
+func (msgs Messages) CapabilityAvailable() string {
+	return Catalog.Format(msgs.locale, "capabilityAvailable", nil)
+}
+
+// CapabilityScope says "Capabilities come from the current rclone backend; account permissions and service limits still apply."
+// in the language the app shows.
+func CapabilityScope() string { return In(i18n.Locale()).CapabilityScope() }
+
+// CapabilityScope says "Capabilities come from the current rclone backend; account permissions and service limits still apply."
+// in the language of msgs.
+func (msgs Messages) CapabilityScope() string {
+	return Catalog.Format(msgs.locale, "capabilityScope", nil)
+}
+
+// BrowseFiles says "Browse files"
+// in the language the app shows.
+func BrowseFiles() string { return In(i18n.Locale()).BrowseFiles() }
+
+// BrowseFiles says "Browse files"
+// in the language of msgs.
+func (msgs Messages) BrowseFiles() string {
+	return Catalog.Format(msgs.locale, "browseFiles", nil)
+}
+
+// AccountDetails says "Account details"
+// in the language the app shows.
+func AccountDetails() string { return In(i18n.Locale()).AccountDetails() }
+
+// AccountDetails says "Account details"
+// in the language of msgs.
+func (msgs Messages) AccountDetails() string {
+	return Catalog.Format(msgs.locale, "accountDetails", nil)
+}
+
+// AccountMoreActions says "More account actions"
+// in the language the app shows.
+func AccountMoreActions() string { return In(i18n.Locale()).AccountMoreActions() }
+
+// AccountMoreActions says "More account actions"
+// in the language of msgs.
+func (msgs Messages) AccountMoreActions() string {
+	return Catalog.Format(msgs.locale, "accountMoreActions", nil)
+}
+
+// AccountDetailsTitle says "Storage account details"
+// in the language the app shows.
+func AccountDetailsTitle() string { return In(i18n.Locale()).AccountDetailsTitle() }
+
+// AccountDetailsTitle says "Storage account details"
+// in the language of msgs.
+func (msgs Messages) AccountDetailsTitle() string {
+	return Catalog.Format(msgs.locale, "accountDetailsTitle", nil)
+}
+
+// BrowseCloudFiles says "Browse cloud files"
+// in the language the app shows.
+func BrowseCloudFiles() string { return In(i18n.Locale()).BrowseCloudFiles() }
+
+// BrowseCloudFiles says "Browse cloud files"
+// in the language of msgs.
+func (msgs Messages) BrowseCloudFiles() string {
+	return Catalog.Format(msgs.locale, "browseCloudFiles", nil)
+}
+
+// DirectoryEmpty says "This directory is empty"
+// in the language the app shows.
+func DirectoryEmpty() string { return In(i18n.Locale()).DirectoryEmpty() }
+
+// DirectoryEmpty says "This directory is empty"
+// in the language of msgs.
+func (msgs Messages) DirectoryEmpty() string {
+	return Catalog.Format(msgs.locale, "directoryEmpty", nil)
+}
+
+// CloudFilesDirectories says "Cloud files and directories"
+// in the language the app shows.
+func CloudFilesDirectories() string { return In(i18n.Locale()).CloudFilesDirectories() }
+
+// CloudFilesDirectories says "Cloud files and directories"
+// in the language of msgs.
+func (msgs Messages) CloudFilesDirectories() string {
+	return Catalog.Format(msgs.locale, "cloudFilesDirectories", nil)
+}
+
+// DirectorySize says "Calculate directory size"
+// in the language the app shows.
+func DirectorySize() string { return In(i18n.Locale()).DirectorySize() }
+
+// DirectorySize says "Calculate directory size"
+// in the language of msgs.
+func (msgs Messages) DirectorySize() string {
+	return Catalog.Format(msgs.locale, "directorySize", nil)
+}
+
+// DirectoryScanning says "Counting files…"
+// in the language the app shows.
+func DirectoryScanning() string { return In(i18n.Locale()).DirectoryScanning() }
+
+// DirectoryScanning says "Counting files…"
+// in the language of msgs.
+func (msgs Messages) DirectoryScanning() string {
+	return Catalog.Format(msgs.locale, "directoryScanning", nil)
+}
+
+// CancelDirectoryScan says "Cancel calculation"
+// in the language the app shows.
+func CancelDirectoryScan() string { return In(i18n.Locale()).CancelDirectoryScan() }
+
+// CancelDirectoryScan says "Cancel calculation"
+// in the language of msgs.
+func (msgs Messages) CancelDirectoryScan() string {
+	return Catalog.Format(msgs.locale, "cancelDirectoryScan", nil)
+}
+
+// DirectorySizeResult says "%d files · %s"
+// in the language the app shows.
+func DirectorySizeResult() string { return In(i18n.Locale()).DirectorySizeResult() }
+
+// DirectorySizeResult says "%d files · %s"
+// in the language of msgs.
+func (msgs Messages) DirectorySizeResult() string {
+	return Catalog.Format(msgs.locale, "directorySizeResult", nil)
+}
+
+// DirectorySizeUnknown says "%d items have unknown sizes"
+// in the language the app shows.
+func DirectorySizeUnknown() string { return In(i18n.Locale()).DirectorySizeUnknown() }
+
+// DirectorySizeUnknown says "%d items have unknown sizes"
+// in the language of msgs.
+func (msgs Messages) DirectorySizeUnknown() string {
+	return Catalog.Format(msgs.locale, "directorySizeUnknown", nil)
+}
+
+// DirectorySizeScope says "This calculation lists files recursively. Canceled or timed-out scans do not show partial totals."
+// in the language the app shows.
+func DirectorySizeScope() string { return In(i18n.Locale()).DirectorySizeScope() }
+
+// DirectorySizeScope says "This calculation lists files recursively. Canceled or timed-out scans do not show partial totals."
+// in the language of msgs.
+func (msgs Messages) DirectorySizeScope() string {
+	return Catalog.Format(msgs.locale, "directorySizeScope", nil)
+}
+
+// NewTransferFromFolder says "New transfer…"
+// in the language the app shows.
+func NewTransferFromFolder() string { return In(i18n.Locale()).NewTransferFromFolder() }
+
+// NewTransferFromFolder says "New transfer…"
+// in the language of msgs.
+func (msgs Messages) NewTransferFromFolder() string {
+	return Catalog.Format(msgs.locale, "newTransferFromFolder", nil)
+}
+
+// ManageEngine says "Manage engine"
+// in the language the app shows.
+func ManageEngine() string { return In(i18n.Locale()).ManageEngine() }
+
+// ManageEngine says "Manage engine"
+// in the language of msgs.
+func (msgs Messages) ManageEngine() string {
+	return Catalog.Format(msgs.locale, "manageEngine", nil)
+}
+
+// AppProcesses says "This client"
+// in the language the app shows.
+func AppProcesses() string { return In(i18n.Locale()).AppProcesses() }
+
+// AppProcesses says "This client"
+// in the language of msgs.
+func (msgs Messages) AppProcesses() string {
+	return Catalog.Format(msgs.locale, "appProcesses", nil)
+}
+
+// ExternalRcloneCount says "Other rclone processes · %d"
+// in the language the app shows.
+func ExternalRcloneCount() string { return In(i18n.Locale()).ExternalRcloneCount() }
+
+// ExternalRcloneCount says "Other rclone processes · %d"
+// in the language of msgs.
+func (msgs Messages) ExternalRcloneCount() string {
+	return Catalog.Format(msgs.locale, "externalRcloneCount", nil)
+}
+
+// ExternalProcessScope says "Started by other programs. Resource observations are excluded from this client’s totals."
+// in the language the app shows.
+func ExternalProcessScope() string { return In(i18n.Locale()).ExternalProcessScope() }
+
+// ExternalProcessScope says "Started by other programs. Resource observations are excluded from this client’s totals."
+// in the language of msgs.
+func (msgs Messages) ExternalProcessScope() string {
+	return Catalog.Format(msgs.locale, "externalProcessScope", nil)
+}
+
+// EngineDiagnostics says "Transfer diagnostics"
+// in the language the app shows.
+func EngineDiagnostics() string { return In(i18n.Locale()).EngineDiagnostics() }
+
+// EngineDiagnostics says "Transfer diagnostics"
+// in the language of msgs.
+func (msgs Messages) EngineDiagnostics() string {
+	return Catalog.Format(msgs.locale, "engineDiagnostics", nil)
+}
+
+// EngineListed says "Listed"
+// in the language the app shows.
+func EngineListed() string { return In(i18n.Locale()).EngineListed() }
+
+// EngineListed says "Listed"
+// in the language of msgs.
+func (msgs Messages) EngineListed() string {
+	return Catalog.Format(msgs.locale, "engineListed", nil)
+}
+
+// EngineChecked says "Checked"
+// in the language the app shows.
+func EngineChecked() string { return In(i18n.Locale()).EngineChecked() }
+
+// EngineChecked says "Checked"
+// in the language of msgs.
+func (msgs Messages) EngineChecked() string {
+	return Catalog.Format(msgs.locale, "engineChecked", nil)
+}
+
+// EngineErrorCount says "Errors"
+// in the language the app shows.
+func EngineErrorCount() string { return In(i18n.Locale()).EngineErrorCount() }
+
+// EngineErrorCount says "Errors"
+// in the language of msgs.
+func (msgs Messages) EngineErrorCount() string {
+	return Catalog.Format(msgs.locale, "engineErrorCount", nil)
+}
+
+// EngineFatalError says "The engine reported a fatal error"
+// in the language the app shows.
+func EngineFatalError() string { return In(i18n.Locale()).EngineFatalError() }
+
+// EngineFatalError says "The engine reported a fatal error"
+// in the language of msgs.
+func (msgs Messages) EngineFatalError() string {
+	return Catalog.Format(msgs.locale, "engineFatalError", nil)
+}
+
+// EngineRetryError says "The engine will retry recoverable errors"
+// in the language the app shows.
+func EngineRetryError() string { return In(i18n.Locale()).EngineRetryError() }
+
+// EngineRetryError says "The engine will retry recoverable errors"
+// in the language of msgs.
+func (msgs Messages) EngineRetryError() string {
+	return Catalog.Format(msgs.locale, "engineRetryError", nil)
+}
+
+// EngineElapsedPrefix says "Running for "
+// in the language the app shows.
+func EngineElapsedPrefix() string { return In(i18n.Locale()).EngineElapsedPrefix() }
+
+// EngineElapsedPrefix says "Running for "
+// in the language of msgs.
+func (msgs Messages) EngineElapsedPrefix() string {
+	return Catalog.Format(msgs.locale, "engineElapsedPrefix", nil)
+}
+
+// EngineChecksProgress says "Checked %d / %d files"
+// in the language the app shows.
+func EngineChecksProgress() string { return In(i18n.Locale()).EngineChecksProgress() }
+
+// EngineChecksProgress says "Checked %d / %d files"
+// in the language of msgs.
+func (msgs Messages) EngineChecksProgress() string {
+	return Catalog.Format(msgs.locale, "engineChecksProgress", nil)
+}
+
+// CapacityStoredFiles says "Stored files"
+// in the language the app shows.
+func CapacityStoredFiles() string { return In(i18n.Locale()).CapacityStoredFiles() }
+
+// CapacityStoredFiles says "Stored files"
+// in the language of msgs.
+func (msgs Messages) CapacityStoredFiles() string {
+	return Catalog.Format(msgs.locale, "capacityStoredFiles", nil)
+}

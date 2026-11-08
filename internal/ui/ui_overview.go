@@ -21,7 +21,8 @@ func (s *nativeUI) overviewPage(c *ui.Context) {
 		ui.Row(c).Gap(8).Padding(4, 0).Children(func() {
 			ui.Text(c, fmt.Sprintf(text(c, "%d 个云端账户"), len(s.remotes))).FontSize(11).TextColor(t.TextMuted)
 			ui.Text(c, "·").TextColor(t.TextMuted)
-			ui.Text(c, strings.TrimPrefix(core.ValueOr(s.version, text(c, "正在连接 rclone…")), "rclone ")).
+			brandIcon(c, rcloneLogo, 14).Label("rclone")
+			ui.Text(c, core.ValueOr(s.version, text(c, "正在连接 rclone…"))).
 				FontSize(11).TextColor(t.TextMuted)
 			ui.Spacer(c)
 			if !s.lastUpdated.IsZero() {
@@ -139,6 +140,10 @@ func (s *nativeUI) activityCard(c *ui.Context) {
 				FontSize(12).TextColor(t.TextMuted)
 			ui.Text(c, fmt.Sprintf(text(c, "%d 个文件正在上传"), len(st.Transferring))).
 				FontSize(12).TextColor(t.TextMuted)
+			if st.TotalChecks > 0 {
+				ui.Text(c, fmt.Sprintf(text(c, "已校验 %d / %d 个文件"), st.Checks, st.TotalChecks)).
+					FontSize(12).TextColor(t.TextMuted)
+			}
 			if st.ETA > 0 {
 				ui.Text(c, text(c, "约剩 ")+durationText(c, st.ETA)).FontSize(12).TextColor(t.TextMuted)
 			} else if workflow && st.Speed > 0 && totalBytes > doneBytes {

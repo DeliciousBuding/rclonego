@@ -4,6 +4,10 @@
 
 ### English
 
+- Inspect account quota and backend capabilities, browse files with sizes, and
+  request cancellable directory statistics through GUI, CLI and API.
+- Show the official rclone engine mark and distinguish external engine
+  processes from this client's resource totals. Retain per-attempt diagnostics.
 - Use MyGo's native update window, signed archive verification and stable/preview
   channels. Active transfers and owned mounts defer update-triggered relaunch.
 - Verify generated update archives and delta signatures before drafting a release.
@@ -33,6 +37,8 @@
 
 ### 简体中文
 
+- GUI、CLI 和 API 共用账户容量、后端能力、文件浏览与可取消的目录统计。
+- 使用官方 rclone 标识，区分外部引擎和本客户端资源，保留每次尝试的诊断计数。
 - 接入 MyGo 官方原生更新窗口、签名归档校验和稳定版/预览版通道。
   活动传输与本实例拥有的挂载会推迟更新重启。
 - 创建发行草稿前核验更新归档与差量包签名。

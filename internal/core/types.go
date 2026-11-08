@@ -115,6 +115,13 @@ type Job struct {
 	ChecksDone           int64        `json:"checks_done"`
 	ChecksTotal          int64        `json:"checks_total"`
 	CheckingFiles        []string     `json:"checking_files,omitempty"`
+	EngineErrors         int64        `json:"engine_errors"`
+	EngineListed         int64        `json:"engine_listed"`
+	EngineElapsed        float64      `json:"engine_elapsed"`
+	EngineETA            float64      `json:"engine_eta"`
+	EngineFatalError     bool         `json:"engine_fatal_error"`
+	EngineRetryError     bool         `json:"engine_retry_error"`
+	EngineLastError      string       `json:"engine_last_error,omitempty"`
 }
 
 type JobCreateRequest struct {
@@ -169,6 +176,7 @@ type RCStats struct {
 	Listed         int64        `json:"listed"`
 	FatalError     bool         `json:"fatalError"`
 	RetryError     bool         `json:"retryError"`
+	LastError      string       `json:"lastError"`
 	Transferring   []RCTransfer `json:"transferring"`
 	Checking       []string     `json:"checking"`
 }

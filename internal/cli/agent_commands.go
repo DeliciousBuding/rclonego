@@ -19,6 +19,12 @@ import (
 func agentRequest(args []string) (method, path string, body any, key string, err error) {
 	method = http.MethodGet
 	switch args[0] {
+	case "usage":
+		if len(args) != 2 {
+			err = errors.New("use usage <absolute-local-path|remote:path>")
+			return
+		}
+		path = "/api/v1/storage/usage?" + url.Values{"path": {args[1]}}.Encode()
 	case "mounts":
 		if len(args) != 3 || args[1] != "cache" {
 			err = errors.New("use mounts cache <id>")
@@ -132,6 +138,12 @@ func readCommandFile(name string, value any) error {
 func printAgentResult(out io.Writer, args []string, raw []byte) error {
 	writer := tabwriter.NewWriter(out, 0, 4, 3, ' ', 0)
 	switch args[0] {
+	case "usage":
+		var result core.DirectoryUsage
+		if err := json.Unmarshal(raw, &result); err != nil {
+			return err
+		}
+		fmt.Fprintf(writer, "目录\t%s\n文件数\t%d\n大小\t%s\n大小未知\t%d\n", result.Path, result.Count, formatBytes(result.Bytes), result.Sizeless)
 	case "browse":
 		var listing core.BrowseResult
 		if err := json.Unmarshal(raw, &listing); err != nil {
