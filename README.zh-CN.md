@@ -17,7 +17,7 @@ RcloneGo 是管理传输、挂载与校验的原生桌面客户端，由
 
 项目处于 alpha 开发阶段，是独立社区项目，不代表 rclone 或 MyGo 官方。
 
-<p align="center"><img src="assets/screenshots/resources-light.png" width="900" alt="RcloneGo 原生资源与引擎管理"></p>
+<p align="center"><img src="assets/screenshots/resources-light.png" width="900" alt="RcloneGo 原生资源监控"></p>
 
 ## 主要能力
 
@@ -60,7 +60,7 @@ Linux 使用随包的安装脚本或发行版包。
 客户端不修改 PATH，也不覆盖包管理器安装。挂载组件单独安装：
 Windows 使用 WinFsp，Linux 使用 FUSE，macOS 需要兼容的 FUSE 与引擎构建。
 
-“设置”统一管理外观、语言、登录启动、客户端更新和新任务默认参数；
+[“设置”页面](assets/screenshots/settings-light.png)统一管理外观、语言、登录启动、客户端更新和新任务默认参数；
 引擎与默认参数可按需展开。“运行与资源”显示当前占用和即时限速控制。
 
 ## 开始第一个工作流

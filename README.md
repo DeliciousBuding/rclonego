@@ -19,7 +19,7 @@ one persistent scheduler.
 This is an independent community project under active alpha development.
 It is not an official rclone or MyGo application.
 
-<p align="center"><img src="assets/screenshots/resources-light.png" width="900" alt="RcloneGo native resource and engine controls"></p>
+<p align="center"><img src="assets/screenshots/resources-light.png" width="900" alt="RcloneGo native resource monitoring"></p>
 
 ## What it does
 
@@ -68,7 +68,7 @@ existing executable or import its verified ZIP offline. This does not modify PAT
 or a package-manager installation. Mounts separately require WinFsp on Windows,
 FUSE on Linux, or a compatible FUSE/engine combination on macOS.
 
-**Settings** also contains appearance, interface language, login startup,
+The [Settings page](assets/screenshots/settings-light.png) contains appearance, interface language, login startup,
 client updates and collapsible defaults for new tasks. **Resources** shows
 current process usage and live bandwidth controls.
 
