@@ -2,6 +2,10 @@
 
 ### English
 
+- Browse files in a native workspace with breadcrumbs, previews and context
+  actions; queue upload/download/copy, rename and confirmed scoped deletion.
+- Improve mapping setup and expose external Windows rclone drives as observed
+  owners, with file-browser and system-file-manager entry points.
 - Keep system window controls on Windows/Linux and reserve native macOS traffic
   lights in the inset toolbar. Lighten dark backgrounds and material tints with
   pale blue accents while preserving readable content.
@@ -43,6 +47,9 @@
 
 ### 简体中文
 
+- 原生文件工作页支持目录导航、预览和右键操作；上传下载、复制、重命名与确认删除
+  共用任务队列。
+- 优化映射配置，展示外部 Windows rclone 盘符归属，可直接进入文件浏览或系统文件管理器。
 - Windows/Linux 使用系统窗口按钮，macOS 顶栏为原生交通灯留位；深色背景与材质遮色
   更浅，使用淡蓝强调色，并保持正文清晰可读。
 - 预览导入旧客户端任务，当前上传完成后接续剩余步骤，保留过滤条件与最终校验。

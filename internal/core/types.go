@@ -59,6 +59,7 @@ type MountConfig struct {
 
 type MountView struct {
 	MountConfig
+	External       bool   `json:"external"`
 	Running        bool   `json:"running"`
 	DriveAvailable bool   `json:"drive_available"`
 	PID            int    `json:"pid,omitempty"`
@@ -67,6 +68,7 @@ type MountView struct {
 }
 
 type Job struct {
+	FileVersion          *FileVersion `json:"file_version,omitempty"`
 	Origin               string       `json:"origin,omitempty"`
 	DryRun               bool         `json:"dry_run"`
 	MaxDelete            int          `json:"max_delete"`

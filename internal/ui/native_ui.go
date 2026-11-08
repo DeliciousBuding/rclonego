@@ -132,6 +132,7 @@ type nativeUI struct {
 	automationUI        automationUIState
 	automations         []core.Automation
 	browserUI           browserUIState
+	filesUI             fileWorkspaceState
 	health              core.ServiceHealth
 	cacheUI             cacheUIState
 	storageUI           map[string]*storageUIState
@@ -263,6 +264,7 @@ func (s *nativeUI) refresh(ctx context.Context, includeRemoteState bool) {
 			s.setError(fmt.Errorf("%s", runtime.CatalogError))
 		}
 		s.jobs, s.paused, s.activity = jobs, state.QueuePaused, activity
+		s.refreshCompletedFiles(jobs)
 		s.handoff = state.Handoff
 		s.workflows, s.runs = state.Workflows, state.Runs
 		s.automations = s.app.ListAutomations()
@@ -350,6 +352,7 @@ func (s *nativeUI) mountsPage(c *ui.Context) {
 				s.beginMountEdit(core.MountConfig{})
 			})
 		})
+		s.mountDependencyHint(c)
 		contentScroll(c).Grow(1).Gap(0).Children(func() {
 			if len(s.mounts) == 0 {
 				emptyState(c, iconMounts, "暂无映射", "添加映射，将云端目录作为本机磁盘使用")
@@ -374,7 +377,11 @@ func (s *nativeUI) mountRow(c *ui.Context, mount core.MountView) {
 		ui.Column(c).Grow(1).MinWidth(0).Gap(2).Children(func() {
 			ui.Text(c, mount.Name).Bold().SingleLine().Tooltip(mount.Name)
 			pathSummary(c, mount.Remote, mount.Drive)
+			if mount.External {
+				ui.Text(c, text(c, "由其他程序管理")).FontSize(11).TextColor(t.TextMuted)
+			}
 		})
+		iconButton(c.Key("browse-"+mount.ID), iconFolder, "浏览文件").OnClick(func() { s.openFiles(mountBrowsePath(mount)) })
 		if mount.Running {
 			statusPill(c, "运行中", t.Success)
 			ui.Button(c.Key("stop-"+mount.ID), text(c, "卸载")).Padding(6, 10).Tooltip(text(c, "卸载此盘符")).OnClick(func() {
@@ -384,7 +391,7 @@ func (s *nativeUI) mountRow(c *ui.Context, mount core.MountView) {
 					defer cancel()
 					return s.app.StopMount(ctx, cfg)
 				})
-			}).Disabled(s.busy)
+			}).Disabled(s.busy || !s.app.OwnsMount(mount.ID))
 		} else {
 			statusDot(c, "未挂载", t.TextMuted)
 			ui.Button(c.Key("start-"+mount.ID), text(c, "挂载")).Padding(6, 10).Tooltip(text(c, "挂载此盘符")).OnClick(func() {
@@ -398,17 +405,23 @@ func (s *nativeUI) mountRow(c *ui.Context, mount core.MountView) {
 			}).Disabled(s.busy)
 		}
 		iconButton(c.Key("more-"+mount.ID), iconMore, "更多映射操作").Disabled(s.busy).Menu(func(m *ui.Menu) {
-			if m.Item(text(c, "编辑…")).Chosen() {
+			if m.Item(text(c, "浏览文件")).Chosen() {
+				s.openFiles(mountBrowsePath(mount))
+			}
+			if m.Item(text(c, "在文件管理器中打开")).Disabled(!mount.DriveAvailable).Chosen() {
+				s.openMountedPath(mount)
+			}
+			if m.Item(text(c, "编辑…")).Disabled(mount.External).Chosen() {
 				s.beginMountEdit(mount.MountConfig)
 			}
-			if m.Item(text(c, "查看缓存状态")).Disabled(!mount.Running).Chosen() {
+			if m.Item(text(c, "查看缓存状态")).Disabled(!mount.Running || !s.app.OwnsMount(mount.ID)).Chosen() {
 				s.inspectCache(mount.ID)
 			}
 			if m.Item(text(c, "保存离线副本")).Chosen() {
 				s.cacheUI.offlineOpen, s.cacheUI.source, s.cacheUI.name = true, mount.Remote, mount.Name+locales.OfflineCopySuffix()
 			}
 			m.Separator()
-			if m.Item(text(c, "删除此映射配置")).Disabled(mount.Running).Chosen() {
+			if m.Item(text(c, "删除此映射配置")).Disabled(mount.Running || mount.External).Chosen() {
 				s.run(text(c, "删除映射"), func() error {
 					state := s.app.Snapshot()
 					mounts := make([]core.MountConfig, 0, len(state.Mounts))
@@ -428,6 +441,11 @@ func (s *nativeUI) beginMountEdit(cfg core.MountConfig) {
 	s.editingMount = true
 	s.mountID, s.mountName, s.mountRemote = cfg.ID, cfg.Name, cfg.Remote
 	s.mountDrive, s.mountVolume, s.mountCache = cfg.Drive, cfg.VolumeName, cfg.CacheDir
+	if cfg.ID == "" {
+		targets := s.app.MountTargets()
+		s.mountDrive = targets.Suggested
+		s.mountCache = s.app.DefaultMountCache()
+	}
 	s.mountMax, s.mountAge = core.ValueOr(cfg.CacheMax, "15G"), core.ValueOr(cfg.CacheMaxAge, "24h")
 	s.invalidate()
 }

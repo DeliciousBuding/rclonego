@@ -41,6 +41,9 @@ No stable release is available yet.
   directory watching and recurring workflows submit to the same queue.
 - **Choose and inspect paths.** Browse cloud folders, inspect structured dry-run
   changes, observe owned VFS cache/writeback state and save independent offline copies.
+- **Manage files.** Use the native [Files workspace](docs/files.md) for breadcrumbs,
+  multi-selection, text/image previews, upload/download, copy, rename and confirmed
+  single-file or empty-folder deletion. Observe existing Windows rclone drives.
 - **Understand storage.** Read provider quota, hash algorithms and backend
   capabilities. Browse files with sizes and request cancellable directory
   statistics. See other rclone processes separately from this client's usage.

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"strconv"
+	"time"
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
@@ -99,6 +100,7 @@ var (
 	iconArrow     = lineIcon(`<path d="M4 12h16m-5-5 5 5-5 5"/>`)
 	iconSettings  = lineIcon(`<path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2" fill="currentColor"/><circle cx="15" cy="12" r="2" fill="currentColor"/><circle cx="9" cy="18" r="2" fill="currentColor"/>`)
 	iconMore      = lineIcon(`<circle cx="5" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="19" cy="12" r="1" fill="currentColor"/>`)
+	iconRename    = lineIcon(`<path d="m15 4 5 5M4 20l4-1L20 7a2 2 0 0 0-4-4L4 15Z"/>`)
 	iconWorkflow  = lineIcon(`<rect x="3" y="3" width="7" height="6" rx="2"/><rect x="14" y="15" width="7" height="6" rx="2"/><path d="M6.5 9v6a3 3 0 0 0 3 3H14"/>`)
 	iconFolder    = lineIcon(`<path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/>`)
 	iconUp        = lineIcon(`<path d="m6 14 6-6 6 6"/>`)
@@ -155,6 +157,7 @@ func iconButton(c *ui.Context, icon *ui.SVG, label string) ui.Element {
 	label = text(c, label)
 	t := c.Theme()
 	b := ui.ButtonBase(c).Size(30, 30).Radius(8).Role(ui.RoleButton).Label(label).Tooltip(label)
+	b.Transition(ui.ElementTransition{Colors: true, Duration: 120 * time.Millisecond})
 	switch {
 	case b.Pressed():
 		b.Background(t.SurfacePressed)
@@ -240,6 +243,12 @@ func operationLabel(operation string) string {
 		return "同步"
 	case "check":
 		return "校验"
+	case "mkdir":
+		return "新建文件夹"
+	case "moveto":
+		return "重命名"
+	case "deletefile", "rmdir":
+		return "删除文件"
 	case "oauth-create", "oauth-reconnect":
 		return "授权"
 	default:

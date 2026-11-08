@@ -140,6 +140,9 @@ func EnsureColonRemote(value string) string {
 }
 
 func rcloneTransferArgs(job Job, rcPort int, logPath string) ([]string, error) {
+	if fileOperation(job.Operation) {
+		return fileOperationArgs(job, rcPort)
+	}
 	if err := validateSafeText(job.Source); err != nil {
 		return nil, fmt.Errorf("source: %w", err)
 	}

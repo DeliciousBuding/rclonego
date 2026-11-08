@@ -76,6 +76,9 @@ const cliHelp = `RcloneGo — 本机数据工作台
   events [--after <cursor>] [--limit <count>] 持久状态事件，最多 500 条
   events watch [--after <cursor>]            持续观察事件；--json 输出逐行 JSON
   browse <本机绝对路径或remote:path> [--directories --offset 0 --limit 100]
+  files preview <文件路径>                   预览文本或图片
+  files mkdir|rename|delete --file <JSON>    文件更改进入任务队列
+  mounts targets                           查看可用挂载目标和依赖
   automations list|save --file <json>|edit <ID> --file <json>|delete|trigger <ID>
   tokens read [--ttl 3600]|tasks --file <grant.json>|revoke <ID>
   schema                                    离线输出 OpenAPI 契约
@@ -111,7 +114,7 @@ func IsCLI(args []string) bool {
 	switch args[0] {
 	case "status", "jobs", "mounts", "remotes", "queue", "theme", "api", "help", "--help", "-h", "--version":
 		return true
-	case "resources", "bandwidth", "workflow", "workflows", "runs", "doctor", "settings", "external", "engine", "accounts", "handoff", "events", "schema", "diagnostics", "licenses", "browse", "usage", "automations", "tokens", "offline", "logs":
+	case "resources", "bandwidth", "workflow", "workflows", "runs", "doctor", "settings", "external", "engine", "accounts", "handoff", "events", "schema", "diagnostics", "licenses", "browse", "usage", "automations", "tokens", "offline", "logs", "files":
 		return true
 	case "--api", "--json", "--timeout":
 		return true
@@ -404,6 +407,10 @@ func cliRequest(args []string) (method, path string, body any, key string, err e
 			err = errors.New("jobs accepts list, add, retry, cancel, delete, up, down or log")
 		}
 	case "mounts":
+		if len(args) == 2 && args[1] == "targets" {
+			path = "/api/v1/mounts/targets"
+			break
+		}
 		if len(args) == 1 || (len(args) == 2 && args[1] == "list") {
 			path = "/api/v1/mounts"
 			break
@@ -418,6 +425,27 @@ func cliRequest(args []string) (method, path string, body any, key string, err e
 		method = http.MethodPost
 		path = "/api/v1/mounts/" + args[1]
 		body = map[string]string{"id": args[2]}
+	case "files":
+		if len(args) == 3 && args[1] == "preview" {
+			path = "/api/v1/files/preview?path=" + url.QueryEscape(args[2])
+			break
+		}
+		if len(args) != 4 || args[2] != "--file" || (args[1] != "mkdir" && args[1] != "rename" && args[1] != "delete") {
+			err = errors.New("files accepts preview <path> or mkdir|rename|delete --file <JSON>")
+			break
+		}
+		var request core.FileActionRequest
+		raw, readErr := os.ReadFile(args[3])
+		err = readErr
+		if err == nil {
+			err = json.Unmarshal(raw, &request)
+		}
+		if request.Operation != "" && request.Operation != args[1] {
+			err = errors.New("file operation differs from command")
+			break
+		}
+		request.Operation = args[1]
+		method, path, body = http.MethodPost, "/api/v1/files/actions", request
 	case "remotes":
 		if len(args) == 1 || (len(args) == 2 && args[1] == "list") {
 			path = "/api/v1/remotes"

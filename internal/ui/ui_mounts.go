@@ -12,12 +12,22 @@ import (
 func (s *nativeUI) mountEditor(c *ui.Context) {
 	ui.Form(c, func() {
 		ui.Field(c, text(c, "名称"), func() { ui.TextInput(c.Key("mount-name"), &s.mountName).AutoFocus() })
-		ui.Field(c, text(c, "远端"), func() { ui.TextInput(c.Key("mount-remote"), &s.mountRemote).Placeholder("drive:") })
+		ui.Field(c, text(c, "远端"), func() { s.storagePathInput(c.Key("mount-remote"), &s.mountRemote, "远端", false) })
 		label, placeholder := "挂载目录", "/path/to/empty-directory"
 		if runtime.GOOS == "windows" {
 			label, placeholder = "盘符", "K:"
 		}
-		ui.Field(c, text(c, label), func() { ui.TextInput(c.Key("mount-drive"), &s.mountDrive).Placeholder(placeholder) })
+		ui.Field(c, text(c, label), func() {
+			if runtime.GOOS == "windows" {
+				targets := s.app.MountTargets().Available
+				if s.mountDrive != "" && !containsTarget(targets, s.mountDrive) {
+					targets = append([]string{s.mountDrive}, targets...)
+				}
+				ui.Select(c.Key("mount-drive"), &s.mountDrive, targets).Label(text(c, "盘符"))
+			} else {
+				s.pathInput(c.Key("mount-drive"), &s.mountDrive, label, placeholder, true, false, nil)
+			}
+		})
 		ui.Field(c, text(c, "缓存目录"), func() {
 			s.pathInput(c.Key("mount-cache"), &s.mountCache, "缓存目录", "选择本机 SSD 目录", true, false, nil)
 		})
@@ -29,10 +39,22 @@ func (s *nativeUI) mountEditor(c *ui.Context) {
 			ui.Field(c, text(c, "缓存保留时间"), func() { ui.TextInput(c.Key("mount-age"), &s.mountAge).Placeholder("24h") })
 		})
 	})
-	ui.Row(c).Gap(8).Justify(ui.End).Children(func() {
+}
+
+func (s *nativeUI) mountFooter(c *ui.Context) {
+	ui.Row(c).Shrink(0).Gap(8).Justify(ui.End).Children(func() {
 		ui.Button(c.Key("cancel-mount"), text(c, "取消")).Height(30).OnClick(func() { s.editingMount = false })
 		ui.PrimaryButton(c.Key("save-mount"), text(c, "保存")).Height(30).Disabled(s.busy).OnClick(s.saveMount)
 	})
+}
+
+func containsTarget(targets []string, target string) bool {
+	for _, candidate := range targets {
+		if core.MountTargetsEqual(candidate, target) {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *nativeUI) saveMount() {

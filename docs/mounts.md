@@ -1,5 +1,20 @@
 # Mount cache and offline files
 
+The mapping editor offers available Windows drive letters and a profile-local
+cache default. macOS/Linux choose an absolute empty mount directory. The page
+shows a dependency hint when WinFsp or FUSE is missing, with a link to the
+official installation guide.
+
+Browse opens the remote in the [Files workspace](files.md). Available targets
+can also open in Explorer, Finder or the desktop's file manager. Windows rclone
+mounts detected outside this client's configuration appear as **Managed by
+another app**. They can be browsed but are not adopted, edited or unmounted
+by this instance. Stop and cache controls require the recorded owner and
+process identity.
+
+`GET /api/v1/mounts/targets` and `rclonego mounts targets --json` expose
+available target choices and the platform dependency diagnostic.
+
 RcloneGo mounts use rclone's `full` VFS disk cache. Put the cache on a local SSD
 to improve repeated reads and random access. Its configured size and age are
 eviction targets; an open or pending-write file can keep the cache above its

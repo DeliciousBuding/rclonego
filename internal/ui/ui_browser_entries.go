@@ -25,6 +25,17 @@ func browserEntries(page []core.DirectoryEntry, query, order string) []core.Dire
 		if order == "大小由大到小" && !left.IsDir && left.Size != right.Size {
 			return left.Size > right.Size
 		}
+		if order == "修改时间由新到旧" {
+			if left.ModTime == nil && right.ModTime != nil {
+				return false
+			}
+			if left.ModTime != nil && right.ModTime == nil {
+				return true
+			}
+			if left.ModTime != nil && right.ModTime != nil && !left.ModTime.Equal(*right.ModTime) {
+				return left.ModTime.After(*right.ModTime)
+			}
+		}
 		a, b := strings.ToLower(left.Name), strings.ToLower(right.Name)
 		if a == b {
 			a, b = left.Name, right.Name

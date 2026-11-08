@@ -2843,6 +2843,112 @@
           }
         }
       }
+    },
+    "/api/v1/files/preview": {
+      "get": {
+        "operationId": "previewFile",
+        "summary": "previewFile",
+        "parameters": [
+          {
+            "name": "path",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FilePreview"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/files/actions": {
+      "post": {
+        "operationId": "queueFileAction",
+        "summary": "queueFileAction",
+        "parameters": [],
+        "responses": {
+          "202": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Job"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FileActionRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/mounts/targets": {
+      "get": {
+        "operationId": "mountTargets",
+        "summary": "mountTargets",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MountTargets"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -4582,6 +4688,10 @@
               },
               "rc_port": {
                 "type": "integer"
+              },
+              "external": {
+                "type": "boolean",
+                "description": "Observed mount managed by another process; not adopted by this client."
               }
             }
           }
@@ -4832,6 +4942,9 @@
           },
           "engine_last_error": {
             "type": "string"
+          },
+          "file_version": {
+            "$ref": "#/components/schemas/FileVersion"
           }
         }
       },
@@ -4862,7 +4975,11 @@
               "copy",
               "copyto",
               "sync",
-              "check"
+              "check",
+              "mkdir",
+              "moveto",
+              "deletefile",
+              "rmdir"
             ],
             "default": "copy"
           },
@@ -5756,6 +5873,114 @@
           "paths"
         ],
         "additionalProperties": false
+      },
+      "FilePreview": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "text",
+              "image"
+            ]
+          },
+          "mime": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "text": {
+            "type": "string"
+          },
+          "data": {
+            "type": "string",
+            "contentEncoding": "base64"
+          },
+          "truncated": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "path",
+          "kind",
+          "mime",
+          "size",
+          "truncated"
+        ]
+      },
+      "FileActionRequest": {
+        "type": "object",
+        "properties": {
+          "operation": {
+            "type": "string",
+            "enum": [
+              "mkdir",
+              "rename",
+              "delete"
+            ]
+          },
+          "path": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "is_dir": {
+            "type": "boolean"
+          },
+          "confirm_delete": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "operation",
+          "path"
+        ]
+      },
+      "MountTargets": {
+        "type": "object",
+        "properties": {
+          "available": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "suggested": {
+            "type": "string"
+          },
+          "dependency": {
+            "$ref": "#/components/schemas/Diagnostic"
+          }
+        },
+        "required": [
+          "available",
+          "suggested",
+          "dependency"
+        ]
+      },
+      "FileVersion": {
+        "type": "object",
+        "properties": {
+          "size": {
+            "type": "integer"
+          },
+          "is_dir": {
+            "type": "boolean"
+          },
+          "mod_time": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "size",
+          "is_dir"
+        ]
       }
     }
   }

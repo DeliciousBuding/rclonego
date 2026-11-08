@@ -306,7 +306,7 @@ func (q *Queue) buildJob(request JobCreateRequest) (Job, error) {
 		return Job{}, errors.New("invalid idempotency key")
 	}
 	allowed := map[string]bool{"copy": true, "copyto": true, "sync": true, "check": true,
-		"oauth-reconnect": true, "oauth-create": true}
+		"oauth-reconnect": true, "oauth-create": true, "mkdir": true, "moveto": true, "deletefile": true, "rmdir": true}
 	if !allowed[request.Operation] {
 		return Job{}, errors.New("unsupported operation")
 	}
@@ -362,6 +362,15 @@ func (q *Queue) buildJob(request JobCreateRequest) (Job, error) {
 	if _, err := rcloneTransferArgs(job, 1, ""); err != nil {
 		return Job{}, err
 	}
+	if fileOperation(job.Operation) && job.Operation != "mkdir" {
+		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		info, err := fileStat(ctx, q.engineClient(), job.Source)
+		cancel()
+		if err != nil {
+			return Job{}, err
+		}
+		job.FileVersion = &FileVersion{Size: info.Size, IsDir: info.IsDir, ModTime: info.ModTime}
+	}
 	return job, nil
 }
 
@@ -381,6 +390,13 @@ func (q *Queue) execute(job Job) {
 		return
 	}
 	if err := q.validateProof(job); err != nil {
+		q.finish(job, "failed", nil, err)
+		return
+	}
+	fileCtx, fileCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	err := validateFileExecution(fileCtx, client, job)
+	fileCancel()
+	if err != nil {
 		q.finish(job, "failed", nil, err)
 		return
 	}
@@ -509,6 +525,13 @@ func (q *Queue) execute(job Job) {
 			}
 			if waitErr != nil {
 				q.finish(job, "failed", &exitCode, transferError(waitErr, logPath))
+				return
+			}
+			verifyCtx, verifyCancel := context.WithTimeout(context.Background(), 30*time.Second)
+			verifyErr := verifyFileExecution(verifyCtx, client, job)
+			verifyCancel()
+			if verifyErr != nil {
+				q.finish(job, "failed", &exitCode, verifyErr)
 				return
 			}
 			q.finish(job, "completed", &exitCode, nil)
@@ -723,6 +746,12 @@ func (q *Queue) Retry(id string) error {
 func (q *Queue) ResumeInterrupted() error {
 	for _, job := range q.store.Snapshot().Jobs {
 		if job.Status != "interrupted" {
+			continue
+		}
+		// A completed rename/delete may have lost its completion receipt.
+		// Keep it for explicit inspection instead of mutating a new object
+		// at the same path after restart.
+		if fileOperation(job.Operation) {
 			continue
 		}
 		if interruptedProcessActive(job) {

@@ -67,15 +67,7 @@ func (s *nativeUI) beginBrowse(target *string) {
 }
 
 func (s *nativeUI) beginStorageBrowse(name string) {
-	b := &s.browserUI
-	if b.cancel != nil {
-		b.cancel()
-	}
-	b.open, b.target, b.offset = true, nil, 0
-	b.query, b.order, b.selected = "", "名称 A–Z", -1
-	b.remote = strings.TrimSuffix(name, ":") + ":"
-	b.path = b.remote
-	s.loadBrowser(b.path, 0)
+	s.openFiles(strings.TrimSuffix(name, ":") + ":")
 }
 
 func (s *nativeUI) closeBrowser() {

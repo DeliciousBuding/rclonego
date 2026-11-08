@@ -192,7 +192,7 @@ func browseLocal(ctx context.Context, root string, dirsOnly bool) ([]DirectoryEn
 func browseRemote(ctx context.Context, client RcloneClient, root string, dirsOnly bool) ([]DirectoryEntry, bool, error) {
 	commandCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
-	args := []string{"lsjson", root, "--no-modtime", "--no-mimetype", "--max-depth", "1"}
+	args := []string{"lsjson", root, "--no-mimetype", "--max-depth", "1"}
 	if dirsOnly {
 		args = append(args, "--dirs-only")
 	}
@@ -228,9 +228,10 @@ func browseRemote(ctx context.Context, client RcloneClient, root string, dirsOnl
 			break
 		}
 		var item struct {
-			Name  string `json:"Name"`
-			IsDir bool   `json:"IsDir"`
-			Size  int64  `json:"Size"`
+			Name    string     `json:"Name"`
+			IsDir   bool       `json:"IsDir"`
+			Size    int64      `json:"Size"`
+			ModTime *time.Time `json:"ModTime"`
 		}
 		if err = decoder.Decode(&item); err != nil {
 			if stream.N == 0 {
@@ -246,7 +247,7 @@ func browseRemote(ctx context.Context, client RcloneClient, root string, dirsOnl
 		if !strings.HasSuffix(root, ":") && !strings.HasSuffix(root, "/") {
 			separator = "/"
 		}
-		entry := DirectoryEntry{Name: item.Name, Path: root + separator + item.Name, IsDir: item.IsDir, Size: item.Size}
+		entry := DirectoryEntry{Name: item.Name, Path: root + separator + item.Name, IsDir: item.IsDir, Size: item.Size, ModTime: item.ModTime}
 		entryBytes += len(entry.Name) + len(entry.Path) + 64
 		if entryBytes > browseByteLimit {
 			truncated = true

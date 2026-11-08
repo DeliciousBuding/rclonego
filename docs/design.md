@@ -81,6 +81,17 @@ remain visible at the minimum window size. Search never silently scans remote
 trees or other pages. A [current native browser](../assets/screenshots/files-dark.png)
 uses a synthetic account and sample documents.
 
+The Files workspace extends browsing into a full page. It uses MyGo breadcrumbs,
+native list multi-selection and context menus, with a fixed selection/action
+footer. Name, size and modification columns align across rows. Enter/double-click
+opens, Space previews and F2 renames. Preview and file-action dialogs use short
+140 ms transitions; button colors settle over 120 ms. MyGo respects reduced
+motion. Nothing continuously animates while idle.
+
+Mount configuration keeps Save outside its scrolling fields. Available Windows
+drive letters and a profile cache location reduce manual setup. Browse connects
+mapping rows to Files; existing external drives expose their ownership clearly.
+
 Active tasks distinguish preparation, comparison, transfer and verification.
 Unknown totals stay indeterminate; verification progress uses file counts rather
 than transfer bytes. The sidebar count includes queued and running work. Empty
