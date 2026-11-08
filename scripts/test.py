@@ -17,7 +17,7 @@ root = Path(__file__).resolve().parents[1]
 source = (root / "internal/engine/manager.go").read_text(encoding="utf-8")
 version = re.search(r'const Recommended = "([^"]+)"', source)[1]
 operating_system = {"Windows": "windows", "Linux": "linux", "Darwin": "darwin"}[platform.system()]
-arch = {"AMD64": "amd64", "x86_64": "amd64", "arm64": "arm64", "aarch64": "arm64"}[platform.machine()]
+arch = {"amd64": "amd64", "x86_64": "amd64", "arm64": "arm64", "aarch64": "arm64"}[platform.machine().lower()]
 digest = re.search(rf'"{operating_system}/{arch}":\s+"([a-f0-9]+)"', source)[1]
 target_os = "osx" if operating_system == "darwin" else operating_system
 asset = f"rclone-{version}-{target_os}-{arch}.zip"
