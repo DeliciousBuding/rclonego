@@ -2,6 +2,9 @@
 
 ### English
 
+- Keep system window controls on Windows/Linux and reserve native macOS traffic
+  lights in the inset toolbar. Lighten dark backgrounds and material tints with
+  pale blue accents while preserving readable content.
 - Preview a legacy task import and continue remaining steps after the previous
   client's active transfer finishes, preserving filters and final verification.
 - Refine file browsing with bounded search/sort, keyboard selection and path
@@ -40,6 +43,8 @@
 
 ### 简体中文
 
+- Windows/Linux 使用系统窗口按钮，macOS 顶栏为原生交通灯留位；深色背景与材质遮色
+  更浅，使用淡蓝强调色，并保持正文清晰可读。
 - 预览导入旧客户端任务，当前上传完成后接续剩余步骤，保留过滤条件与最终校验。
 - 完善文件浏览搜索排序、键盘选择和路径详情，运行时标志与生成资产共用品牌源。
 - GUI、CLI、API 共用云盘容量、后端能力、文件大小与可取消的目录统计。
