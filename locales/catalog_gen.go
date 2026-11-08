@@ -55,14 +55,14 @@ func (msgs Messages) CompletedSuffix() string {
 	return Catalog.Format(msgs.locale, "completedSuffix", nil)
 }
 
-// MountCount says "%d mounts"
+// MountCount says "{count, plural, one {# mount} other {# mounts}}"
 // in the language the app shows.
-func MountCount() string { return In(i18n.Locale()).MountCount() }
+func MountCount(count int) string { return In(i18n.Locale()).MountCount(count) }
 
-// MountCount says "%d mounts"
+// MountCount says "{count, plural, one {# mount} other {# mounts}}"
 // in the language of msgs.
-func (msgs Messages) MountCount() string {
-	return Catalog.Format(msgs.locale, "mountCount", nil)
+func (msgs Messages) MountCount(count int) string {
+	return Catalog.Format(msgs.locale, "mountCount", map[string]any{"count": count})
 }
 
 // AddMount says "Add mount…"
@@ -165,11 +165,11 @@ func (msgs Messages) Delete() string {
 	return Catalog.Format(msgs.locale, "delete", nil)
 }
 
-// DeleteMountConfiguration says "Delete this mount configuration"
+// DeleteMountConfiguration says "Remove this mount configuration"
 // in the language the app shows.
 func DeleteMountConfiguration() string { return In(i18n.Locale()).DeleteMountConfiguration() }
 
-// DeleteMountConfiguration says "Delete this mount configuration"
+// DeleteMountConfiguration says "Remove this mount configuration"
 // in the language of msgs.
 func (msgs Messages) DeleteMountConfiguration() string {
 	return Catalog.Format(msgs.locale, "deleteMountConfiguration", nil)
@@ -5177,4 +5177,154 @@ func EngineServiceDetails() string { return In(i18n.Locale()).EngineServiceDetai
 // in the language of msgs.
 func (msgs Messages) EngineServiceDetails() string {
 	return Catalog.Format(msgs.locale, "engineServiceDetails", nil)
+}
+
+// MoreMountActions says "More mount actions"
+// in the language the app shows.
+func MoreMountActions() string { return In(i18n.Locale()).MoreMountActions() }
+
+// MoreMountActions says "More mount actions"
+// in the language of msgs.
+func (msgs Messages) MoreMountActions() string {
+	return Catalog.Format(msgs.locale, "moreMountActions", nil)
+}
+
+// EmptyQueue says "No tasks in the queue yet"
+// in the language the app shows.
+func EmptyQueue() string { return In(i18n.Locale()).EmptyQueue() }
+
+// EmptyQueue says "No tasks in the queue yet"
+// in the language of msgs.
+func (msgs Messages) EmptyQueue() string {
+	return Catalog.Format(msgs.locale, "emptyQueue", nil)
+}
+
+// EmptyQueueDescription says "Create a task to copy or verify local and cloud files"
+// in the language the app shows.
+func EmptyQueueDescription() string { return In(i18n.Locale()).EmptyQueueDescription() }
+
+// EmptyQueueDescription says "Create a task to copy or verify local and cloud files"
+// in the language of msgs.
+func (msgs Messages) EmptyQueueDescription() string {
+	return Catalog.Format(msgs.locale, "emptyQueueDescription", nil)
+}
+
+// DismissError says "Dismiss error"
+// in the language the app shows.
+func DismissError() string { return In(i18n.Locale()).DismissError() }
+
+// DismissError says "Dismiss error"
+// in the language of msgs.
+func (msgs Messages) DismissError() string {
+	return Catalog.Format(msgs.locale, "dismissError", nil)
+}
+
+// VerifyingPhase says "Verifying"
+// in the language the app shows.
+func VerifyingPhase() string { return In(i18n.Locale()).VerifyingPhase() }
+
+// VerifyingPhase says "Verifying"
+// in the language of msgs.
+func (msgs Messages) VerifyingPhase() string {
+	return Catalog.Format(msgs.locale, "verifyingPhase", nil)
+}
+
+// PreparingPhase says "Preparing"
+// in the language the app shows.
+func PreparingPhase() string { return In(i18n.Locale()).PreparingPhase() }
+
+// PreparingPhase says "Preparing"
+// in the language of msgs.
+func (msgs Messages) PreparingPhase() string {
+	return Catalog.Format(msgs.locale, "preparingPhase", nil)
+}
+
+// TransferringPhase says "Transferring"
+// in the language the app shows.
+func TransferringPhase() string { return In(i18n.Locale()).TransferringPhase() }
+
+// TransferringPhase says "Transferring"
+// in the language of msgs.
+func (msgs Messages) TransferringPhase() string {
+	return Catalog.Format(msgs.locale, "transferringPhase", nil)
+}
+
+// CountingVerificationFiles says "Counting files to verify"
+// in the language the app shows.
+func CountingVerificationFiles() string { return In(i18n.Locale()).CountingVerificationFiles() }
+
+// CountingVerificationFiles says "Counting files to verify"
+// in the language of msgs.
+func (msgs Messages) CountingVerificationFiles() string {
+	return Catalog.Format(msgs.locale, "countingVerificationFiles", nil)
+}
+
+// ActiveTaskDetails says "View active task details"
+// in the language the app shows.
+func ActiveTaskDetails() string { return In(i18n.Locale()).ActiveTaskDetails() }
+
+// ActiveTaskDetails says "View active task details"
+// in the language of msgs.
+func (msgs Messages) ActiveTaskDetails() string {
+	return Catalog.Format(msgs.locale, "activeTaskDetails", nil)
+}
+
+// MoreActiveTaskActions says "More active task actions"
+// in the language the app shows.
+func MoreActiveTaskActions() string { return In(i18n.Locale()).MoreActiveTaskActions() }
+
+// MoreActiveTaskActions says "More active task actions"
+// in the language of msgs.
+func (msgs Messages) MoreActiveTaskActions() string {
+	return Catalog.Format(msgs.locale, "moreActiveTaskActions", nil)
+}
+
+// ExecutionDetails says "Execution details"
+// in the language the app shows.
+func ExecutionDetails() string { return In(i18n.Locale()).ExecutionDetails() }
+
+// ExecutionDetails says "Execution details"
+// in the language of msgs.
+func (msgs Messages) ExecutionDetails() string {
+	return Catalog.Format(msgs.locale, "executionDetails", nil)
+}
+
+// ComparedFilesCount says "Compared %d files"
+// in the language the app shows.
+func ComparedFilesCount() string { return In(i18n.Locale()).ComparedFilesCount() }
+
+// ComparedFilesCount says "Compared %d files"
+// in the language of msgs.
+func (msgs Messages) ComparedFilesCount() string {
+	return Catalog.Format(msgs.locale, "comparedFilesCount", nil)
+}
+
+// CountingTransferFiles says "Counting files and transfer size"
+// in the language the app shows.
+func CountingTransferFiles() string { return In(i18n.Locale()).CountingTransferFiles() }
+
+// CountingTransferFiles says "Counting files and transfer size"
+// in the language of msgs.
+func (msgs Messages) CountingTransferFiles() string {
+	return Catalog.Format(msgs.locale, "countingTransferFiles", nil)
+}
+
+// TransferredFilesCount says "Transferred %d files"
+// in the language the app shows.
+func TransferredFilesCount() string { return In(i18n.Locale()).TransferredFilesCount() }
+
+// TransferredFilesCount says "Transferred %d files"
+// in the language of msgs.
+func (msgs Messages) TransferredFilesCount() string {
+	return Catalog.Format(msgs.locale, "transferredFilesCount", nil)
+}
+
+// TaskCountLabel says "{count, plural, one {# task} other {# tasks}}"
+// in the language the app shows.
+func TaskCountLabel(count int) string { return In(i18n.Locale()).TaskCountLabel(count) }
+
+// TaskCountLabel says "{count, plural, one {# task} other {# tasks}}"
+// in the language of msgs.
+func (msgs Messages) TaskCountLabel(count int) string {
+	return Catalog.Format(msgs.locale, "taskCountLabel", map[string]any{"count": count})
 }

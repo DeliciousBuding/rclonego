@@ -166,6 +166,12 @@ func sectionHeading(c *ui.Context, title string) {
 	ui.Text(c, text(c, title)).FontSize(15).FontWeight(600)
 }
 
+func pathSummary(c *ui.Context, source, destination string) {
+	route := source + " → " + destination
+	ui.Text(c, route).FontSize(11).TextColor(c.Theme().TextMuted).
+		SingleLine().Tooltip(route)
+}
+
 func pageHeading(c *ui.Context, title, description string, actions func()) {
 	ui.Row(c).Gap(16).AlignItems(ui.Center).Children(func() {
 		ui.Column(c).Grow(1).MinWidth(0).Gap(4).Children(func() {

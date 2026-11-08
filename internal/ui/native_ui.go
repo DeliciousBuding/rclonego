@@ -89,6 +89,7 @@ type nativeUI struct {
 	showDefaults        bool
 	showEngineSettings  bool
 	showResourceDetails bool
+	showJobDetails      bool
 	jobChecksum         bool
 	jobCreateDirs       bool
 	jobAllowDelete      bool
@@ -343,7 +344,7 @@ func (s *nativeUI) runAfter(label string, action func() error, success func()) {
 
 func (s *nativeUI) mountsPage(c *ui.Context) {
 	ui.Column(c).Grow(1).MinHeight(0).Gap(16).Children(func() {
-		pageHeading(c, "盘符映射", fmt.Sprintf(text(c, "%d 个映射"), len(s.mounts)), func() {
+		pageHeading(c, "盘符映射", locales.In(c.Locale()).MountCount(len(s.mounts)), func() {
 			actionButton(c.Key("new-mount"), iconPlus, "添加映射…", true).Disabled(s.busy).OnClick(func() {
 				s.beginMountEdit(core.MountConfig{})
 			})
@@ -371,7 +372,7 @@ func (s *nativeUI) mountRow(c *ui.Context, mount core.MountView) {
 		})
 		ui.Column(c).Grow(1).MinWidth(0).Gap(2).Children(func() {
 			ui.Text(c, mount.Name).Bold().SingleLine().Tooltip(mount.Name)
-			ui.Text(c, mount.Remote).FontSize(12).TextColor(t.TextMuted).SingleLine()
+			pathSummary(c, mount.Remote, mount.Drive)
 		})
 		if mount.Running {
 			statusPill(c, "运行中", t.Success)
@@ -384,6 +385,7 @@ func (s *nativeUI) mountRow(c *ui.Context, mount core.MountView) {
 				})
 			}).Disabled(s.busy)
 		} else {
+			statusDot(c, "未挂载", t.TextMuted)
 			ui.Button(c.Key("start-"+mount.ID), text(c, "挂载")).Padding(6, 10).Tooltip(text(c, "挂载此盘符")).OnClick(func() {
 				cfg := mount.MountConfig
 				s.run(text(c, "挂载 ")+cfg.Drive, func() error {
@@ -393,26 +395,30 @@ func (s *nativeUI) mountRow(c *ui.Context, mount core.MountView) {
 					return err
 				})
 			}).Disabled(s.busy)
-			ui.Button(c.Key("delete-"+mount.ID), text(c, "删除")).Padding(6, 10).TextColor(t.Danger).
-				Tooltip(text(c, "删除此映射配置")).OnClick(func() {
-				id := mount.ID
-				s.run(text(c, "删除映射"), func() error {
-					return s.app.UpdateState(func(state *core.State) error {
-						for i, cfg := range state.Mounts {
-							if cfg.ID == id {
-								state.Mounts = append(state.Mounts[:i], state.Mounts[i+1:]...)
-								return nil
-							}
-						}
-						return fmt.Errorf("mount %s not found", id)
-					})
-				})
-			}).Disabled(s.busy)
 		}
-		ui.Button(c.Key("edit-"+mount.ID), text(c, "编辑…")).Height(28).Padding(4, 10).OnClick(func() { s.beginMountEdit(mount.MountConfig) }).Disabled(s.busy)
-		iconButton(c.Key("cache-"+mount.ID), iconResources, "查看缓存状态").Disabled(s.busy).OnClick(func() { s.inspectCache(mount.ID) })
-		iconButton(c.Key("offline-"+mount.ID), iconDownload, "保存离线副本").Disabled(s.busy).OnClick(func() {
-			s.cacheUI.offlineOpen, s.cacheUI.source, s.cacheUI.name = true, mount.Remote, mount.Name+locales.OfflineCopySuffix()
+		iconButton(c.Key("more-"+mount.ID), iconMore, "更多映射操作").Disabled(s.busy).Menu(func(m *ui.Menu) {
+			if m.Item(text(c, "编辑…")).Chosen() {
+				s.beginMountEdit(mount.MountConfig)
+			}
+			if m.Item(text(c, "查看缓存状态")).Disabled(!mount.Running).Chosen() {
+				s.inspectCache(mount.ID)
+			}
+			if m.Item(text(c, "保存离线副本")).Chosen() {
+				s.cacheUI.offlineOpen, s.cacheUI.source, s.cacheUI.name = true, mount.Remote, mount.Name+locales.OfflineCopySuffix()
+			}
+			m.Separator()
+			if m.Item(text(c, "删除此映射配置")).Disabled(mount.Running).Chosen() {
+				s.run(text(c, "删除映射"), func() error {
+					state := s.app.Snapshot()
+					mounts := make([]core.MountConfig, 0, len(state.Mounts))
+					for _, cfg := range state.Mounts {
+						if cfg.ID != mount.ID {
+							mounts = append(mounts, cfg)
+						}
+					}
+					return s.app.SaveMounts(mounts)
+				})
+			}
 		})
 	})
 }
@@ -547,6 +553,7 @@ func (s *nativeUI) beginJobForm(job *core.Job) {
 
 func (s *nativeUI) loadLog(id string) {
 	s.logJobID = id
+	s.showJobDetails = false
 	s.logText = locales.Loading()
 	s.invalidate()
 	go func() {

@@ -17,6 +17,8 @@
   with engine management and new-task defaults collapsed until needed.
 - Align page headings and primary actions, move secondary workflow actions to
   More, and use Mica for the Windows main window.
+- Clarify activity phases, use file counts for verification, show mount routes
+  and keep empty history and task details concise.
 - Observe owned VFS cache/writeback state and queue persistent offline copies.
 - Extend Agent contracts, event streaming and revocable task permissions.
 
@@ -31,6 +33,7 @@
 - 使用 MyGo 官方 Glass 和语言目录，加入命令搜索与后台刷新降频。
 - 设置页统一管理主题、语言、登录启动与更新，引擎和新任务默认参数按需展开。
 - 统一页面标题与主操作，工作流低频操作收进“更多”，Windows 主窗口采用 Mica。
+- 区分活动阶段，校验按文件数显示进度；补齐映射路径，精简空历史与任务详情。
 - 展示本实例挂载的 VFS 缓存与写回状态，支持独立离线副本任务。
 - 完善 Agent 契约、事件流和可撤销的任务权限。
 

@@ -35,6 +35,9 @@ func (s *nativeUI) pruneTreeState() {
 	for _, job := range s.jobs {
 		if job.Status == "running" {
 			active[job.ID] = true
+			if len(job.CheckingFiles) > 0 {
+				active[job.ID+"/checks"] = true
+			}
 			visit(job.ID, core.TransferTree(job.ActiveFiles))
 		}
 	}
@@ -94,6 +97,9 @@ func (s *nativeUI) transferFolders(c *ui.Context, scope string, nodes []*core.Tr
 
 func (s *nativeUI) queuedJobs(c *ui.Context) {
 	pending := core.PendingJobs(s.jobs)
+	if len(pending) == 0 {
+		return
+	}
 	ui.Collapsible(c.Key("pending-jobs"), fmt.Sprintf(text(c, "等待执行 · %d"), len(pending)), &s.waitingOpen, func() {
 		if len(pending) == 0 {
 			ui.Text(c, text(c, "暂无等待任务")).FontSize(12).TextColor(c.Theme().TextMuted)
@@ -115,6 +121,7 @@ func (s *nativeUI) queuedJobs(c *ui.Context) {
 						}
 					}
 					ui.Text(c, text(c, operationLabel(job.Operation))+" · "+when).FontSize(11).TextColor(c.Theme().TextMuted).SingleLine()
+					pathSummary(c, job.Source, job.Destination)
 				})
 				iconButton(c.Key("up-"+job.ID), iconUp, "上移").Disabled(s.busy || i == 0 || (i > 0 && job.WorkflowID != "" && job.WorkflowID == pending[i-1].WorkflowID)).OnClick(func() {
 					id := job.ID

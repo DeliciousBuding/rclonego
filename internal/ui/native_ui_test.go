@@ -160,6 +160,10 @@ func TestNarrowTaskDetailsHaveReadableHeightAndNoSideOverlap(t *testing.T) {
 	if !ok || log.Y <= name.Y+name.H {
 		t.Fatalf("log overlaps detail: %v / %v", log, name)
 	}
+	target, ok := tester.Find(model.jobs[0].Destination)
+	if !ok || target.Y+target.H > 560 || target.Y >= log.Y {
+		t.Fatalf("target is not visible before the log at minimum height: %v / %v", target, log)
+	}
 }
 
 func TestWindowMaterialAndCaptionClearance(t *testing.T) {

@@ -95,6 +95,12 @@ func (s *nativeUI) view(c *ui.Context) {
 
 func (s *nativeUI) sidebar(c *ui.Context) {
 	t := c.Theme()
+	queued := 0
+	for _, job := range s.jobs {
+		if job.Status == "pending" || job.Status == "running" {
+			queued++
+		}
+	}
 	side := ui.Column(c).Width(208).Shrink(0).FillHeight()
 	side.Background(ui.Transparent)
 	side.Children(func() {
@@ -121,9 +127,9 @@ func (s *nativeUI) sidebar(c *ui.Context) {
 			} {
 				entry := ui.SidebarItem(c, item.id, item.icon, text(c, item.label)).
 					Height(36).Padding(0, 10).Radius(8).FontWeight(500)
-				if item.id == "queue" && len(s.jobs) > 0 {
+				if item.id == "queue" && queued > 0 {
 					entry.Children(func() {
-						ui.Text(c, fmt.Sprint(len(s.jobs))).FontSize(11).TextColor(t.TextMuted)
+						ui.Text(c, fmt.Sprint(queued)).FontSize(11).TextColor(t.TextMuted)
 					})
 				}
 			}
@@ -177,11 +183,15 @@ func (s *nativeUI) main(c *ui.Context) {
 			Border(0.5, t.Border.Alpha(0.45))
 		body.Children(func() {
 			if s.notice != "" && s.isError {
-				color := t.Success
-				if s.isError {
-					color = t.Danger
-				}
-				ui.Text(c, s.notice).FontSize(12).TextColor(color).SingleLine()
+				ui.Row(c).Shrink(0).Padding(10, 12).Gap(10).Radius(8).
+					Background(t.Danger.Alpha(0.06)).AlignItems(ui.Start).Children(func() {
+					ui.Icon(c, iconWarning).FontSize(16).TextColor(t.Danger)
+					ui.Text(c, s.notice).Grow(1).MinWidth(0).FontSize(12).TextColor(t.Danger).
+						MaxLines(3).Tooltip(s.notice).Selectable()
+					iconButton(c.Key("dismiss-error"), iconClose, "关闭错误提示").OnClick(func() {
+						s.notice, s.isError = "", false
+					})
+				})
 			}
 			switch s.page {
 			case "remotes":

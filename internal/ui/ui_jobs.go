@@ -3,6 +3,7 @@ package desktop
 import (
 	"fmt"
 	"github.com/DeliciousBuding/rclonego/internal/core"
+	"github.com/DeliciousBuding/rclonego/locales"
 	"time"
 
 	"github.com/egoist/mygo/ui"
@@ -11,7 +12,7 @@ import (
 func (s *nativeUI) queuePage(c *ui.Context) {
 	t := c.Theme()
 	ui.Column(c).Grow(1).MinHeight(0).Gap(16).Children(func() {
-		pageHeading(c, "任务队列", fmt.Sprintf(text(c, "%d 个任务"), len(s.jobs)), func() {
+		pageHeading(c, "任务队列", locales.In(c.Locale()).TaskCountLabel(len(s.jobs)), func() {
 			label, color := "队列就绪", t.TextMuted
 			if s.paused {
 				label, color = "队列已暂停", t.Warning
@@ -45,6 +46,9 @@ func (s *nativeUI) queuePage(c *ui.Context) {
 			if !narrow {
 				ui.Column(c).Grow(1).MinWidth(0).MinHeight(0).Gap(8).Children(func() {
 					contentScroll(c).Grow(1).Gap(16).Children(func() {
+						if len(s.jobs) == 0 && len(s.external) == 0 {
+							emptyState(c, iconQueue, "队列里还没有任务", "新建任务，复制或校验本机与云端文件")
+						}
 						for _, external := range s.external {
 							if !external.Available {
 								continue
@@ -58,13 +62,11 @@ func (s *nativeUI) queuePage(c *ui.Context) {
 						}
 						s.activeJobCard(c)
 						s.queuedJobs(c)
-						ui.Collapsible(c.Key("job-history"), fmt.Sprintf(text(c, "历史记录 · %d"), len(historyJobs(s.jobs))), &s.historyOpen, func() {
-							if len(historyJobs(s.jobs)) == 0 {
-								ui.Text(c, text(c, "暂无已结束的任务")).FontSize(12).TextColor(t.TextMuted)
-							} else {
+						if len(historyJobs(s.jobs)) > 0 {
+							ui.Collapsible(c.Key("job-history"), fmt.Sprintf(text(c, "历史记录 · %d"), len(historyJobs(s.jobs))), &s.historyOpen, func() {
 								s.jobsTable(c).Height(240)
-							}
-						})
+							})
+						}
 					})
 				})
 			}
@@ -73,6 +75,33 @@ func (s *nativeUI) queuePage(c *ui.Context) {
 			}
 		})
 	})
+}
+
+func jobComparing(job core.Job) bool {
+	return job.Operation == "check" || len(job.CheckingFiles) > 0 && len(job.ActiveFiles) == 0 && job.Speed <= 0
+}
+
+func jobPhase(job core.Job) string {
+	if job.Operation == "check" {
+		return "正在校验"
+	}
+	if jobComparing(job) {
+		return "正在比对"
+	}
+	if len(job.ActiveFiles) > 0 || job.Speed > 0 {
+		return "正在传输"
+	}
+	return "正在准备"
+}
+
+func jobProgress(job core.Job) float64 {
+	if job.Status == "completed" {
+		return 1
+	}
+	if jobComparing(job) {
+		return progressValue(job.ChecksDone, job.ChecksTotal)
+	}
+	return progressValue(job.Bytes, job.TotalBytes)
 }
 
 func (s *nativeUI) activeJobCard(c *ui.Context) {
@@ -91,46 +120,60 @@ func (s *nativeUI) activeJobCard(c *ui.Context) {
 		ui.Row(c).Gap(12).Children(func() {
 			ui.Icon(c, iconQueue).FontSize(20).TextColor(t.Accent)
 			ui.Column(c).Grow(1).MinWidth(0).Gap(3).Children(func() {
-				ui.Text(c, active.Name).FontSize(17).FontWeight(600).SingleLine()
-				ui.Text(c, text(c, operationLabel(active.Operation))+" · "+active.Source).FontSize(11).
-					TextColor(t.TextMuted).SingleLine()
+				ui.Text(c, active.Name).FontSize(17).FontWeight(600).SingleLine().Tooltip(active.Name)
+				statusDot(c, jobPhase(*active), t.Accent)
 			})
 			ui.Button(c.Key("pause-active"), text(c, "暂停")).Height(28).Padding(4, 10).
+				Disabled(s.busy).
 				OnClick(func() {
 					id := active.ID
 					s.run(text(c, "暂停任务"), func() error { return s.app.Pause(id) })
 				})
-			ui.Button(c.Key("cancel-active"), text(c, "取消")).Height(28).Padding(4, 10).
-				OnClick(func() {
+			iconButton(c.Key("active-details"), iconArrow, "查看活动任务详情").OnClick(func() { s.loadLog(active.ID) })
+			iconButton(c.Key("active-more"), iconMore, "更多活动任务操作").Disabled(s.busy).Menu(func(m *ui.Menu) {
+				if m.Item(text(c, "取消")).Chosen() {
 					id := active.ID
 					s.run(text(c, "停止任务"), func() error { return s.app.Cancel(id) })
-				})
-		})
-		progress := progressValue(active.Bytes, active.TotalBytes)
-		if len(active.CheckingFiles) > 0 && active.ChecksTotal > 0 {
-			progress = progressValue(active.ChecksDone, active.ChecksTotal)
-		}
-		ui.Progress(c, progress).Height(4).Label(text(c, "活动任务进度"))
-		if len(active.CheckingFiles) > 0 && active.ChecksTotal > 0 {
-			ui.Text(c, fmt.Sprintf(text(c, "正在比对 %d / %d 个文件"), active.ChecksDone, active.ChecksTotal)).FontSize(11).TextColor(t.TextMuted)
-		} else if active.Operation == "check" {
-			ui.Text(c, fmt.Sprintf(text(c, "已校验 %d / %d 个文件"), active.ChecksDone, active.ChecksTotal)).FontSize(11).TextColor(t.TextMuted)
-		} else {
-			ui.Text(c, fmt.Sprintf(text(c, "已传 %d / %d 个文件"), active.FilesDone, active.FilesTotal)).FontSize(11).TextColor(t.TextMuted)
-		}
-		ui.Row(c).Gap(24).Wrap().Children(func() {
-			s.metric(c, "已传", formatBytes(active.Bytes))
-			s.metric(c, "速度", fmt.Sprintf("%.2f MiB/s", active.Speed/1024/1024))
-			eta := "正在计算"
-			if active.Speed > 0 && active.TotalBytes > active.Bytes {
-				eta = durationText(c, float64(active.TotalBytes-active.Bytes)/active.Speed)
-			}
-			s.metric(c, "预计剩余", eta)
-			ui.Column(c).Grow(1).MinWidth(140).Gap(4).Children(func() {
-				ui.Text(c, text(c, "速度趋势")).FontSize(11).TextColor(t.TextMuted)
-				s.speedChart(c, s.jobSpeeds[active.ID], 32)
+				}
 			})
 		})
+		pathSummary(c, active.Source, active.Destination)
+		ui.Progress(c, jobProgress(*active)).Height(4).Label(text(c, "活动任务进度"))
+		if active.Operation == "check" {
+			if active.ChecksTotal > 0 {
+				ui.Text(c, fmt.Sprintf(text(c, "已校验 %d / %d 个文件"), active.ChecksDone, active.ChecksTotal)).FontSize(12).TextColor(t.TextMuted)
+			} else {
+				ui.Text(c, text(c, "正在统计待校验文件")).FontSize(12).TextColor(t.TextMuted)
+			}
+		} else if jobComparing(*active) {
+			message := fmt.Sprintf(text(c, "已比对 %d 个文件"), active.ChecksDone)
+			if active.ChecksTotal > 0 {
+				message = fmt.Sprintf(text(c, "正在比对 %d / %d 个文件"), active.ChecksDone, active.ChecksTotal)
+			}
+			ui.Text(c, message).FontSize(12).TextColor(t.TextMuted)
+		} else if jobPhase(*active) == "正在准备" {
+			ui.Text(c, text(c, "正在统计文件与传输大小")).FontSize(12).TextColor(t.TextMuted)
+		} else {
+			message := fmt.Sprintf(text(c, "已传 %d 个文件"), active.FilesDone)
+			if active.FilesTotal > 0 {
+				message = fmt.Sprintf(text(c, "已传 %d / %d 个文件"), active.FilesDone, active.FilesTotal)
+			}
+			ui.Text(c, message).FontSize(12).TextColor(t.TextMuted)
+		}
+		if jobPhase(*active) == "正在传输" {
+			ui.Row(c).Gap(20).Wrap().Children(func() {
+				ui.Column(c).Basis(0).Grow(1).MinWidth(100).Children(func() { s.metric(c, "已传", formatBytes(active.Bytes)) })
+				ui.Column(c).Basis(0).Grow(1).MinWidth(100).Children(func() { s.metric(c, "速度", fmt.Sprintf("%.2f MiB/s", active.Speed/1024/1024)) })
+				eta := "正在计算"
+				if active.Speed > 0 && active.TotalBytes > active.Bytes {
+					eta = durationText(c, float64(active.TotalBytes-active.Bytes)/active.Speed)
+				}
+				ui.Column(c).Basis(0).Grow(1).MinWidth(100).Children(func() { s.metric(c, "预计剩余", eta) })
+			})
+			if len(s.jobSpeeds[active.ID]) > 1 {
+				s.speedChart(c, s.jobSpeeds[active.ID], 28)
+			}
+		}
 		if len(active.ActiveFiles) > 0 {
 			ui.Collapsible(c.Key("active-files"), text(c, "正在传输的文件"), s.openState(active.ID, true), func() {
 				s.transferFolders(c, active.ID, core.TransferTree(active.ActiveFiles))
@@ -145,7 +188,6 @@ func (s *nativeUI) activeJobCard(c *ui.Context) {
 							ui.Text(c, name).FontSize(11).TextColor(t.TextMuted).SingleLine().Tooltip(name)
 						})
 					}
-					ui.Text(c, fmt.Sprintf(text(c, "checkers %d · 仅核对已存在文件，不修改云端"), active.Checkers)).FontSize(10).TextColor(t.TextMuted)
 				})
 			})
 		}
@@ -177,10 +219,7 @@ func (s *nativeUI) jobsTable(c *ui.Context) ui.Element {
 		case 1:
 			ui.Text(c, text(c, statusLabel(job.Status))).FontSize(12).TextColor(statusColor(c, job.Status)).SingleLine()
 		case 2:
-			value := progressValue(job.Bytes, job.TotalBytes)
-			if job.Status == "completed" {
-				value = 1
-			}
+			value := jobProgress(job)
 			if value >= 0 {
 				ui.Text(c, fmt.Sprintf("%.0f%%", value*100)).FontSize(12)
 			} else {
@@ -224,57 +263,61 @@ func (s *nativeUI) jobInspector(c *ui.Context) {
 			ui.Text(c, selected.Name).FontSize(15).FontWeight(600).MaxLines(2).Tooltip(selected.Name)
 			statusDot(c, statusLabel(selected.Status), statusColor(c, selected.Status))
 			detail := func(label, value string) {
-				ui.Column(c).Gap(3).Children(func() {
-					ui.Text(c, text(c, label)).FontSize(11).TextColor(t.TextMuted)
-					ui.Text(c, value).FontSize(12).MaxLines(3)
+				ui.Row(c).Gap(10).AlignItems(ui.Start).Children(func() {
+					ui.Text(c, text(c, label)).Width(76).Shrink(0).FontSize(11).TextColor(t.TextMuted).MaxLines(2)
+					ui.Text(c, value).Grow(1).MinWidth(0).FontSize(12).MaxLines(2).Tooltip(value).Selectable()
 				})
 			}
 			detail(text(c, "源目录"), selected.Source)
 			detail(text(c, "目标目录"), selected.Destination)
-			detail(text(c, "创建时间"), dateTime(c, selected.CreatedAt))
-			detail(text(c, "执行尝试"), fmt.Sprintf(text(c, "第 %d 次"), selected.Attempt))
 			if selected.NotBefore != nil {
 				detail(text(c, "计划开始"), dateTime(c, *selected.NotBefore))
 			}
 			if selected.WorkflowID != "" {
 				detail(text(c, "工作流"), fmt.Sprintf(text(c, "步骤 %d / %d"), selected.WorkflowStep, selected.WorkflowSize))
 			}
-			if selected.StartedAt != nil {
-				detail(text(c, "开始时间"), dateTime(c, *selected.StartedAt))
-				end := time.Now()
-				if selected.FinishedAt != nil {
-					end = *selected.FinishedAt
+			ui.Collapsible(c.Key("job-execution-details"), text(c, "执行详情"), &s.showJobDetails, func() {
+				detail(text(c, "创建时间"), dateTime(c, selected.CreatedAt))
+				detail(text(c, "执行尝试"), fmt.Sprintf(text(c, "第 %d 次"), selected.Attempt))
+				if selected.StartedAt != nil {
+					detail(text(c, "开始时间"), dateTime(c, *selected.StartedAt))
+					end := time.Now()
+					if selected.FinishedAt != nil {
+						end = *selected.FinishedAt
+					}
+					detail(text(c, "运行时长"), durationText(c, end.Sub(*selected.StartedAt).Seconds()))
 				}
-				detail(text(c, "运行时长"), durationText(c, end.Sub(*selected.StartedAt).Seconds()))
-			}
-			detail(text(c, "并发 / 缓冲"), fmt.Sprintf(text(c, "%d 传输 · %d 校验 · %s 缓冲"), selected.Transfers, selected.Checkers, core.ValueOr(selected.BufferSize, "8M")))
-			if selected.Operation != "check" && core.DestinationCapabilities(selected.Destination, s.remotes).DriveChunkSize {
-				detail(text(c, "Google Drive 分块 / CPU"), selected.ChunkSize+" · "+cpuParallelismLabel(c, selected.CPUParallelism))
-			} else {
-				detail(text(c, "CPU 并行度"), cpuParallelismLabel(c, selected.CPUParallelism))
-			}
-			detail(text(c, "进程"), fmt.Sprintf("PID %d · RC %d", selected.PID, selected.RCPort))
+				detail(text(c, "并发 / 缓冲"), fmt.Sprintf(text(c, "%d 传输 · %d 校验 · %s 缓冲"), selected.Transfers, selected.Checkers, core.ValueOr(selected.BufferSize, "8M")))
+				if selected.Operation != "check" && core.DestinationCapabilities(selected.Destination, s.remotes).DriveChunkSize {
+					detail(text(c, "Google Drive 分块 / CPU"), selected.ChunkSize+" · "+cpuParallelismLabel(c, selected.CPUParallelism))
+				} else {
+					detail(text(c, "CPU 并行度"), cpuParallelismLabel(c, selected.CPUParallelism))
+				}
+				if selected.PID > 0 {
+					detail(text(c, "进程"), fmt.Sprintf("PID %d · RC %d", selected.PID, selected.RCPort))
+				}
+			})
 			if selected.Status == "pending" {
 				ui.Button(c.Key("edit-job-parameters"), text(c, "调整参数…")).OnClick(func() { s.beginJobForm(selected) })
 			}
-		})
-		if selected.Error != "" {
-			ui.Text(c, selected.Error).FontSize(12).TextColor(t.Danger)
-		}
-		if selected.Status == "failed" || selected.Status == "interrupted" || selected.Status == "cancelled" || selected.Status == "paused" {
-			label := "重试"
-			if selected.Status == "paused" {
-				label = "恢复"
+			if selected.Error != "" {
+				ui.Text(c, selected.Error).FontSize(12).TextColor(t.Danger).MaxLines(3).Tooltip(selected.Error).Selectable()
 			}
-			ui.Button(c.Key("retry-"+selected.ID), text(c, label)).Height(28).OnClick(func() {
-				id := selected.ID
-				s.run(text(c, "重试任务"), func() error { return s.app.Retry(id) })
-			})
-		}
-		ui.Divider(c)
-		sectionHeading(c, "日志")
-		ui.Scroll(c).Grow(1).MinHeight(90).Padding(8).Radius(6).Background(t.Text.Alpha(0.03)).
-			Children(func() { ui.Text(c, s.logText).FontSize(11).TextColor(t.TextMuted) })
+			if selected.Status == "failed" || selected.Status == "interrupted" || selected.Status == "cancelled" || selected.Status == "paused" {
+				label := "重试"
+				if selected.Status == "paused" {
+					label = "恢复"
+				}
+				ui.Button(c.Key("retry-"+selected.ID), text(c, label)).Height(28).OnClick(func() {
+					id := selected.ID
+					s.run(text(c, "重试任务"), func() error { return s.app.Retry(id) })
+				})
+			}
+			ui.Divider(c)
+			sectionHeading(c, "日志")
+			ui.Scroll(c).Height(180).Shrink(0).Padding(8).Radius(6).Background(t.Text.Alpha(0.03)).
+				Children(func() { ui.Text(c, s.logText).FontSize(11).TextColor(t.TextMuted).Selectable() })
+		})
 	})
 }
 

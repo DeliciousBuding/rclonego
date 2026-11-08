@@ -146,12 +146,14 @@ func (s *nativeUI) workflowsPage(c *ui.Context) {
 				iconButton(c.Key("refresh-workflow-history"), iconRefresh, "刷新执行记录").Disabled(s.busy).
 					OnClick(func() { s.loadWorkflowHistory(w.historyOffset) })
 			})
-			ui.Row(c).Gap(8).Children(func() {
-				ui.TextInput(c.Key("history-search"), &w.historySearch).Grow(1).MinWidth(0).
-					Label(text(c, "筛选本页执行记录")).Placeholder(text(c, "筛选本页名称或运行 ID"))
-				translatedSelect(c.Key("history-status"), &w.historyStatus, []string{"全部状态", "活动", "需处理", "已完成", "已归档"}).
-					Width(112).Label(text(c, "执行状态筛选"))
-			})
+			if len(rows) > 0 || w.historyOffset > 0 || w.historySearch != "" || w.historyStatus != "全部状态" {
+				ui.Row(c).Gap(8).Children(func() {
+					ui.TextInput(c.Key("history-search"), &w.historySearch).Grow(1).MinWidth(0).
+						Label(text(c, "筛选本页执行记录")).Placeholder(text(c, "筛选本页名称或运行 ID"))
+					translatedSelect(c.Key("history-status"), &w.historyStatus, []string{"全部状态", "活动", "需处理", "已完成", "已归档"}).
+						Width(112).Label(text(c, "执行状态筛选"))
+				})
+			}
 			visible := 0
 			for _, run := range rows {
 				summary := summaries[run.ID]
@@ -168,14 +170,16 @@ func (s *nativeUI) workflowsPage(c *ui.Context) {
 				}
 				ui.Text(c, text(c, label)).FontSize(12).TextColor(t.TextMuted)
 			}
-			ui.Row(c).Gap(8).Children(func() {
-				ui.Text(c, fmt.Sprintf(text(c, "第 %d 页 · 每页 %d 项"), w.historyOffset/workflowHistoryPageSize+1, workflowHistoryPageSize)).
-					FontSize(11).TextColor(t.TextMuted).Grow(1).MinWidth(0)
-				ui.Button(c.Key("history-previous"), text(c, "上一页")).Height(28).Disabled(s.busy || w.historyOffset == 0).
-					OnClick(func() { s.loadWorkflowHistory(max(0, w.historyOffset-workflowHistoryPageSize)) })
-				ui.Button(c.Key("history-next"), text(c, "下一页")).Height(28).Disabled(s.busy || !hasNext).
-					OnClick(func() { s.loadWorkflowHistory(w.historyOffset + workflowHistoryPageSize) })
-			})
+			if hasNext || w.historyOffset > 0 {
+				ui.Row(c).Gap(8).Children(func() {
+					ui.Text(c, fmt.Sprintf(text(c, "第 %d 页 · 每页 %d 项"), w.historyOffset/workflowHistoryPageSize+1, workflowHistoryPageSize)).
+						FontSize(11).TextColor(t.TextMuted).Grow(1).MinWidth(0)
+					ui.Button(c.Key("history-previous"), text(c, "上一页")).Height(28).Disabled(s.busy || w.historyOffset == 0).
+						OnClick(func() { s.loadWorkflowHistory(max(0, w.historyOffset-workflowHistoryPageSize)) })
+					ui.Button(c.Key("history-next"), text(c, "下一页")).Height(28).Disabled(s.busy || !hasNext).
+						OnClick(func() { s.loadWorkflowHistory(w.historyOffset + workflowHistoryPageSize) })
+				})
+			}
 			if w.report != nil {
 				s.workflowReport(c)
 			}
@@ -189,8 +193,7 @@ func (s *nativeUI) workflowDefinitionRow(c *ui.Context, definition core.Workflow
 		ui.Icon(c, iconWorkflow).FontSize(22).TextColor(t.Accent).Shrink(0)
 		ui.Column(c).Grow(1).MinWidth(0).Gap(4).Children(func() {
 			ui.Text(c, definition.Name).FontSize(13).FontWeight(600).SingleLine().Tooltip(definition.Name)
-			ui.Text(c, definition.Source+" → "+definition.Destination).FontSize(11).TextColor(t.TextMuted).
-				SingleLine().Tooltip(definition.Source + " → " + definition.Destination)
+			pathSummary(c, definition.Source, definition.Destination)
 		})
 		actionButton(c.Key("run"), iconPlay, "执行", false).Disabled(s.busy).OnClick(func() {
 			s.run(text(c, "启动工作流"), func() error { _, err := s.app.StartWorkflow(definition.ID, ""); return err })

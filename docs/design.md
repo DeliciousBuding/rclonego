@@ -23,13 +23,25 @@ adding another full-window blur.
 Each management page starts with a 22px title, one short description or count,
 and its primary action aligned at the trailing side. Repeated rows align names,
 secondary paths, status and actions. Workflow rows show Run and Edit; clone,
-export and deletion use a More menu. Resource counters have labelled columns,
+export and deletion use a More menu. Mount rows show their remote-to-drive route,
+state and mount/unmount action; editing, cache and offline-copy actions use More.
+Running mount configuration cannot be removed. Resource counters have labelled columns,
 and live bandwidth controls appear when a transfer can use them.
 
 Related preferences share a row when space permits and wrap at smaller widths.
 Advanced settings remain collapsed. Keep default text and control sizes; increase
 useful density through grouping and disclosure before reducing click targets or
 font sizes. Current task details replace the list at narrow widths.
+
+Active tasks distinguish preparation, comparison, transfer and verification.
+Unknown totals stay indeterminate; verification progress uses file counts rather
+than transfer bytes. The sidebar count includes queued and running work. Empty
+history omits filters, and pagination appears only when another page exists.
+
+Task details use one reading flow: name and state, source and destination,
+collapsible execution metadata, errors and logs. Paths and errors expose their
+complete text through selection and tooltips. Error banners wrap, stay readable
+and can be dismissed without leaving the page.
 
 These choices follow [Apple's layout guidance](https://developer.apple.com/design/human-interface-guidelines/layout),
 [Fluent productivity guidance](https://learn.microsoft.com/en-us/windows/apps/get-started/line-of-business/design-for-lob),
@@ -85,3 +97,5 @@ Brand assets include the [wordmark](../assets/wordmark.svg),
 The app uses the static mark to avoid continuous animation at idle.
 The [account screenshot](../assets/screenshots/accounts-light.png) uses an empty
 synthetic profile with no account credentials.
+
+The [active queue preview](../assets/screenshots/queue-light.png) uses synthetic remote aliases and files.
