@@ -6491,11 +6491,11 @@ func (msgs Messages) BrowserPageShown() string {
 	return Catalog.Format(msgs.locale, "browserPageShown", nil)
 }
 
-// BrowserFile says "File"
+// BrowserFile says "Files"
 // in the language the app shows.
 func BrowserFile() string { return In(i18n.Locale()).BrowserFile() }
 
-// BrowserFile says "File"
+// BrowserFile says "Files"
 // in the language of msgs.
 func (msgs Messages) BrowserFile() string {
 	return Catalog.Format(msgs.locale, "browserFile", nil)
@@ -6619,4 +6619,424 @@ func HandoffRuntimeAdvanced() string { return In(i18n.Locale()).HandoffRuntimeAd
 // in the language of msgs.
 func (msgs Messages) HandoffRuntimeAdvanced() string {
 	return Catalog.Format(msgs.locale, "handoffRuntimeAdvanced", nil)
+}
+
+// FileWorkspace0 says "Copy to…"
+// in the language the app shows.
+func FileWorkspace0() string { return In(i18n.Locale()).FileWorkspace0() }
+
+// FileWorkspace0 says "Copy to…"
+// in the language of msgs.
+func (msgs Messages) FileWorkspace0() string {
+	return Catalog.Format(msgs.locale, "fileWorkspace0", nil)
+}
+
+// FileWorkspace2 says "Matching files follow rclone's comparison rules. Destination-only files are retained."
+// in the language the app shows.
+func FileWorkspace2() string { return In(i18n.Locale()).FileWorkspace2() }
+
+// FileWorkspace2 says "Matching files follow rclone's comparison rules. Destination-only files are retained."
+// in the language of msgs.
+func (msgs Messages) FileWorkspace2() string {
+	return Catalog.Format(msgs.locale, "fileWorkspace2", nil)
+}
+
+// FileWorkspace3 says "Managed by another app"
+// in the language the app shows.
+func FileWorkspace3() string { return In(i18n.Locale()).FileWorkspace3() }
+
+// FileWorkspace3 says "Managed by another app"
+// in the language of msgs.
+func (msgs Messages) FileWorkspace3() string {
+	return Catalog.Format(msgs.locale, "fileWorkspace3", nil)
+}
+
+// FileWorkspace4 says "Folder navigation"
+// in the language the app shows.
+func FileWorkspace4() string { return In(i18n.Locale()).FileWorkspace4() }
+
+// FileWorkspace4 says "Folder navigation"
+// in the language of msgs.
+func (msgs Messages) FileWorkspace4() string {
+	return Catalog.Format(msgs.locale, "fileWorkspace4", nil)
+}
+
+// FileWorkspace5 says "Back"
+// in the language the app shows.
+func FileWorkspace5() string { return In(i18n.Locale()).FileWorkspace5() }
+
+// FileWorkspace5 says "Back"
+// in the language of msgs.
+func (msgs Messages) FileWorkspace5() string {
+	return Catalog.Format(msgs.locale, "fileWorkspace5", nil)
+}
+
+// FileWorkspace6 says "Forward"
+// in the language the app shows.
+func FileWorkspace6() string { return In(i18n.Locale()).FileWorkspace6() }
+
+// FileWorkspace6 says "Forward"
+// in the language of msgs.
+func (msgs Messages) FileWorkspace6() string {
+	return Catalog.Format(msgs.locale, "fileWorkspace6", nil)
+}
+
+// FileWorkspace7 says "Size"
+// in the language the app shows.
+func FileWorkspace7() string { return In(i18n.Locale()).FileWorkspace7() }
+
+// FileWorkspace7 says "Size"
+// in the language of msgs.
+func (msgs Messages) FileWorkspace7() string {
+	return Catalog.Format(msgs.locale, "fileWorkspace7", nil)
+}
+
+// FileWorkspace8 says "Open"
+// in the language the app shows.
+func FileWorkspace8() string { return In(i18n.Locale()).FileWorkspace8() }
+
+// FileWorkspace8 says "Open"
+// in the language of msgs.
+func (msgs Messages) FileWorkspace8() string {
+	return Catalog.Format(msgs.locale, "fileWorkspace8", nil)
+}
+
+// FileWorkspace10 says "Browse local and cloud files; transfers use the task queue"
+// in the language the app shows.
+func FileWorkspace10() string { return In(i18n.Locale()).FileWorkspace10() }
+
+// FileWorkspace10 says "Browse local and cloud files; transfers use the task queue"
+// in the language of msgs.
+func (msgs Messages) FileWorkspace10() string {
+	return Catalog.Format(msgs.locale, "fileWorkspace10", nil)
+}
+
+// FileWorkspace11 says "Upload files…"
+// in the language the app shows.
+func FileWorkspace11() string { return In(i18n.Locale()).FileWorkspace11() }
+
+// FileWorkspace11 says "Upload files…"
+// in the language of msgs.
+func (msgs Messages) FileWorkspace11() string {
+	return Catalog.Format(msgs.locale, "fileWorkspace11", nil)
+}
+
+// FileWorkspace12 says "File path"
+// in the language the app shows.
+func FileWorkspace12() string { return In(i18n.Locale()).FileWorkspace12() }
+
+// FileWorkspace12 says "File path"
+// in the language of msgs.
+func (msgs Messages) FileWorkspace12() string {
+	return Catalog.Format(msgs.locale, "fileWorkspace12", nil)
+}
+
+// FileWorkspace13 says "Choose location"
+// in the language the app shows.
+func FileWorkspace13() string { return In(i18n.Locale()).FileWorkspace13() }
+
+// FileWorkspace13 says "Choose location"
+// in the language of msgs.
+func (msgs Messages) FileWorkspace13() string {
+	return Catalog.Format(msgs.locale, "fileWorkspace13", nil)
+}
+
+// FileWorkspace14 says "Local folder…"
+// in the language the app shows.
+func FileWorkspace14() string { return In(i18n.Locale()).FileWorkspace14() }
+
+// FileWorkspace14 says "Local folder…"
+// in the language of msgs.
+func (msgs Messages) FileWorkspace14() string {
+	return Catalog.Format(msgs.locale, "fileWorkspace14", nil)
+}
+
+// FileWorkspace15 says "Newest modified first"
+// in the language the app shows.
+func FileWorkspace15() string { return In(i18n.Locale()).FileWorkspace15() }
+
+// FileWorkspace15 says "Newest modified first"
+// in the language of msgs.
+func (msgs Messages) FileWorkspace15() string {
+	return Catalog.Format(msgs.locale, "fileWorkspace15", nil)
+}
+
+// FileWorkspace16 says "New folder"
+// in the language the app shows.
+func FileWorkspace16() string { return In(i18n.Locale()).FileWorkspace16() }
+
+// FileWorkspace16 says "New folder"
+// in the language of msgs.
+func (msgs Messages) FileWorkspace16() string {
+	return Catalog.Format(msgs.locale, "fileWorkspace16", nil)
+}
+
+// FileWorkspace17 says "Modified"
+// in the language the app shows.
+func FileWorkspace17() string { return In(i18n.Locale()).FileWorkspace17() }
+
+// FileWorkspace17 says "Modified"
+// in the language of msgs.
+func (msgs Messages) FileWorkspace17() string {
+	return Catalog.Format(msgs.locale, "fileWorkspace17", nil)
+}
+
+// FileWorkspace18 says "Files and folders"
+// in the language the app shows.
+func FileWorkspace18() string { return In(i18n.Locale()).FileWorkspace18() }
+
+// FileWorkspace18 says "Files and folders"
+// in the language of msgs.
+func (msgs Messages) FileWorkspace18() string {
+	return Catalog.Format(msgs.locale, "fileWorkspace18", nil)
+}
+
+// FileWorkspace19 says "This folder is empty or this page has no matches"
+// in the language the app shows.
+func FileWorkspace19() string { return In(i18n.Locale()).FileWorkspace19() }
+
+// FileWorkspace19 says "This folder is empty or this page has no matches"
+// in the language of msgs.
+func (msgs Messages) FileWorkspace19() string {
+	return Catalog.Format(msgs.locale, "fileWorkspace19", nil)
+}
+
+// FileWorkspace20 says "This folder is too large; enter a more specific path"
+// in the language the app shows.
+func FileWorkspace20() string { return In(i18n.Locale()).FileWorkspace20() }
+
+// FileWorkspace20 says "This folder is too large; enter a more specific path"
+// in the language of msgs.
+func (msgs Messages) FileWorkspace20() string {
+	return Catalog.Format(msgs.locale, "fileWorkspace20", nil)
+}
+
+// FileWorkspace21 says "Download…"
+// in the language the app shows.
+func FileWorkspace21() string { return In(i18n.Locale()).FileWorkspace21() }
+
+// FileWorkspace21 says "Download…"
+// in the language of msgs.
+func (msgs Messages) FileWorkspace21() string {
+	return Catalog.Format(msgs.locale, "fileWorkspace21", nil)
+}
+
+// FileWorkspace22 says "Rename…"
+// in the language the app shows.
+func FileWorkspace22() string { return In(i18n.Locale()).FileWorkspace22() }
+
+// FileWorkspace22 says "Rename…"
+// in the language of msgs.
+func (msgs Messages) FileWorkspace22() string {
+	return Catalog.Format(msgs.locale, "fileWorkspace22", nil)
+}
+
+// FileWorkspace23 says "Delete…"
+// in the language the app shows.
+func FileWorkspace23() string { return In(i18n.Locale()).FileWorkspace23() }
+
+// FileWorkspace23 says "Delete…"
+// in the language of msgs.
+func (msgs Messages) FileWorkspace23() string {
+	return Catalog.Format(msgs.locale, "fileWorkspace23", nil)
+}
+
+// FileWorkspace24 says "Rename"
+// in the language the app shows.
+func FileWorkspace24() string { return In(i18n.Locale()).FileWorkspace24() }
+
+// FileWorkspace24 says "Rename"
+// in the language of msgs.
+func (msgs Messages) FileWorkspace24() string {
+	return Catalog.Format(msgs.locale, "fileWorkspace24", nil)
+}
+
+// FileWorkspace25 says "%d items selected"
+// in the language the app shows.
+func FileWorkspace25() string { return In(i18n.Locale()).FileWorkspace25() }
+
+// FileWorkspace25 says "%d items selected"
+// in the language of msgs.
+func (msgs Messages) FileWorkspace25() string {
+	return Catalog.Format(msgs.locale, "fileWorkspace25", nil)
+}
+
+// FileWorkspace26 says "Choose a local folder"
+// in the language the app shows.
+func FileWorkspace26() string { return In(i18n.Locale()).FileWorkspace26() }
+
+// FileWorkspace26 says "Choose a local folder"
+// in the language of msgs.
+func (msgs Messages) FileWorkspace26() string {
+	return Catalog.Format(msgs.locale, "fileWorkspace26", nil)
+}
+
+// FileWorkspace27 says "Choose files to upload"
+// in the language the app shows.
+func FileWorkspace27() string { return In(i18n.Locale()).FileWorkspace27() }
+
+// FileWorkspace27 says "Choose files to upload"
+// in the language of msgs.
+func (msgs Messages) FileWorkspace27() string {
+	return Catalog.Format(msgs.locale, "fileWorkspace27", nil)
+}
+
+// FileWorkspace28 says "Upload files"
+// in the language the app shows.
+func FileWorkspace28() string { return In(i18n.Locale()).FileWorkspace28() }
+
+// FileWorkspace28 says "Upload files"
+// in the language of msgs.
+func (msgs Messages) FileWorkspace28() string {
+	return Catalog.Format(msgs.locale, "fileWorkspace28", nil)
+}
+
+// FileWorkspace29 says "Choose a download folder"
+// in the language the app shows.
+func FileWorkspace29() string { return In(i18n.Locale()).FileWorkspace29() }
+
+// FileWorkspace29 says "Choose a download folder"
+// in the language of msgs.
+func (msgs Messages) FileWorkspace29() string {
+	return Catalog.Format(msgs.locale, "fileWorkspace29", nil)
+}
+
+// FileWorkspace30 says "Download files"
+// in the language the app shows.
+func FileWorkspace30() string { return In(i18n.Locale()).FileWorkspace30() }
+
+// FileWorkspace30 says "Download files"
+// in the language of msgs.
+func (msgs Messages) FileWorkspace30() string {
+	return Catalog.Format(msgs.locale, "fileWorkspace30", nil)
+}
+
+// FileWorkspace31 says "File operation"
+// in the language the app shows.
+func FileWorkspace31() string { return In(i18n.Locale()).FileWorkspace31() }
+
+// FileWorkspace31 says "File operation"
+// in the language of msgs.
+func (msgs Messages) FileWorkspace31() string {
+	return Catalog.Format(msgs.locale, "fileWorkspace31", nil)
+}
+
+// FileWorkspace32 says "Delete file"
+// in the language the app shows.
+func FileWorkspace32() string { return In(i18n.Locale()).FileWorkspace32() }
+
+// FileWorkspace32 says "Delete file"
+// in the language of msgs.
+func (msgs Messages) FileWorkspace32() string {
+	return Catalog.Format(msgs.locale, "fileWorkspace32", nil)
+}
+
+// FileWorkspace33 says "Permanently delete this file or empty folder. It will not go to the recycle bin."
+// in the language the app shows.
+func FileWorkspace33() string { return In(i18n.Locale()).FileWorkspace33() }
+
+// FileWorkspace33 says "Permanently delete this file or empty folder. It will not go to the recycle bin."
+// in the language of msgs.
+func (msgs Messages) FileWorkspace33() string {
+	return Catalog.Format(msgs.locale, "fileWorkspace33", nil)
+}
+
+// FileWorkspace34 says "The operation uses the task queue. The folder refreshes when it finishes."
+// in the language the app shows.
+func FileWorkspace34() string { return In(i18n.Locale()).FileWorkspace34() }
+
+// FileWorkspace34 says "The operation uses the task queue. The folder refreshes when it finishes."
+// in the language of msgs.
+func (msgs Messages) FileWorkspace34() string {
+	return Catalog.Format(msgs.locale, "fileWorkspace34", nil)
+}
+
+// FileWorkspace35 says "Delete permanently"
+// in the language the app shows.
+func FileWorkspace35() string { return In(i18n.Locale()).FileWorkspace35() }
+
+// FileWorkspace35 says "Delete permanently"
+// in the language of msgs.
+func (msgs Messages) FileWorkspace35() string {
+	return Catalog.Format(msgs.locale, "fileWorkspace35", nil)
+}
+
+// FileWorkspace36 says "Close preview"
+// in the language the app shows.
+func FileWorkspace36() string { return In(i18n.Locale()).FileWorkspace36() }
+
+// FileWorkspace36 says "Close preview"
+// in the language of msgs.
+func (msgs Messages) FileWorkspace36() string {
+	return Catalog.Format(msgs.locale, "fileWorkspace36", nil)
+}
+
+// FileWorkspace37 says "Reading file…"
+// in the language the app shows.
+func FileWorkspace37() string { return In(i18n.Locale()).FileWorkspace37() }
+
+// FileWorkspace37 says "Reading file…"
+// in the language of msgs.
+func (msgs Messages) FileWorkspace37() string {
+	return Catalog.Format(msgs.locale, "fileWorkspace37", nil)
+}
+
+// FileWorkspace38 says "Only the beginning is shown. Download the file for its full content."
+// in the language the app shows.
+func FileWorkspace38() string { return In(i18n.Locale()).FileWorkspace38() }
+
+// FileWorkspace38 says "Only the beginning is shown. Download the file for its full content."
+// in the language of msgs.
+func (msgs Messages) FileWorkspace38() string {
+	return Catalog.Format(msgs.locale, "fileWorkspace38", nil)
+}
+
+// FileWorkspace39 says "Open in file manager"
+// in the language the app shows.
+func FileWorkspace39() string { return In(i18n.Locale()).FileWorkspace39() }
+
+// FileWorkspace39 says "Open in file manager"
+// in the language of msgs.
+func (msgs Messages) FileWorkspace39() string {
+	return Catalog.Format(msgs.locale, "fileWorkspace39", nil)
+}
+
+// FileWorkspace40 says "Mount installation guide"
+// in the language the app shows.
+func FileWorkspace40() string { return In(i18n.Locale()).FileWorkspace40() }
+
+// FileWorkspace40 says "Mount installation guide"
+// in the language of msgs.
+func (msgs Messages) FileWorkspace40() string {
+	return Catalog.Format(msgs.locale, "fileWorkspace40", nil)
+}
+
+// FileWorkspace41 says "Install WinFsp"
+// in the language the app shows.
+func FileWorkspace41() string { return In(i18n.Locale()).FileWorkspace41() }
+
+// FileWorkspace41 says "Install WinFsp"
+// in the language of msgs.
+func (msgs Messages) FileWorkspace41() string {
+	return Catalog.Format(msgs.locale, "fileWorkspace41", nil)
+}
+
+// FileWorkspace42 says "Mounting needs a system filesystem component. File transfers remain available."
+// in the language the app shows.
+func FileWorkspace42() string { return In(i18n.Locale()).FileWorkspace42() }
+
+// FileWorkspace42 says "Mounting needs a system filesystem component. File transfers remain available."
+// in the language of msgs.
+func (msgs Messages) FileWorkspace42() string {
+	return Catalog.Format(msgs.locale, "fileWorkspace42", nil)
+}
+
+// FileWorkspace43 says "Added to the task queue"
+// in the language the app shows.
+func FileWorkspace43() string { return In(i18n.Locale()).FileWorkspace43() }
+
+// FileWorkspace43 says "Added to the task queue"
+// in the language of msgs.
+func (msgs Messages) FileWorkspace43() string {
+	return Catalog.Format(msgs.locale, "fileWorkspace43", nil)
 }

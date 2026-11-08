@@ -37,6 +37,7 @@ func (s *nativeUI) commands() []desktopCommand {
 		{"workflows", "工作流", iconWorkflow}, {"mounts", "盘符映射", iconMounts},
 		{"automations", "自动任务", iconSchedule},
 		{"remotes", "云端账户", iconRemotes}, {"resources", "运行与资源", iconResources},
+		{"files", "文件", iconFolder},
 		{"settings", "设置", iconSettings},
 	} {
 		id := page.id

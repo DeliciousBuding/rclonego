@@ -102,6 +102,7 @@ func (s *nativeUI) view(c *ui.Context) {
 		s.automationOverlays(c)
 		s.cacheOverlays(c)
 		s.commandPalette(c)
+		s.fileOverlays(c)
 		s.browserOverlay(c)
 	})
 }
@@ -165,6 +166,7 @@ func (s *nativeUI) sidebar(c *ui.Context) {
 				{"workflows", "工作流", iconWorkflow},
 				{"automations", "自动任务", iconSchedule},
 				{"mounts", "盘符映射", iconMounts},
+				{"files", "文件", iconFolder},
 				{"remotes", "云端账户", iconRemotes},
 				{"resources", "运行与资源", iconResources},
 			} {
@@ -230,6 +232,8 @@ func (s *nativeUI) main(c *ui.Context) {
 				s.remotesPage(c)
 			case "mounts":
 				s.mountsPage(c)
+			case "files":
+				s.filesPage(c)
 			case "queue":
 				s.queuePage(c)
 			case "workflows":

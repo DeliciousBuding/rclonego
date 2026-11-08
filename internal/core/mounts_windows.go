@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"syscall"
@@ -87,7 +88,9 @@ func inspectMounts(ctx context.Context, configs []MountConfig) ([]MountView, err
 		}
 	}
 	result := make([]MountView, 0, len(configs))
+	configured := map[string]bool{}
 	for _, cfg := range configs {
+		configured[strings.ToUpper(cfg.Drive)] = true
 		view := MountView{MountConfig: cfg, DriveAvailable: pathExists(cfg.Drive + `\`)}
 		// An inherited elevated mount may hide its command line. The visible
 		// drive is still usable; do not claim that its PID is owned.
@@ -102,6 +105,16 @@ func inspectMounts(ctx context.Context, configs []MountConfig) ([]MountView, err
 		}
 		result = append(result, view)
 	}
+	for drive, process := range byDrive {
+		if configured[drive] || !processExists(process.ProcessID) {
+			continue
+		}
+		match := mountCommandPattern.FindStringSubmatch(process.CommandLine)
+		cfg := MountConfig{ID: fmt.Sprintf("external-%d", process.ProcessID), Name: drive, Remote: match[1], Drive: drive}
+		result = append(result, MountView{MountConfig: cfg, External: true, Running: true,
+			DriveAvailable: pathExists(drive + `\`), PID: process.ProcessID})
+	}
+	sort.Slice(result, func(i, j int) bool { return result[i].Drive < result[j].Drive })
 	return result, nil
 }
 

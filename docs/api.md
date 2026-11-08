@@ -43,6 +43,9 @@ Engine, account, mount, workflow and global queue configuration require the owne
 | `GET /api/v1/remotes/{name}/quota` | Provider account quota; omitted values are unknown |
 | `GET /api/v1/remotes/{name}/info` | Backend capabilities and hash algorithms |
 | `GET /api/v1/browse?path=example-remote:archive` | One directory, sorted entries and pagination |
+| `GET /api/v1/files/preview?path=example:notes.txt` | Bounded UTF-8 text or raster image preview |
+| `POST /api/v1/files/actions` | Queue mkdir, rename or confirmed single-file/empty-folder deletion |
+| `GET /api/v1/mounts/targets` | Available drive choices and mount dependency diagnostic |
 | `GET /api/v1/storage/usage?path=example-remote:archive` | User-requested recursive file count and byte total |
 | `GET /api/v1/jobs` | Steps/jobs and queue paused state |
 | `POST /api/v1/jobs` | Create a job |

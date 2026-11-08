@@ -379,7 +379,7 @@ func (s *nativeUI) editOverlays(c *ui.Context) {
 		title = "新建工作流"
 	}
 	dialog("job-editor", &s.showJobForm, title, 520, func() { s.jobForm(c) }, func() { s.jobFooter(c) })
-	dialog("mount-editor", &s.editingMount, "映射配置", 500, func() { s.mountEditor(c) }, nil)
+	dialog("mount-editor", &s.editingMount, "映射配置", 500, func() { s.mountEditor(c) }, func() { s.mountFooter(c) })
 	dialog("remote-editor", &s.showRemoteForm, "添加云端账户", 460, func() { s.remoteEditor(c) }, nil)
 	dialog("legacy-handoff", &s.handoffUI.open, "旧客户端接管", 580, func() { s.handoffForm(c) }, func() { s.handoffFooter(c) })
 	dialog("storage-details", &s.showStorageDetails, "云端账户详情", 520, func() { s.storageDetails(c) }, func() {
