@@ -21,7 +21,12 @@ func New(app *core.App, token string) (*Server, error) {
 func (a *Server) authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/api/v1/health" {
-			token := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
+			authorization := r.Header.Get("Authorization")
+			if !strings.HasPrefix(authorization, "Bearer ") {
+				writeError(w, http.StatusUnauthorized, "local API bearer token required")
+				return
+			}
+			token := strings.TrimPrefix(authorization, "Bearer ")
 			if subtle.ConstantTimeCompare([]byte(token), []byte(a.token)) != 1 {
 				hash := sha256.Sum256([]byte(token))
 				a.tokensMu.Lock()
@@ -31,10 +36,15 @@ func (a *Server) authenticate(next http.Handler) http.Handler {
 					writeError(w, http.StatusUnauthorized, "local API token required")
 					return
 				}
-				if r.Method != http.MethodGet {
-					writeError(w, 403, "delegated token is read-only")
+				if grant.Scope == "read" && r.Method != http.MethodGet {
+					writeErrorCode(w, 403, "scope_denied", "delegated token is read-only", false, "use the owner token or an explicit task grant")
 					return
 				}
+				if grant.Scope == "tasks" && !taskEndpointAllowed(r.Method, r.URL.Path) {
+					writeErrorCode(w, 403, "scope_denied", "endpoint is outside this token's task grant", false, "use the owner token for configuration, workflows and global state")
+					return
+				}
+				r = withGrant(r, grant)
 			}
 		}
 		if origin := r.Header.Get("Origin"); origin != "" {

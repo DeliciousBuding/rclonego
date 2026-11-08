@@ -38,10 +38,11 @@ func sampleResources(ctx context.Context, appPID int, previous map[int]cpuReadin
 		}
 		name := syscall.UTF16ToString(entry.ExeFile[:])
 		pid := int(entry.ProcessID)
-		if pid != appPID && int(entry.ParentProcessID) != appPID {
+		external := pid != appPID && int(entry.ParentProcessID) != appPID
+		if external && !isRcloneProcess(name) {
 			continue
 		}
-		row := ProcessResource{PID: pid, Name: name, Threads: int(entry.Threads)}
+		row := ProcessResource{PID: pid, Name: name, Threads: int(entry.Threads), External: external}
 		process, openErr := syscall.OpenProcess(0x1000|0x10, false, entry.ProcessID)
 		if openErr != nil {
 			process, openErr = syscall.OpenProcess(0x1000, false, entry.ProcessID)

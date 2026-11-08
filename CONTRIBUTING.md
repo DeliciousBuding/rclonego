@@ -12,10 +12,16 @@ Read [architecture](docs/architecture.md) and [API](docs/api.md). GUI, CLI and A
 must use one application service and scheduler. Use the existing components,
 native MyGo APIs and bounded state instead of adding a second execution path.
 
-Run `gofmt`, `go test ./...`, `go vet ./...` and
-`python scripts/check_public.py --tracked`. `python scripts/test.py` supplies a
-verified temporary rclone engine for integration tests. If the API changes,
-regenerate `python scripts/update_contract.py`.
+Format modified Go files and run tests/vet for the affected packages. Check
+public changes with `python scripts/check_public.py --tracked`. Use the full
+integration suite when the change warrants it; `python scripts/test.py` supplies
+a verified temporary rclone engine. If the API changes, regenerate
+`python scripts/update_contract.py`.
+
+Pushes, pull requests and version tags do not trigger Actions. Maintainers
+manually dispatch **Release packages** with an existing tag for the full native
+platform suite and packaging. The workflow prepares a draft for review and
+never publishes it automatically.
 
 For native UI changes, inspect a real window with synthetic data, narrow and
 regular widths, light and dark appearance, long labels and display scaling.
@@ -41,10 +47,14 @@ trademarks. The [release guide](docs/releasing.md) describes packaging.
 阅读[架构](docs/architecture.md)与 [API](docs/api.md)。GUI、CLI 和 API
 共用应用服务与调度器。沿用已有组件、MyGo 原生能力和有界状态，避免新增第二条执行链。
 
-提交前运行 `gofmt`、`go test ./...`、`go vet ./...` 与
-`python scripts/check_public.py --tracked`。`python scripts/test.py`
-会提供经过校验的临时 rclone 引擎。修改 API 后运行
-`python scripts/update_contract.py` 同步契约。
+格式化修改过的 Go 文件，针对受影响的包运行测试和 vet，公开改动执行
+`python scripts/check_public.py --tracked`。改动需要完整集成验证时，
+`python scripts/test.py` 会提供经过校验的临时 rclone 引擎。
+修改 API 后运行 `python scripts/update_contract.py` 同步契约。
+
+push、PR 和版本 tag 都不触发 Actions。维护者针对已有 tag 手动运行
+“Release packages”，才执行完整原生平台测试和打包。流程只准备待审阅的
+发行草稿，不自动公开发行。
 
 原生 UI 修改需要用合成数据检查真实窗口：窄窗口与常规窗口、浅深主题、
 长标签和显示缩放。无窗口布局测试作为补充。跨平台构建成功不等于实际运行通过。

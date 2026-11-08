@@ -3,7 +3,7 @@ package core
 import "time"
 
 const (
-	stateVersion = 1
+	stateVersion = 2
 	headerGuard  = "X-RcloneGo-Client"
 )
 
@@ -19,6 +19,7 @@ type State struct {
 	Workflows         []WorkflowDefinition `json:"workflows"`
 	Runs              []Run                `json:"runs"`
 	Attempts          []Attempt            `json:"attempts"`
+	Automations       []Automation         `json:"automations,omitempty"`
 	ExternalTransfers []ExternalTransfer   `json:"external_transfers,omitempty"`
 }
 
@@ -99,6 +100,7 @@ type Job struct {
 	StartedAt            *time.Time   `json:"started_at,omitempty"`
 	FinishedAt           *time.Time   `json:"finished_at,omitempty"`
 	PID                  int          `json:"pid,omitempty"`
+	ProcessIdentity      string       `json:"process_identity,omitempty"`
 	RCPort               int          `json:"rc_port,omitempty"`
 	Bytes                int64        `json:"bytes"`
 	TotalBytes           int64        `json:"total_bytes"`
@@ -113,6 +115,13 @@ type Job struct {
 	ChecksDone           int64        `json:"checks_done"`
 	ChecksTotal          int64        `json:"checks_total"`
 	CheckingFiles        []string     `json:"checking_files,omitempty"`
+	EngineErrors         int64        `json:"engine_errors"`
+	EngineListed         int64        `json:"engine_listed"`
+	EngineElapsed        float64      `json:"engine_elapsed"`
+	EngineETA            float64      `json:"engine_eta"`
+	EngineFatalError     bool         `json:"engine_fatal_error"`
+	EngineRetryError     bool         `json:"engine_retry_error"`
+	EngineLastError      string       `json:"engine_last_error,omitempty"`
 }
 
 type JobCreateRequest struct {
@@ -167,6 +176,7 @@ type RCStats struct {
 	Listed         int64        `json:"listed"`
 	FatalError     bool         `json:"fatalError"`
 	RetryError     bool         `json:"retryError"`
+	LastError      string       `json:"lastError"`
 	Transferring   []RCTransfer `json:"transferring"`
 	Checking       []string     `json:"checking"`
 }

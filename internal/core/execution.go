@@ -61,6 +61,9 @@ func (a *App) SaveWorkflow(definition WorkflowDefinition) (WorkflowDefinition, e
 	if definition.VerificationMode != "" && definition.VerificationMode != "backend" && definition.VerificationMode != "content" && definition.VerificationMode != "size" {
 		return definition, errors.New("verification_mode must be backend, content or size")
 	}
+	if err := validateWorkflowEntries(definition.Entries); err != nil {
+		return definition, err
+	}
 	if definition.ID == "" {
 		id, err := RandomID()
 		if err != nil {
@@ -263,6 +266,9 @@ func (a *App) ReportRun(id string) (RunReport, error) {
 				result.Verification = "backend_check_completed: size and available hashes; hash availability not attested"
 			}
 		}
+		if job.Operation == "check" && len(job.Includes) > 0 {
+			result.Scope = "one-way: selected top-level workflow entries and their descendants; extra destination files are outside this report"
+		}
 	}
 	for _, attempt := range state.Attempts {
 		if stepIDs[attempt.StepID] {
@@ -280,6 +286,8 @@ func (a *App) ListRuns(offset, limit int) ([]Run, error) { return a.store.Runs(o
 
 func beginAttempt(job *Job) {
 	job.Attempt++
+	job.EngineErrors, job.EngineListed, job.EngineElapsed, job.EngineETA = 0, 0, 0, 0
+	job.EngineFatalError, job.EngineRetryError, job.EngineLastError = false, false, ""
 	now := time.Now().UTC()
 	job.StartedAt = &now
 	job.LastUpdatedAt = now

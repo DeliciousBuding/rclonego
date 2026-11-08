@@ -3,7 +3,7 @@
   "info": {
     "title": "RcloneGo Local API",
     "version": "1",
-    "description": "Loopback API. Owner tokens grant trusted local-user access. Delegated tokens are read-only."
+    "description": "Loopback API. Owner access, expiring read tokens, and revocable operation/path-scoped task grants."
   },
   "security": [
     {
@@ -21,7 +21,9 @@
             "description": "Successful operation",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/APIInfo"
+                }
               }
             }
           },
@@ -48,7 +50,9 @@
             "description": "Successful operation",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/APIInfo"
+                }
               }
             }
           },
@@ -75,7 +79,9 @@
             "description": "Successful operation",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/OpenAPIDocument"
+                }
               }
             }
           },
@@ -108,11 +114,13 @@
           }
         ],
         "responses": {
-          "202": {
+          "201": {
             "description": "Successful operation",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
               }
             }
           },
@@ -131,7 +139,105 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {}
+              "schema": {
+                "$ref": "#/components/schemas/ReadTokenRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tokens/tasks": {
+      "post": {
+        "operationId": "post_api_v1_tokens_tasks",
+        "summary": "Owner-issued session grant for specific transfer operations and local/remote path roots.",
+        "parameters": [
+          {
+            "name": "X-RcloneGo-Client",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "const": "1"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskTokenRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tokens/{id}/revoke": {
+      "post": {
+        "operationId": "post_api_v1_tokens_id_revoke",
+        "summary": "POST /api/v1/tokens/{id}/revoke",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-RcloneGo-Client",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "const": "1"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OK"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
             }
           }
         }
@@ -147,7 +253,9 @@
             "description": "Successful operation",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
               }
             }
           },
@@ -175,7 +283,15 @@
             "description": "Successful operation",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {
+                    "$ref": "#/components/schemas/Diagnostic"
+                  }
+                }
               }
             }
           },
@@ -202,7 +318,9 @@
             "description": "Successful operation",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/DiagnosticReport"
+                }
               }
             }
           },
@@ -247,7 +365,418 @@
             "description": "Successful operation",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/EventsResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Cursor expired. Refresh state before restarting the event stream.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/events/watch": {
+      "get": {
+        "operationId": "get_api_v1_events_watch",
+        "summary": "SSE stream. Event IDs are cursors; reconnect with after or Last-Event-ID. Expired cursors return 410.",
+        "parameters": [
+          {
+            "name": "after",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 500
+            }
+          },
+          {
+            "name": "Last-Event-ID",
+            "in": "header",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "SSE cursor, event and error frames; event data is Event JSON."
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Cursor expired. Refresh state before restarting the event stream.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/browse": {
+      "get": {
+        "operationId": "get_api_v1_browse",
+        "summary": "GET /api/v1/browse",
+        "parameters": [
+          {
+            "name": "path",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9999
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 500
+            }
+          },
+          {
+            "name": "directories_only",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrowseResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/storage/usage": {
+      "get": {
+        "operationId": "get_api_v1_storage_usage",
+        "summary": "GET /api/v1/storage/usage",
+        "parameters": [
+          {
+            "name": "path",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DirectoryUsage"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/automations": {
+      "get": {
+        "operationId": "get_api_v1_automations",
+        "summary": "Opt-in watch (one-way copy) and interval (saved workflow) triggers use the shared task queue.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {
+                    "$ref": "#/components/schemas/Automation"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "post_api_v1_automations",
+        "summary": "Opt-in watch (one-way copy) and interval (saved workflow) triggers use the shared task queue.",
+        "parameters": [
+          {
+            "name": "X-RcloneGo-Client",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "const": "1"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Automation"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AutomationRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/automations/{id}": {
+      "put": {
+        "operationId": "put_api_v1_automations_id",
+        "summary": "PUT /api/v1/automations/{id}",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-RcloneGo-Client",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "const": "1"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Automation"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AutomationRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "delete_api_v1_automations_id",
+        "summary": "DELETE /api/v1/automations/{id}",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-RcloneGo-Client",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "const": "1"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OK"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/automations/{id}/trigger": {
+      "post": {
+        "operationId": "post_api_v1_automations_id_trigger",
+        "summary": "POST /api/v1/automations/{id}/trigger",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-RcloneGo-Client",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "const": "1"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OK"
+                }
               }
             }
           },
@@ -275,7 +804,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Engine"
+                  "$ref": "#/components/schemas/Installation"
                 }
               }
             }
@@ -317,11 +846,13 @@
           }
         ],
         "responses": {
-          "202": {
+          "200": {
             "description": "Successful operation",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/Installation"
+                }
               }
             }
           },
@@ -340,7 +871,9 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {}
+              "schema": {
+                "$ref": "#/components/schemas/EngineRequest"
+              }
             }
           }
         }
@@ -356,7 +889,15 @@
             "description": "Successful operation",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {
+                    "$ref": "#/components/schemas/Provider"
+                  }
+                }
               }
             }
           },
@@ -393,7 +934,9 @@
             "description": "Successful operation",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/AccountView"
+                }
               }
             }
           },
@@ -494,7 +1037,9 @@
             "description": "Successful operation",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/OK"
+                }
               }
             }
           },
@@ -507,13 +1052,25 @@
                 }
               }
             }
+          },
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OK"
+                }
+              }
+            }
           }
         },
         "requestBody": {
-          "required": true,
+          "required": false,
           "content": {
             "application/json": {
-              "schema": {}
+              "schema": {
+                "$ref": "#/components/schemas/AnswerRequest"
+              }
             }
           }
         }
@@ -529,7 +1086,9 @@
             "description": "Successful operation",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/Settings"
+                }
               }
             }
           },
@@ -560,11 +1119,13 @@
           }
         ],
         "responses": {
-          "202": {
+          "200": {
             "description": "Successful operation",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/Settings"
+                }
               }
             }
           },
@@ -595,13 +1156,43 @@
       "get": {
         "operationId": "get_api_v1_runtime",
         "summary": "GET /api/v1/runtime",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "view",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "resources",
+                "transfers"
+              ]
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful operation",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/RuntimeSnapshot"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ResourceSnapshot"
+                    },
+                    {
+                      "type": [
+                        "array",
+                        "null"
+                      ],
+                      "items": {
+                        "$ref": "#/components/schemas/ExternalTransferView"
+                      }
+                    }
+                  ]
+                }
               }
             }
           },
@@ -634,11 +1225,19 @@
           }
         ],
         "responses": {
-          "202": {
+          "200": {
             "description": "Successful operation",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {
+                    "$ref": "#/components/schemas/ExternalTransfer"
+                  }
+                }
               }
             }
           },
@@ -657,7 +1256,15 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {}
+              "schema": {
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "items": {
+                  "$ref": "#/components/schemas/ExternalTransfer"
+                }
+              }
             }
           }
         }
@@ -679,11 +1286,13 @@
           }
         ],
         "responses": {
-          "202": {
+          "200": {
             "description": "Successful operation",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/BandwidthResult"
+                }
               }
             }
           },
@@ -702,7 +1311,9 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {}
+              "schema": {
+                "$ref": "#/components/schemas/BandwidthRequest"
+              }
             }
           }
         }
@@ -718,7 +1329,9 @@
             "description": "Successful operation",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/Overview"
+                }
               }
             }
           },
@@ -745,7 +1358,91 @@
             "description": "Successful operation",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {
+                    "$ref": "#/components/schemas/RemoteInfo"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/remotes/{name}/quota": {
+      "get": {
+        "operationId": "get_api_v1_remotes_name_quota",
+        "summary": "GET /api/v1/remotes/{name}/quota",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemoteQuota"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/remotes/{name}/info": {
+      "get": {
+        "operationId": "get_api_v1_remotes_name_info",
+        "summary": "GET /api/v1/remotes/{name}/info",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageInfo"
+                }
               }
             }
           },
@@ -782,7 +1479,9 @@
             "description": "Successful operation",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/AccountView"
+                }
               }
             }
           },
@@ -801,7 +1500,9 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {}
+              "schema": {
+                "$ref": "#/components/schemas/ReconnectRequest"
+              }
             }
           }
         }
@@ -827,7 +1528,9 @@
             "description": "Successful operation",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/AccountView"
+                }
               }
             }
           },
@@ -846,7 +1549,9 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {}
+              "schema": {
+                "$ref": "#/components/schemas/AccountRequest"
+              }
             }
           }
         }
@@ -862,7 +1567,15 @@
             "description": "Successful operation",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {
+                    "$ref": "#/components/schemas/MountView"
+                  }
+                }
               }
             }
           },
@@ -893,11 +1606,19 @@
           }
         ],
         "responses": {
-          "202": {
+          "200": {
             "description": "Successful operation",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {
+                    "$ref": "#/components/schemas/MountConfig"
+                  }
+                }
               }
             }
           },
@@ -916,7 +1637,141 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {}
+              "schema": {
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "items": {
+                  "$ref": "#/components/schemas/MountConfig"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/mounts/{id}/cache": {
+      "get": {
+        "operationId": "get_api_v1_mounts_id_cache",
+        "summary": "GET /api/v1/mounts/{id}/cache",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MountCacheView"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/offline-copies": {
+      "post": {
+        "operationId": "post_api_v1_offline_copies",
+        "summary": "POST /api/v1/offline-copies",
+        "parameters": [
+          {
+            "name": "X-RcloneGo-Client",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "const": "1"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Job"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OfflineCopyRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/logs/cleanup": {
+      "post": {
+        "operationId": "post_api_v1_logs_cleanup",
+        "summary": "POST /api/v1/logs/cleanup",
+        "parameters": [
+          {
+            "name": "X-RcloneGo-Client",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "const": "1"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OK"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
             }
           }
         }
@@ -938,11 +1793,13 @@
           }
         ],
         "responses": {
-          "202": {
+          "200": {
             "description": "Successful operation",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/MountStarted"
+                }
               }
             }
           },
@@ -961,7 +1818,9 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {}
+              "schema": {
+                "$ref": "#/components/schemas/MountActionRequest"
+              }
             }
           }
         }
@@ -983,11 +1842,13 @@
           }
         ],
         "responses": {
-          "202": {
+          "200": {
             "description": "Successful operation",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/MountStopped"
+                }
               }
             }
           },
@@ -1006,7 +1867,9 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {}
+              "schema": {
+                "$ref": "#/components/schemas/MountActionRequest"
+              }
             }
           }
         }
@@ -1022,7 +1885,9 @@
             "description": "Successful operation",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/Jobs"
+                }
               }
             }
           },
@@ -1050,6 +1915,13 @@
               "type": "string",
               "const": "1"
             }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -1057,7 +1929,9 @@
             "description": "Successful operation",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/Job"
+                }
               }
             }
           },
@@ -1094,7 +1968,15 @@
             "description": "Successful operation",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {
+                    "$ref": "#/components/schemas/WorkflowDefinition"
+                  }
+                }
               }
             }
           },
@@ -1125,11 +2007,13 @@
           }
         ],
         "responses": {
-          "202": {
+          "201": {
             "description": "Successful operation",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowDefinition"
+                }
               }
             }
           },
@@ -1170,11 +2054,13 @@
           }
         ],
         "responses": {
-          "202": {
+          "201": {
             "description": "Successful operation",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowDefinition"
+                }
               }
             }
           },
@@ -1225,11 +2111,13 @@
           }
         ],
         "responses": {
-          "202": {
+          "200": {
             "description": "Successful operation",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/OK"
+                }
               }
             }
           },
@@ -1250,13 +2138,39 @@
       "get": {
         "operationId": "get_api_v1_runs",
         "summary": "GET /api/v1/runs",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 500
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful operation",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {
+                    "$ref": "#/components/schemas/Run"
+                  }
+                }
               }
             }
           },
@@ -1284,6 +2198,13 @@
               "type": "string",
               "const": "1"
             }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -1291,7 +2212,9 @@
             "description": "Successful operation",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/Run"
+                }
               }
             }
           },
@@ -1310,7 +2233,9 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {}
+              "schema": {
+                "$ref": "#/components/schemas/RunRequest"
+              }
             }
           }
         }
@@ -1424,11 +2349,13 @@
           }
         ],
         "responses": {
-          "202": {
+          "200": {
             "description": "Successful operation",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/OK"
+                }
               }
             }
           },
@@ -1440,14 +2367,6 @@
                   "$ref": "#/components/schemas/Error"
                 }
               }
-            }
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {}
             }
           }
         }
@@ -1513,12 +2432,12 @@
           }
         ],
         "responses": {
-          "202": {
+          "200": {
             "description": "Successful operation",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Job"
+                  "$ref": "#/components/schemas/OK"
                 }
               }
             }
@@ -1562,7 +2481,7 @@
           }
         ],
         "responses": {
-          "202": {
+          "200": {
             "description": "Successful operation",
             "content": {
               "application/json": {
@@ -1615,7 +2534,15 @@
             "description": "Successful operation",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {
+                    "$ref": "#/components/schemas/Job"
+                  }
+                }
               }
             }
           },
@@ -1658,11 +2585,13 @@
           }
         ],
         "responses": {
-          "202": {
+          "200": {
             "description": "Successful operation",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/OK"
+                }
               }
             }
           },
@@ -1681,7 +2610,9 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {}
+              "schema": {
+                "$ref": "#/components/schemas/JobActionRequest"
+              }
             }
           }
         }
@@ -1691,13 +2622,24 @@
       "get": {
         "operationId": "get_api_v1_jobs_log",
         "summary": "GET /api/v1/jobs/log",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful operation",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/JobLog"
+                }
               }
             }
           },
@@ -1730,11 +2672,13 @@
           }
         ],
         "responses": {
-          "202": {
+          "200": {
             "description": "Successful operation",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/Paused"
+                }
               }
             }
           },
@@ -1753,7 +2697,48 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {}
+              "schema": {
+                "$ref": "#/components/schemas/Paused"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/queue/recover": {
+      "post": {
+        "operationId": "post_api_v1_queue_recover",
+        "summary": "POST /api/v1/queue/recover",
+        "parameters": [
+          {
+            "name": "X-RcloneGo-Client",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "const": "1"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceHealth"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
             }
           }
         }
@@ -1768,6 +2753,167 @@
       }
     },
     "schemas": {
+      "AutomationRequest": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "watch",
+              "interval"
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "source": {
+            "type": "string"
+          },
+          "destination": {
+            "type": "string"
+          },
+          "workflow_id": {
+            "type": "string"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/TransferSettings"
+          },
+          "interval_seconds": {
+            "type": "integer"
+          },
+          "debounce_seconds": {
+            "type": "integer"
+          },
+          "stable_seconds": {
+            "type": "integer"
+          },
+          "rescan_seconds": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "kind",
+          "enabled"
+        ],
+        "additionalProperties": false
+      },
+      "EventsResponse": {
+        "type": "object",
+        "properties": {
+          "events": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/Event"
+            }
+          },
+          "next_cursor": {
+            "type": "integer"
+          },
+          "earliest_cursor": {
+            "type": "integer"
+          },
+          "retention": {
+            "type": "integer"
+          }
+        }
+      },
+      "tokenGrant": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "operations": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "paths": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "TokenRequest": {
+        "type": "object",
+        "properties": {
+          "ttl_seconds": {
+            "type": "integer",
+            "minimum": 60,
+            "maximum": 86400,
+            "default": 3600
+          },
+          "operations": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string",
+              "enum": [
+                "copy",
+                "copyto",
+                "sync",
+                "check"
+              ]
+            }
+          },
+          "paths": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "Absolute local paths or explicit named remote:path roots."
+          }
+        }
+      },
+      "TokenResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/tokenGrant"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "token": {
+                "type": "string"
+              },
+              "session_only": {
+                "type": "boolean"
+              }
+            }
+          }
+        ]
+      },
       "ConfigExample": {
         "type": "object",
         "properties": {
@@ -1807,7 +2953,10 @@
             "type": "boolean"
           },
           "Examples": {
-            "type": "array",
+            "type": [
+              "array",
+              "null"
+            ],
             "items": {
               "$ref": "#/components/schemas/ConfigExample"
             }
@@ -1824,7 +2973,10 @@
             "type": "string"
           },
           "Options": {
-            "type": "array",
+            "type": [
+              "array",
+              "null"
+            ],
             "items": {
               "$ref": "#/components/schemas/ConfigQuestion"
             }
@@ -1841,7 +2993,10 @@
             "type": "string"
           },
           "parameters": {
-            "type": "object",
+            "type": [
+              "object",
+              "null"
+            ],
             "additionalProperties": {
               "type": "string"
             }
@@ -1853,7 +3008,8 @@
         "required": [
           "name",
           "type"
-        ]
+        ],
+        "additionalProperties": false
       },
       "AccountView": {
         "type": "object",
@@ -1892,6 +3048,220 @@
           }
         }
       },
+      "Automation": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "source": {
+            "type": "string"
+          },
+          "destination": {
+            "type": "string"
+          },
+          "workflow_id": {
+            "type": "string"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/TransferSettings"
+          },
+          "interval_seconds": {
+            "type": "integer"
+          },
+          "debounce_seconds": {
+            "type": "integer"
+          },
+          "stable_seconds": {
+            "type": "integer"
+          },
+          "rescan_seconds": {
+            "type": "integer"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "next_run_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "last_scan_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "last_triggered_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "last_success_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "last_job_id": {
+            "type": "string"
+          },
+          "last_run_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          },
+          "watch_warning": {
+            "type": "string"
+          },
+          "run_requested": {
+            "type": "boolean"
+          },
+          "pending_key": {
+            "type": "string"
+          },
+          "pending_fingerprint": {
+            "type": "string"
+          },
+          "last_submission_key": {
+            "type": "string"
+          },
+          "submitted_fingerprint": {
+            "type": "string"
+          },
+          "last_fingerprint": {
+            "type": "string"
+          }
+        }
+      },
+      "BrowseRequest": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "offset": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "directories_only": {
+            "type": "boolean"
+          }
+        }
+      },
+      "DirectoryEntry": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "is_dir": {
+            "type": "boolean"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "mod_time": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "BrowseResult": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "parent": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "entries": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/DirectoryEntry"
+            }
+          },
+          "next_offset": {
+            "type": "integer"
+          },
+          "has_more": {
+            "type": "boolean"
+          },
+          "truncated": {
+            "type": "boolean"
+          }
+        }
+      },
+      "BackendCapabilities": {
+        "type": "object",
+        "properties": {
+          "backend": {
+            "type": "string"
+          },
+          "drive_chunk_size": {
+            "type": "boolean"
+          }
+        }
+      },
       "DiagnosticReport": {
         "type": "object",
         "properties": {
@@ -1909,7 +3279,10 @@
             "type": "boolean"
           },
           "job_counts": {
-            "type": "object",
+            "type": [
+              "object",
+              "null"
+            ],
             "additionalProperties": {
               "type": "integer"
             }
@@ -1958,7 +3331,10 @@
             "type": "string"
           },
           "entries": {
-            "type": "array",
+            "type": [
+              "array",
+              "null"
+            ],
             "items": {
               "type": "string"
             }
@@ -1978,7 +3354,8 @@
           "name",
           "source",
           "destination"
-        ]
+        ],
+        "additionalProperties": false
       },
       "Run": {
         "type": "object",
@@ -2052,13 +3429,19 @@
             "type": "string"
           },
           "steps": {
-            "type": "array",
+            "type": [
+              "array",
+              "null"
+            ],
             "items": {
               "$ref": "#/components/schemas/Job"
             }
           },
           "attempts": {
-            "type": "array",
+            "type": [
+              "array",
+              "null"
+            ],
             "items": {
               "$ref": "#/components/schemas/Attempt"
             }
@@ -2073,6 +3456,188 @@
             "type": "string"
           }
         }
+      },
+      "ServiceHealth": {
+        "type": "object",
+        "properties": {
+          "ready": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "next_action": {
+            "type": "string"
+          },
+          "since": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "LogRetentionPolicy": {
+        "type": "object",
+        "properties": {
+          "max_bytes": {
+            "type": "integer"
+          },
+          "max_files": {
+            "type": "integer"
+          }
+        }
+      },
+      "VFSDiskCache": {
+        "type": "object",
+        "properties": {
+          "bytesUsed": {
+            "type": "integer"
+          },
+          "erroredFiles": {
+            "type": "integer"
+          },
+          "files": {
+            "type": "integer"
+          },
+          "outOfSpace": {
+            "type": "boolean"
+          },
+          "uploadsInProgress": {
+            "type": "integer"
+          },
+          "uploadsQueued": {
+            "type": "integer"
+          }
+        }
+      },
+      "VFSMetadataCache": {
+        "type": "object",
+        "properties": {
+          "dirs": {
+            "type": "integer"
+          },
+          "files": {
+            "type": "integer"
+          }
+        }
+      },
+      "VFSUpload": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "expiry": {
+            "type": "number"
+          },
+          "tries": {
+            "type": "integer"
+          },
+          "delay": {
+            "type": "number"
+          },
+          "uploading": {
+            "type": "boolean"
+          }
+        }
+      },
+      "MountCacheView": {
+        "type": "object",
+        "properties": {
+          "mount_id": {
+            "type": "string"
+          },
+          "available": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string"
+          },
+          "sampled_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "disk_cache": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VFSDiskCache"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "metadata_cache": {
+            "$ref": "#/components/schemas/VFSMetadataCache"
+          },
+          "vfs_reference_count": {
+            "type": "integer"
+          },
+          "queue": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/VFSUpload"
+            }
+          },
+          "queue_truncated": {
+            "type": "boolean"
+          },
+          "queue_error": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "OfflineCopyRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "destination": {
+            "type": "string"
+          },
+          "file": {
+            "type": "boolean"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "settings": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TransferSettings"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
       },
       "mountProcess": {
         "type": "object",
@@ -2095,11 +3660,75 @@
             "type": "string",
             "format": "date-time"
           },
+          "operation": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "destination": {
+            "type": "string"
+          },
+          "entries": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/PreviewEntry"
+            }
+          },
+          "summary": {
+            "$ref": "#/components/schemas/PreviewSummary"
+          },
+          "entries_truncated": {
+            "type": "boolean"
+          },
+          "report_incomplete": {
+            "type": "boolean"
+          },
+          "scope": {
+            "type": "string"
+          },
           "log": {
             "type": "string"
           },
           "truncated": {
             "type": "boolean"
+          }
+        }
+      },
+      "PreviewEntry": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          }
+        }
+      },
+      "PreviewSummary": {
+        "type": "object",
+        "properties": {
+          "added": {
+            "type": "integer"
+          },
+          "changed": {
+            "type": "integer"
+          },
+          "deleted": {
+            "type": "integer"
+          },
+          "unchanged": {
+            "type": "integer"
+          },
+          "destination_only": {
+            "type": "integer"
+          },
+          "errors": {
+            "type": "integer"
           }
         }
       },
@@ -2119,6 +3748,72 @@
                 "type": "null"
               }
             ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "RemoteQuota": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "used": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "free": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "trashed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "other": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -2151,6 +3846,9 @@
           },
           "error": {
             "type": "string"
+          },
+          "external": {
+            "type": "boolean"
           }
         }
       },
@@ -2162,7 +3860,10 @@
             "format": "date-time"
           },
           "processes": {
-            "type": "array",
+            "type": [
+              "array",
+              "null"
+            ],
             "items": {
               "$ref": "#/components/schemas/ProcessResource"
             }
@@ -2181,12 +3882,18 @@
       "RuntimeSnapshot": {
         "type": "object",
         "properties": {
+          "health": {
+            "$ref": "#/components/schemas/ServiceHealth"
+          },
           "updated_at": {
             "type": "string",
             "format": "date-time"
           },
           "external": {
-            "type": "array",
+            "type": [
+              "array",
+              "null"
+            ],
             "items": {
               "$ref": "#/components/schemas/ExternalTransferView"
             }
@@ -2198,13 +3905,19 @@
             "type": "string"
           },
           "remotes": {
-            "type": "array",
+            "type": [
+              "array",
+              "null"
+            ],
             "items": {
               "$ref": "#/components/schemas/RemoteInfo"
             }
           },
           "mounts": {
-            "type": "array",
+            "type": [
+              "array",
+              "null"
+            ],
             "items": {
               "$ref": "#/components/schemas/MountView"
             }
@@ -2263,6 +3976,87 @@
               }
             ]
           }
+        },
+        "additionalProperties": false
+      },
+      "StorageCapabilities": {
+        "type": "object",
+        "properties": {
+          "quota": {
+            "type": "boolean"
+          },
+          "server_side_copy": {
+            "type": "boolean"
+          },
+          "server_side_move": {
+            "type": "boolean"
+          },
+          "public_link": {
+            "type": "boolean"
+          },
+          "empty_directories": {
+            "type": "boolean"
+          },
+          "recursive_listing": {
+            "type": "boolean"
+          },
+          "read_metadata": {
+            "type": "boolean"
+          },
+          "write_metadata": {
+            "type": "boolean"
+          },
+          "case_insensitive": {
+            "type": "boolean"
+          }
+        }
+      },
+      "StorageInfo": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "hashes": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "precision_ns": {
+            "type": "integer"
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/StorageCapabilities"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "DirectoryUsage": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "bytes": {
+            "type": "integer"
+          },
+          "sizeless": {
+            "type": "integer"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
         }
       },
       "TransferNode": {
@@ -2290,7 +4084,10 @@
             "type": "integer"
           },
           "children": {
-            "type": "array",
+            "type": [
+              "array",
+              "null"
+            ],
             "items": {
               "anyOf": [
                 {
@@ -2320,49 +4117,82 @@
             "type": "boolean"
           },
           "mounts": {
-            "type": "array",
+            "type": [
+              "array",
+              "null"
+            ],
             "items": {
               "$ref": "#/components/schemas/MountConfig"
             }
           },
           "owned_mounts": {
-            "type": "object",
+            "type": [
+              "object",
+              "null"
+            ],
             "additionalProperties": {
               "type": "integer"
             }
           },
           "mount_identities": {
-            "type": "object",
+            "type": [
+              "object",
+              "null"
+            ],
             "additionalProperties": {
               "type": "string"
             }
           },
           "jobs": {
-            "type": "array",
+            "type": [
+              "array",
+              "null"
+            ],
             "items": {
               "$ref": "#/components/schemas/Job"
             }
           },
           "workflows": {
-            "type": "array",
+            "type": [
+              "array",
+              "null"
+            ],
             "items": {
               "$ref": "#/components/schemas/WorkflowDefinition"
             }
           },
           "runs": {
-            "type": "array",
+            "type": [
+              "array",
+              "null"
+            ],
             "items": {
               "$ref": "#/components/schemas/Run"
             }
           },
           "attempts": {
-            "type": "array",
+            "type": [
+              "array",
+              "null"
+            ],
             "items": {
               "$ref": "#/components/schemas/Attempt"
             }
           },
+          "automations": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/Automation"
+            }
+          },
           "external_transfers": {
-            "type": "array",
+            "type": [
+              "array",
+              "null"
+            ],
             "items": {
               "$ref": "#/components/schemas/ExternalTransfer"
             }
@@ -2399,39 +4229,49 @@
         }
       },
       "ExternalTransferView": {
-        "type": "object",
-        "properties": {
-          "available": {
-            "type": "boolean"
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ExternalTransfer"
           },
-          "stats": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/RCStats"
+          {
+            "type": "object",
+            "properties": {
+              "available": {
+                "type": "boolean"
               },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "tree": {
-            "type": "array",
-            "items": {
-              "anyOf": [
-                {
-                  "$ref": "#/components/schemas/TransferNode"
-                },
-                {
-                  "type": "null"
+              "stats": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/RCStats"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "tree": {
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "items": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/TransferNode"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 }
-              ]
+              },
+              "updated_at": {
+                "type": "string",
+                "format": "date-time"
+              }
             }
-          },
-          "updated_at": {
-            "type": "string",
-            "format": "date-time"
           }
-        }
+        ]
       },
       "MountConfig": {
         "type": "object",
@@ -2463,21 +4303,28 @@
         }
       },
       "MountView": {
-        "type": "object",
-        "properties": {
-          "running": {
-            "type": "boolean"
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/MountConfig"
           },
-          "drive_available": {
-            "type": "boolean"
-          },
-          "pid": {
-            "type": "integer"
-          },
-          "rc_port": {
-            "type": "integer"
+          {
+            "type": "object",
+            "properties": {
+              "running": {
+                "type": "boolean"
+              },
+              "drive_available": {
+                "type": "boolean"
+              },
+              "pid": {
+                "type": "integer"
+              },
+              "rc_port": {
+                "type": "integer"
+              }
+            }
           }
-        }
+        ]
       },
       "Job": {
         "type": "object",
@@ -2537,19 +4384,28 @@
             "type": "string"
           },
           "includes": {
-            "type": "array",
+            "type": [
+              "array",
+              "null"
+            ],
             "items": {
               "type": "string"
             }
           },
           "files": {
-            "type": "array",
+            "type": [
+              "array",
+              "null"
+            ],
             "items": {
               "type": "string"
             }
           },
           "excludes": {
-            "type": "array",
+            "type": [
+              "array",
+              "null"
+            ],
             "items": {
               "type": "string"
             }
@@ -2627,6 +4483,9 @@
           "pid": {
             "type": "integer"
           },
+          "process_identity": {
+            "type": "string"
+          },
           "rc_port": {
             "type": "integer"
           },
@@ -2660,7 +4519,10 @@
             "format": "date-time"
           },
           "active_files": {
-            "type": "array",
+            "type": [
+              "array",
+              "null"
+            ],
             "items": {
               "$ref": "#/components/schemas/RCTransfer"
             }
@@ -2678,10 +4540,34 @@
             "type": "integer"
           },
           "checking_files": {
-            "type": "array",
+            "type": [
+              "array",
+              "null"
+            ],
             "items": {
               "type": "string"
             }
+          },
+          "engine_errors": {
+            "type": "integer"
+          },
+          "engine_listed": {
+            "type": "integer"
+          },
+          "engine_elapsed": {
+            "type": "number"
+          },
+          "engine_eta": {
+            "type": "number"
+          },
+          "engine_fatal_error": {
+            "type": "boolean"
+          },
+          "engine_retry_error": {
+            "type": "boolean"
+          },
+          "engine_last_error": {
+            "type": "string"
           }
         }
       },
@@ -2707,7 +4593,14 @@
             "type": "string"
           },
           "operation": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "copy",
+              "copyto",
+              "sync",
+              "check"
+            ],
+            "default": "copy"
           },
           "workflow_id": {
             "type": "string"
@@ -2731,19 +4624,28 @@
             "type": "string"
           },
           "includes": {
-            "type": "array",
+            "type": [
+              "array",
+              "null"
+            ],
             "items": {
               "type": "string"
             }
           },
           "files": {
-            "type": "array",
+            "type": [
+              "array",
+              "null"
+            ],
             "items": {
               "type": "string"
             }
           },
           "excludes": {
-            "type": "array",
+            "type": [
+              "array",
+              "null"
+            ],
             "items": {
               "type": "string"
             }
@@ -2801,7 +4703,8 @@
           "name",
           "source",
           "destination"
-        ]
+        ],
+        "additionalProperties": false
       },
       "RemoteInfo": {
         "type": "object",
@@ -2862,14 +4765,23 @@
           "retryError": {
             "type": "boolean"
           },
+          "lastError": {
+            "type": "string"
+          },
           "transferring": {
-            "type": "array",
+            "type": [
+              "array",
+              "null"
+            ],
             "items": {
               "$ref": "#/components/schemas/RCTransfer"
             }
           },
           "checking": {
-            "type": "array",
+            "type": [
+              "array",
+              "null"
+            ],
             "items": {
               "type": "string"
             }
@@ -2969,7 +4881,10 @@
             ]
           },
           "entries": {
-            "type": "array",
+            "type": [
+              "array",
+              "null"
+            ],
             "items": {
               "type": "string"
             }
@@ -2980,7 +4895,8 @@
           "initial_bytes": {
             "type": "integer"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "exclusionProof": {
         "type": "object",
@@ -3011,33 +4927,7 @@
           }
         }
       },
-      "Error": {
-        "type": "object",
-        "required": [
-          "error",
-          "code",
-          "message",
-          "retryable"
-        ],
-        "properties": {
-          "error": {
-            "type": "string"
-          },
-          "code": {
-            "type": "string"
-          },
-          "message": {
-            "type": "string"
-          },
-          "retryable": {
-            "type": "boolean"
-          },
-          "next_action": {
-            "type": "string"
-          }
-        }
-      },
-      "Engine": {
+      "Installation": {
         "type": "object",
         "properties": {
           "version": {
@@ -3073,6 +4963,535 @@
             "type": "string"
           }
         }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "next_action": {
+            "type": "string"
+          },
+          "earliest_cursor": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "error",
+          "code",
+          "message",
+          "retryable"
+        ]
+      },
+      "EmptyRequest": {
+        "type": "object",
+        "maxProperties": 0
+      },
+      "OK": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok"
+        ]
+      },
+      "Paused": {
+        "type": "object",
+        "properties": {
+          "paused": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "paused"
+        ],
+        "additionalProperties": false
+      },
+      "Jobs": {
+        "type": "object",
+        "properties": {
+          "paused": {
+            "type": "boolean"
+          },
+          "jobs": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/Job"
+            }
+          }
+        },
+        "required": [
+          "paused",
+          "jobs"
+        ]
+      },
+      "Settings": {
+        "type": "object",
+        "properties": {
+          "appearance": {
+            "type": "string"
+          },
+          "defaults": {
+            "$ref": "#/components/schemas/TransferSettings"
+          }
+        },
+        "required": [
+          "appearance",
+          "defaults"
+        ]
+      },
+      "JobLog": {
+        "type": "object",
+        "properties": {
+          "log": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "log"
+        ]
+      },
+      "JobActionRequest": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "retry",
+              "cancel",
+              "pause",
+              "delete",
+              "move",
+              "delete-workflow"
+            ]
+          },
+          "delta": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "action"
+        ],
+        "additionalProperties": false
+      },
+      "MountActionRequest": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      },
+      "MountStarted": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "pid": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "pid"
+        ]
+      },
+      "MountStopped": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "stopped": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "stopped"
+        ]
+      },
+      "ReconnectRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "AnswerRequest": {
+        "type": "object",
+        "properties": {
+          "answer": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "answer"
+        ],
+        "additionalProperties": false
+      },
+      "EngineRequest": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "archive": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RunRequest": {
+        "type": "object",
+        "properties": {
+          "workflow_id": {
+            "type": "string"
+          },
+          "idempotency_key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workflow_id"
+        ],
+        "additionalProperties": false
+      },
+      "BandwidthRequest": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "bandwidth": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "bandwidth"
+        ],
+        "additionalProperties": false
+      },
+      "BandwidthResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "bandwidth": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ok",
+          "bandwidth"
+        ]
+      },
+      "Health": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "time": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "api_version": {
+            "type": "integer"
+          },
+          "mutation_header": {
+            "type": "string"
+          },
+          "service": {
+            "$ref": "#/components/schemas/ServiceHealth"
+          }
+        },
+        "required": [
+          "ok",
+          "time",
+          "api_version",
+          "mutation_header",
+          "service"
+        ]
+      },
+      "Overview": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "activity": {
+            "$ref": "#/components/schemas/ActivityStatus"
+          },
+          "remote_count": {
+            "type": "integer"
+          },
+          "mounts": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/MountView"
+            }
+          },
+          "queue_paused": {
+            "type": "boolean"
+          },
+          "jobs": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/Job"
+            }
+          },
+          "runtime": {
+            "$ref": "#/components/schemas/RuntimeSnapshot"
+          },
+          "remotes_error": {
+            "type": "string"
+          }
+        }
+      },
+      "APIInfo": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "api_version": {
+            "type": "integer"
+          },
+          "listen": {
+            "type": "string"
+          },
+          "mutation_header": {
+            "type": "string"
+          },
+          "operations": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "authentication": {
+            "type": "string"
+          },
+          "endpoints": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "defaults": {
+            "$ref": "#/components/schemas/TransferSettings"
+          },
+          "safety": {
+            "type": "object",
+            "properties": {
+              "copy_never_deletes": {
+                "type": "boolean"
+              },
+              "sync_requires_allow_delete": {
+                "type": "boolean"
+              },
+              "sync_max_delete": {
+                "type": "integer"
+              },
+              "oauth_tokens_not_exposed": {
+                "type": "boolean"
+              }
+            }
+          },
+          "constraints": {
+            "type": "object",
+            "properties": {
+              "queue_workers": {
+                "type": "integer"
+              },
+              "transfers": {
+                "type": "string"
+              },
+              "checkers": {
+                "type": "string"
+              },
+              "chunk_size": {
+                "type": "string"
+              },
+              "buffer_size": {
+                "type": "string"
+              },
+              "not_before": {
+                "type": "string"
+              },
+              "workflow_source": {
+                "type": "string"
+              },
+              "workflow_order": {
+                "type": "string"
+              },
+              "active_tree": {
+                "type": "string"
+              },
+              "resource_interval_seconds": {
+                "type": "integer"
+              },
+              "cpu_percent": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "OpenAPIDocument": {
+        "type": "object",
+        "properties": {
+          "openapi": {
+            "type": "string"
+          },
+          "info": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "version": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
+            }
+          },
+          "paths": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object"
+            }
+          },
+          "components": {
+            "type": "object",
+            "properties": {
+              "schemas": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object"
+                }
+              },
+              "securitySchemes": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "security": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ReadTokenRequest": {
+        "type": "object",
+        "properties": {
+          "ttl_seconds": {
+            "type": "integer",
+            "minimum": 60,
+            "maximum": 86400,
+            "default": 3600
+          }
+        },
+        "additionalProperties": false
+      },
+      "TaskTokenRequest": {
+        "type": "object",
+        "properties": {
+          "ttl_seconds": {
+            "type": "integer",
+            "minimum": 60,
+            "maximum": 86400,
+            "default": 3600
+          },
+          "operations": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "copy",
+                "copyto",
+                "sync",
+                "check"
+              ]
+            },
+            "minItems": 1,
+            "maxItems": 4
+          },
+          "paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "maxItems": 16
+          }
+        },
+        "required": [
+          "operations",
+          "paths"
+        ],
+        "additionalProperties": false
       }
     }
   }

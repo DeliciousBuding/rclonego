@@ -16,9 +16,43 @@ type Store struct {
 	db        *persistence.DB
 	data      State
 	persisted map[string]string
+	saveError error
+	failedAt  time.Time
 }
 
-func (s *Store) Close() error { return s.db.Close() }
+func (s *Store) Close() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.db.Close()
+}
+
+func (s *Store) Health() ServiceHealth {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if s.saveError != nil {
+		return storageHealth(s.failedAt)
+	}
+	return readyHealth()
+}
+
+// CheckStorage also checks a connection when the snapshot has no changes.
+func (s *Store) CheckStorage() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	err := s.db.Check()
+	s.recordSaveResult(err)
+	return err
+}
+
+func (s *Store) recordSaveResult(err error) {
+	if err != nil && s.saveError == nil {
+		s.failedAt = time.Now().UTC()
+	}
+	s.saveError = err
+	if err == nil {
+		s.failedAt = time.Time{}
+	}
+}
 
 func OpenStore(dataDir string) (*Store, error) {
 	if err := os.MkdirAll(dataDir, 0o700); err != nil {
@@ -35,7 +69,7 @@ func OpenStore(dataDir string) (*Store, error) {
 		return nil, err
 	}
 	if len(records["settings"]) == 0 {
-		store.data = State{Version: stateVersion, Appearance: "light", Defaults: defaultTransferSettings()}
+		store.data = State{Version: stateVersion, Appearance: "system", Defaults: defaultTransferSettings()}
 		if err := store.saveLocked(); err != nil {
 			db.Close()
 			return nil, err
@@ -53,14 +87,15 @@ func OpenStore(dataDir string) (*Store, error) {
 			return nil, err
 		}
 	}
-	if store.data.Version != stateVersion {
+	migrated, err := migrateState(&store.data)
+	if err != nil {
 		db.Close()
-		return nil, fmt.Errorf("unsupported state schema %d", store.data.Version)
+		return nil, err
 	}
 	for _, job := range store.data.Jobs {
 		store.persisted[job.ID] = job.Status
 	}
-	changed := store.recoverInterrupted()
+	changed := store.recoverInterrupted() || migrated
 	if store.data.Defaults.Transfers == 0 {
 		store.data.Defaults = defaultTransferSettings()
 		changed = true
@@ -72,7 +107,7 @@ func OpenStore(dataDir string) (*Store, error) {
 		}
 	}
 	if !ValidAppearance(store.data.Appearance) {
-		store.data.Appearance = "light"
+		store.data.Appearance = "system"
 		changed = true
 	}
 	if changed {
@@ -82,6 +117,20 @@ func OpenStore(dataDir string) (*Store, error) {
 		}
 	}
 	return store, nil
+}
+
+func migrateState(state *State) (bool, error) {
+	switch state.Version {
+	case 1:
+		// Process identities are intentionally empty on old records. They
+		// cannot be inferred safely from a PID after the service restarts.
+		state.Version = 2
+		return true, nil
+	case stateVersion:
+		return false, nil
+	default:
+		return false, fmt.Errorf("unsupported state schema %d; use a compatible RcloneGo version", state.Version)
+	}
 }
 
 func ValidAppearance(value string) bool {
@@ -133,6 +182,7 @@ func cloneState(data State) State {
 	result.Runs = append([]Run(nil), data.Runs...)
 	result.Attempts = append([]Attempt(nil), data.Attempts...)
 	result.Workflows = append([]WorkflowDefinition(nil), data.Workflows...)
+	result.Automations = cloneAutomations(data.Automations)
 	for i := range result.Workflows {
 		result.Workflows[i].Entries = append([]string(nil), data.Workflows[i].Entries...)
 	}
@@ -220,6 +270,10 @@ func (s *Store) Update(fn func(*State) error) error {
 		s.data = before
 		return err
 	}
+	if s.data.Version != stateVersion {
+		s.data = before
+		return fmt.Errorf("state schema cannot be changed through settings")
+	}
 	if err := s.saveLocked(); err != nil {
 		s.data = before
 		return err
@@ -274,8 +328,10 @@ func (s *Store) saveLocked() error {
 		records["attempts"] = append(records["attempts"], persistence.Record{ID: attempt.ID, Parent: attempt.StepID, Payload: payload})
 	}
 	if err := s.db.Save(raw, records, events); err != nil {
+		s.recordSaveResult(err)
 		return err
 	}
+	s.recordSaveResult(nil)
 	s.boundHistoryLocked()
 	s.persisted = map[string]string{}
 	for _, job := range s.data.Jobs {

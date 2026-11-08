@@ -30,6 +30,14 @@ func setupRequest(args []string) (method, path string, body any, key string, err
 			return
 		}
 	case "accounts":
+		if len(args) == 3 && args[1] == "quota" {
+			path = "/api/v1/remotes/" + url.PathEscape(args[2]) + "/quota"
+			return
+		}
+		if len(args) == 3 && args[1] == "info" {
+			path = "/api/v1/remotes/" + url.PathEscape(args[2]) + "/info"
+			return
+		}
 		if len(args) == 2 && args[1] == "providers" {
 			path = "/api/v1/providers"
 			return
@@ -70,6 +78,6 @@ func setupRequest(args []string) (method, path string, body any, key string, err
 			return
 		}
 	}
-	err = errors.New("use engine status|install [--archive path]|select path; accounts providers|create --file path|show ID|answer ID --stdin|cancel ID")
+	err = errors.New("use engine status|install [--archive path]|select path; accounts quota NAME|info NAME|providers|create --file path|show ID|answer ID --stdin|cancel ID")
 	return
 }

@@ -3,13 +3,9 @@
 package core
 
 import (
-	"context"
 	"os"
 	"os/exec"
-	"strconv"
-	"strings"
 	"syscall"
-	"time"
 )
 
 func hideProcess(cmd *exec.Cmd) {}
@@ -34,18 +30,4 @@ func AcquireInstance(path string) (func(), error) {
 		return nil, err
 	}
 	return func() { file.Close() }, nil
-}
-
-func FocusExistingWindow() bool { return false }
-
-func processIdentity(pid int) string {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-	cmd := exec.CommandContext(ctx, "ps", "-p", strconv.Itoa(pid), "-o", "lstart=")
-	cmd.Env = append(os.Environ(), "LC_ALL=C")
-	raw, err := cmd.Output()
-	if err != nil {
-		return ""
-	}
-	return strings.TrimSpace(string(raw))
 }

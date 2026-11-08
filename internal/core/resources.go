@@ -2,6 +2,7 @@ package core
 
 import (
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -15,6 +16,7 @@ type ProcessResource struct {
 	MemoryAvailable bool    `json:"memory_available"`
 	Threads         int     `json:"threads"`
 	Error           string  `json:"error,omitempty"`
+	External        bool    `json:"external"`
 }
 
 type ResourceSnapshot struct {
@@ -26,6 +28,16 @@ type ResourceSnapshot struct {
 }
 
 func itoa(value int) string { return strconv.Itoa(value) }
+
+func isRcloneProcess(name string) bool {
+	// ps may return an absolute executable path. No command lines or credentials
+	// are read to discover other engines.
+	name = strings.ReplaceAll(name, `\`, "/")
+	if i := strings.LastIndexByte(name, '/'); i >= 0 {
+		name = name[i+1:]
+	}
+	return strings.EqualFold(name, "rclone") || strings.EqualFold(name, "rclone.exe")
+}
 
 type cpuReading struct {
 	Created uint64

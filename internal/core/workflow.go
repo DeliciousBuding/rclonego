@@ -164,6 +164,9 @@ func (q *Queue) AddWorkflow(request WorkflowRequest) ([]Job, error) {
 	if len(request.IdempotencyKey) > 80 || validateSafeText(request.IdempotencyKey) != nil {
 		return nil, errors.New("workflow idempotency key must be at most 80 characters")
 	}
+	if err := validateWorkflowEntries(request.Entries); err != nil {
+		return nil, err
+	}
 	var existing []Job
 	for _, job := range q.store.Snapshot().Jobs {
 		if job.WorkflowID == request.IdempotencyKey {
@@ -257,10 +260,21 @@ func (q *Queue) AddWorkflow(request WorkflowRequest) ([]Job, error) {
 		}
 		jobs = append(jobs, job)
 	}
+	var checkIncludes []string
+	if len(request.Entries) > 0 {
+		for _, entry := range entries {
+			pattern := "/" + escapeWorkflowFilter(entry.Name())
+			if entry.IsDir() {
+				pattern += "/**"
+			}
+			checkIncludes = append(checkIncludes, pattern)
+		}
+	}
 	check, err := q.buildJob(JobCreateRequest{
 		Name: request.Name + " · 最终校验", Operation: "check", Source: root, Destination: request.Destination,
 		VerificationMode: request.VerificationMode,
 		WorkflowID:       request.IdempotencyKey, IdempotencyKey: request.IdempotencyKey + "/verify", Excludes: excludes,
+		Includes:  checkIncludes,
 		ProofPath: request.ProofPath, ProofRoot: root,
 		Transfers: settings.Transfers, Checkers: settings.Checkers,
 		ChunkSize: settings.ChunkSize, BufferSize: settings.BufferSize, Bandwidth: settings.Bandwidth,
@@ -286,6 +300,23 @@ func (q *Queue) AddWorkflow(request WorkflowRequest) ([]Job, error) {
 	}
 	q.Wake()
 	return jobs, nil
+}
+
+func validateWorkflowEntries(entries []string) error {
+	seen := make(map[string]bool, len(entries))
+	for _, name := range entries {
+		if name == "" || strings.TrimSpace(name) != name || name == "." || name == ".." ||
+			filepath.Base(name) != name || strings.ContainsAny(name, `/\`) || validateSafeText(name) != nil || seen[name] {
+			return errors.New("workflow entries must be unique top-level names")
+		}
+		seen[name] = true
+	}
+	return nil
+}
+
+// rclone filters are globs, while workflow entry names are literal filenames.
+func escapeWorkflowFilter(name string) string {
+	return strings.NewReplacer(`\`, `\\`, "*", `\*`, "?", `\?`, "[", `\[`, "]", `\]`, "{", `\{`, "}", `\}`).Replace(name)
 }
 
 func WorkflowBlocked(jobs []Job, job Job) bool {

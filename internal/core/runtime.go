@@ -8,6 +8,7 @@ import (
 )
 
 type RuntimeSnapshot struct {
+	Health           ServiceHealth          `json:"health"`
 	UpdatedAt        time.Time              `json:"updated_at"`
 	External         []ExternalTransferView `json:"external"`
 	Resources        ResourceSnapshot       `json:"resources"`
@@ -91,7 +92,7 @@ func (r *Runtime) refresh(ctx context.Context) {
 		}
 	}
 	for _, job := range state.Jobs {
-		if job.Status == "interrupted" && job.PID > 0 && processExists(job.PID) {
+		if job.Status == "interrupted" && interruptedProcessActive(job) {
 			next.QueueBlockReason = "等待上次任务的进程结束"
 		}
 	}
@@ -146,7 +147,7 @@ func (r *Runtime) Snapshot() RuntimeSnapshot {
 func (r *Runtime) Busy() bool {
 	state := r.store.Snapshot()
 	for _, job := range state.Jobs {
-		if job.Status == "interrupted" && job.PID > 0 && processExists(job.PID) {
+		if job.Status == "interrupted" && interruptedProcessActive(job) {
 			return true
 		}
 	}
