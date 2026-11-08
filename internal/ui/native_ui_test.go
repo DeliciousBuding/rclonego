@@ -18,6 +18,7 @@ func TestProviderLogosRenderAsColorVectors(t *testing.T) {
 		tester := ui.NewTester(func(c *ui.Context) {
 			ui.Column(c).Fill().Background(ui.Hex("#ffffff")).Center().Children(func() { brandIcon(c, logo.svg, 32).Label(logo.name) })
 		}, 64, 64)
+		tester.SetLocale("zh-Hans")
 		image := tester.Image()
 		colored := 0
 		for y := 16; y < 48; y++ {
@@ -36,7 +37,9 @@ func TestProviderLogosRenderAsColorVectors(t *testing.T) {
 
 func TestAboutShowsSharedVersionAndProjectLinks(t *testing.T) {
 	model := New(testApp(t), "http://127.0.0.1:12345")
+	model.page = "settings"
 	tester := ui.NewTester(model.view, 900, 560)
+	tester.SetLocale("zh-Hans")
 	if err := tester.Click("关于 RcloneGo"); err != nil {
 		t.Fatal(err)
 	}
@@ -59,6 +62,7 @@ func TestNativeNavigationAndKeyActions(t *testing.T) {
 	app := testApp(t)
 	model := New(app, "127.0.0.1:8797")
 	tester := ui.NewTester(model.view, 1180, 760)
+	tester.SetLocale("zh-Hans")
 	if !tester.HasText("总览") || !tester.HasText("传输总览") {
 		t.Fatalf("overview not rendered: %q", tester.Texts())
 	}
@@ -78,6 +82,24 @@ func TestNativeNavigationAndKeyActions(t *testing.T) {
 	if model.showJobForm {
 		t.Fatal("Escape did not dismiss the task dialog")
 	}
+	if err := tester.Click("设置"); err != nil {
+		t.Fatal(err)
+	}
+	if model.page != "settings" || !tester.HasText("外观") || !tester.HasText("语言") || !tester.HasText("登录时启动") || !tester.HasText("客户端更新") {
+		t.Fatal("Application preferences are not reachable from Settings")
+	}
+	if err := tester.Click("运行与资源"); err != nil {
+		t.Fatal(err)
+	}
+	if model.page != "resources" || tester.HasText("语言") || tester.HasText("外观") {
+		t.Fatal("Resources still contains application preferences")
+	}
+	if err := tester.Click("查看引擎状态"); err != nil {
+		t.Fatal(err)
+	}
+	if model.page != "settings" || !model.showEngineSettings || !tester.HasText("下载推荐版本") {
+		t.Fatal("Engine status did not open its settings")
+	}
 }
 
 func TestResourceControlsStayInsideScrollGutterWithLongPaths(t *testing.T) {
@@ -90,8 +112,15 @@ func TestResourceControlsStayInsideScrollGutterWithLongPaths(t *testing.T) {
 			model.resources = core.ResourceSnapshot{LogicalCPUs: 128, Goroutines: 100000,
 				Processes: []core.ProcessResource{{PID: 1, Name: strings.Repeat("LongProcessName", 20), Threads: 10000}}}
 			tester := ui.NewTester(model.view, width, 740)
+			tester.SetLocale("zh-Hans")
 			tester.Scroll(float32(width-60), 500, 0, 1)
-			for _, label := range []string{"运行计数", "引擎路径", "离线发行包路径", "使用此引擎", "导入发行包"} {
+			counts, ok := tester.Find("运行计数")
+			if !ok || counts.X < 208 || counts.X+counts.W > float32(width-12-28-16)+1 {
+				t.Fatalf("%d/%s: resource counts exceed content gutter: %v", width, theme, counts)
+			}
+			model.page, model.showEngineSettings = "settings", true
+			tester.Frame()
+			for _, label := range []string{"引擎路径", "离线发行包路径", "使用此引擎", "导入发行包"} {
 				rect, ok := tester.Find(label)
 				if !ok {
 					t.Fatalf("%d/%s: missing %s", width, theme, label)
@@ -115,6 +144,7 @@ func TestNarrowTaskDetailsHaveReadableHeightAndNoSideOverlap(t *testing.T) {
 	model.jobs = []core.Job{{ID: model.logJobID, Name: strings.Repeat("Long synthetic name ", 12), Source: strings.Repeat("/source", 20),
 		Destination: strings.Repeat("/destination", 20), Status: "paused"}}
 	tester := ui.NewTester(model.view, 900, 560)
+	tester.SetLocale("zh-Hans")
 	header, ok := tester.Find("任务详情")
 	if !ok {
 		t.Fatal("task details missing")
@@ -135,7 +165,9 @@ func TestNarrowTaskDetailsHaveReadableHeightAndNoSideOverlap(t *testing.T) {
 func TestWindowMaterialAndCaptionClearance(t *testing.T) {
 	model := New(testApp(t), "127.0.0.1:8797")
 	tester := ui.NewTester(model.view, 900, 560)
+	tester.SetLocale("zh-Hans")
 	tester.SetVibrancy(true)
+	tester.SetWindowActive(true)
 	tester.SetTitleBar(ui.TitleBar{Height: 56, Right: 138})
 	// The sidebar must let the native material through. The content must
 	// remain opaque for legibility, including above a busy desktop.
@@ -155,12 +187,27 @@ func TestWindowMaterialAndCaptionClearance(t *testing.T) {
 	if !ok || bounds.X+bounds.W > 900-138 {
 		t.Fatalf("toolbar overlaps native window controls: bounds=%v", bounds)
 	}
+	for _, theme := range []string{"light", "dark"} {
+		model.appearance = theme
+		tester.SetWindowActive(false)
+		image = tester.Image()
+		sidebar := image.RGBAAt(100, 300)
+		header = image.RGBAAt(211, 50)
+		if sidebar.A != 255 || header != sidebar {
+			t.Fatalf("%s inactive chrome exposes the system gray or different tints: sidebar=%v header=%v", theme, sidebar, header)
+		}
+		tester.SetWindowActive(true)
+		if pixel := tester.Image().RGBAAt(100, 300); pixel.A >= 128 {
+			t.Fatalf("%s active tint obscures the native material: %v", theme, pixel)
+		}
+	}
 }
 
 func TestActivityStatusDistinguishesConnectionFromActivity(t *testing.T) {
 	model := New(testApp(t), "127.0.0.1:8797")
 	model.activity = core.ActivityStatus{Available: true, Stats: &core.RCStats{}}
 	tester := ui.NewTester(model.view, 1120, 740)
+	tester.SetLocale("zh-Hans")
 	_, uploading := tester.AccessByRole(ui.RoleText, "正在上传")
 	_, waiting := tester.AccessByRole(ui.RoleText, "等待传输")
 	if uploading || !waiting {

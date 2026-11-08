@@ -21,9 +21,9 @@ func (s *nativeUI) aboutContent(c *ui.Context) {
 			ui.Text(c, version.Version+" · Apache-2.0").FontSize(12).TextColor(t.TextMuted)
 		})
 	})
-	ui.Text(c, "可靠传输，过程可见。").FontSize(13)
-	ui.Text(c, "由 rclone 驱动，使用 MyGo 原生 UI。").FontSize(12).TextColor(t.TextMuted)
-	ui.Text(c, "独立社区项目；存储服务的标志仅用于标识集成。").FontSize(11).TextColor(t.TextMuted)
+	ui.Text(c, text(c, "可靠传输，过程可见。")).FontSize(13)
+	ui.Text(c, text(c, "由 rclone 驱动，使用 MyGo 原生 UI。")).FontSize(12).TextColor(t.TextMuted)
+	ui.Text(c, text(c, "独立社区项目；存储服务的标志仅用于标识集成。")).FontSize(11).TextColor(t.TextMuted)
 	ui.Divider(c)
 	link := func(key, title, url string, icon *ui.SVG) {
 		actionButton(c.Key(key), icon, title, false).OnClick(func() {
@@ -37,8 +37,8 @@ func (s *nativeUI) aboutContent(c *ui.Context) {
 		link("issues", "反馈问题", projectURL+"/issues/new/choose", iconInfo)
 		link("releases", "版本发布", projectURL+"/releases", iconDownload)
 	})
-	ui.Text(c, "WinFsp / FUSE 是单独安装的挂载组件。").FontSize(11).TextColor(t.TextMuted)
-	ui.Text(c, "许可证和图标来源见仓库 docs/third-party.md。").FontSize(11).TextColor(t.TextMuted)
+	ui.Text(c, text(c, "WinFsp / FUSE 是单独安装的挂载组件。")).FontSize(11).TextColor(t.TextMuted)
+	ui.Text(c, text(c, "许可证和图标来源见仓库 docs/third-party.md。")).FontSize(11).TextColor(t.TextMuted)
 	actionButton(c.Key("licenses"), iconFile, "查看许可文本", false).OnClick(func() { s.showAbout = false; s.showLicenses = true })
 }
 
@@ -53,7 +53,7 @@ func (s *nativeUI) licensesContent(c *ui.Context) {
 	if s.licenseChoice == "" {
 		s.licenseChoice = "LICENSE"
 	}
-	ui.Select(c.Key("license-document"), &s.licenseChoice, names).Label("许可文档")
+	ui.Select(c.Key("license-document"), &s.licenseChoice, names).Label(text(c, "许可文档"))
 	contentScroll(c).Height(280).Children(func() {
 		ui.Text(c, licenseDocuments[s.licenseChoice]).FontSize(11).TextColor(c.Theme().TextMuted)
 	})

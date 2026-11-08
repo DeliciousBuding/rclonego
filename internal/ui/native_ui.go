@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"github.com/DeliciousBuding/rclonego/internal/core"
-	"math"
+	"github.com/DeliciousBuding/rclonego/locales"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/egoist/mygo"
@@ -15,10 +17,14 @@ import (
 )
 
 type nativeUI struct {
-	app  *core.App
-	win  *mygo.Window
-	page string
-	api  string
+	app         *core.App
+	win         *mygo.Window
+	page        string
+	api         string
+	refreshMu   sync.Mutex
+	pollVisible atomic.Bool
+	pollActive  atomic.Bool
+	pollWake    chan struct{}
 
 	version            string
 	remotes            []core.RemoteInfo
@@ -81,6 +87,8 @@ type nativeUI struct {
 	defaultCPU          string
 	jobCPU              string
 	showDefaults        bool
+	showEngineSettings  bool
+	showResourceDetails bool
 	jobChecksum         bool
 	jobCreateDirs       bool
 	jobAllowDelete      bool
@@ -107,17 +115,30 @@ type nativeUI struct {
 	openAtLogin         bool
 	trayAvailable       bool
 	jobPreview          core.Preview
+	previewList         ui.ListState
+	jobPreviewKey       string
+	jobMaxDelete        string
 	previewOnly         bool
 	showAbout           bool
 	showLicenses        bool
 	licenseChoice       string
+	commandOpen         bool
+	commandQuery        string
+	commandIndex        int
+	workflowUI          workflowUIState
+	automationUI        automationUIState
+	automations         []core.Automation
+	browserUI           browserUIState
+	health              core.ServiceHealth
+	cacheUI             cacheUIState
 }
 
 func New(app *core.App, api string) *nativeUI {
-	defaults := app.Snapshot().Defaults
-	return &nativeUI{
-		app: app, page: "overview", api: api, newRemoteType: "drive", appearance: app.Snapshot().Appearance,
-		appearanceChoice: appearanceLabel(app.Snapshot().Appearance),
+	state := app.Snapshot()
+	defaults := state.Defaults
+	model := &nativeUI{
+		app: app, page: "overview", api: api, newRemoteType: "drive", appearance: state.Appearance,
+		appearanceChoice: appearanceLabel(state.Appearance),
 		jobOperation:     "copy", jobOperationChoice: "复制", remoteTypeChoice: "Google Drive",
 		jobTransfers: itoa(defaults.Transfers), jobCheckers: itoa(defaults.Checkers), jobChunk: defaults.ChunkSize, jobBuffer: defaults.BufferSize,
 		jobCPU: itoa(defaults.CPUParallelism), defaults: defaults,
@@ -126,25 +147,51 @@ func New(app *core.App, api string) *nativeUI {
 		defaultCPU:  itoa(defaults.CPUParallelism),
 		jobSelected: -1, jobTable: ui.ListState{}, jobSpeeds: map[string][]float64{},
 		treeOpen: map[string]*bool{}, waitingOpen: true,
+		pollWake: make(chan struct{}, 1),
 	}
+	model.pollVisible.Store(true)
+	return model
 }
 
 func (s *nativeUI) Attach(win *mygo.Window) {
 	s.win = win
+	s.setVisible(win.IsVisible() && !win.IsMinimized())
+	win.OnShow(func() { s.setVisible(true) })
+	win.OnHide(func() { s.setVisible(false) })
+	win.OnMinimize(func() { s.setVisible(false) })
+	win.OnRestore(func() { s.setVisible(true) })
+}
+
+func (s *nativeUI) shouldPoll(tick int) bool {
+	return s.pollVisible.Load() && (s.pollActive.Load() || tick%5 == 0)
+}
+
+func (s *nativeUI) setVisible(visible bool) {
+	s.pollVisible.Store(visible)
+	if visible {
+		select {
+		case s.pollWake <- struct{}{}:
+		default:
+		}
+	}
 }
 
 func (s *nativeUI) StartPolling(ctx context.Context) {
 	go func() {
 		ticker := time.NewTicker(3 * time.Second)
 		defer ticker.Stop()
-		s.refresh(ctx, true)
 		tick := 0
 		for {
 			select {
 			case <-ctx.Done():
 				return
+			case <-s.pollWake:
+				s.refresh(ctx, true)
 			case <-ticker.C:
 				tick++
+				if !s.shouldPoll(tick) {
+					continue
+				}
 				s.refresh(ctx, tick%4 == 0)
 			}
 		}
@@ -152,9 +199,10 @@ func (s *nativeUI) StartPolling(ctx context.Context) {
 }
 
 func (s *nativeUI) refresh(ctx context.Context, includeRemoteState bool) {
-	if ctx.Err() != nil {
+	if ctx.Err() != nil || !s.refreshMu.TryLock() {
 		return
 	}
+	defer s.refreshMu.Unlock()
 	if s.win == nil {
 		return
 	}
@@ -187,6 +235,11 @@ func (s *nativeUI) refresh(ctx context.Context, includeRemoteState bool) {
 			}
 		}
 	}
+	active := activity.Available && activity.Stats != nil && (activity.Stats.Speed > 0 || len(activity.Stats.Transferring) > 0 || len(activity.Stats.Checking) > 0)
+	for _, job := range state.Jobs {
+		active = active || job.Status == "running"
+	}
+	s.pollActive.Store(active)
 	jobs := append([]core.Job(nil), state.Jobs...)
 	sort.Slice(jobs, func(i, j int) bool { return jobs[i].CreatedAt.After(jobs[j].CreatedAt) })
 	if s.win == nil {
@@ -210,8 +263,10 @@ func (s *nativeUI) refresh(ctx context.Context, includeRemoteState bool) {
 		}
 		s.jobs, s.paused, s.activity = jobs, state.QueuePaused, activity
 		s.workflows, s.runs = state.Workflows, state.Runs
+		s.automations = s.app.ListAutomations()
 		s.external, s.resources = runtime.External, runtime.Resources
 		s.queueBlockReason = runtime.QueueBlockReason
+		s.health = runtime.Health
 		s.pruneTreeState()
 		s.lastUpdated = time.Now()
 		if activity.Available && activity.Stats != nil {
@@ -274,7 +329,7 @@ func (s *nativeUI) runAfter(label string, action func() error, success func()) {
 			if err != nil {
 				s.isError, s.notice = true, err.Error()
 			} else {
-				s.isError, s.notice = false, label+"完成"
+				s.isError, s.notice = false, label+locales.CompletedSuffix()
 				s.noticeUntil = time.Now().Add(4 * time.Second)
 				if success != nil {
 					success()
@@ -287,16 +342,16 @@ func (s *nativeUI) runAfter(label string, action func() error, success func()) {
 }
 
 func (s *nativeUI) mountsPage(c *ui.Context) {
-	t := c.Theme()
-	ui.Column(c).Grow(1).Gap(12).Children(func() {
-		ui.Row(c).Children(func() {
-			ui.Text(c, fmt.Sprintf("%d 个映射", len(s.mounts))).FontSize(12).TextColor(t.TextMuted)
-			ui.Spacer(c)
-			ui.PrimaryButton(c.Key("new-mount"), "添加映射…").Height(30).Disabled(s.busy).OnClick(func() {
+	ui.Column(c).Grow(1).MinHeight(0).Gap(16).Children(func() {
+		pageHeading(c, "盘符映射", fmt.Sprintf(text(c, "%d 个映射"), len(s.mounts)), func() {
+			actionButton(c.Key("new-mount"), iconPlus, "添加映射…", true).Disabled(s.busy).OnClick(func() {
 				s.beginMountEdit(core.MountConfig{})
 			})
 		})
 		contentScroll(c).Grow(1).Gap(0).Children(func() {
+			if len(s.mounts) == 0 {
+				emptyState(c, iconMounts, "暂无映射", "添加映射，将云端目录作为本机磁盘使用")
+			}
 			for _, mount := range s.mounts {
 				s.mountRow(c, mount)
 			}
@@ -310,7 +365,7 @@ func (s *nativeUI) mountRow(c *ui.Context, mount core.MountView) {
 		ui.Box(c).Size(42, 34).Radius(8).Center().Background(t.Accent.Alpha(0.10)).Children(func() {
 			label := mount.Drive
 			if !strings.HasSuffix(label, ":") {
-				label = "目录"
+				label = text(c, "目录")
 			}
 			ui.Text(c, label).FontSize(14).Bold().TextColor(t.Accent).Tooltip(mount.Drive)
 		})
@@ -320,28 +375,28 @@ func (s *nativeUI) mountRow(c *ui.Context, mount core.MountView) {
 		})
 		if mount.Running {
 			statusPill(c, "运行中", t.Success)
-			ui.Button(c.Key("stop-"+mount.ID), "卸载").Padding(6, 10).Tooltip("卸载此盘符").OnClick(func() {
+			ui.Button(c.Key("stop-"+mount.ID), text(c, "卸载")).Padding(6, 10).Tooltip(text(c, "卸载此盘符")).OnClick(func() {
 				cfg := mount.MountConfig
-				s.run("卸载 "+cfg.Drive, func() error {
+				s.run(text(c, "卸载 ")+cfg.Drive, func() error {
 					ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 					defer cancel()
 					return s.app.StopMount(ctx, cfg)
 				})
 			}).Disabled(s.busy)
 		} else {
-			ui.Button(c.Key("start-"+mount.ID), "挂载").Padding(6, 10).Tooltip("挂载此盘符").OnClick(func() {
+			ui.Button(c.Key("start-"+mount.ID), text(c, "挂载")).Padding(6, 10).Tooltip(text(c, "挂载此盘符")).OnClick(func() {
 				cfg := mount.MountConfig
-				s.run("挂载 "+cfg.Drive, func() error {
+				s.run(text(c, "挂载 ")+cfg.Drive, func() error {
 					ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 					defer cancel()
 					_, err := s.app.StartMount(ctx, cfg)
 					return err
 				})
 			}).Disabled(s.busy)
-			ui.Button(c.Key("delete-"+mount.ID), "删除").Padding(6, 10).TextColor(t.Danger).
-				Tooltip("删除此映射配置").OnClick(func() {
+			ui.Button(c.Key("delete-"+mount.ID), text(c, "删除")).Padding(6, 10).TextColor(t.Danger).
+				Tooltip(text(c, "删除此映射配置")).OnClick(func() {
 				id := mount.ID
-				s.run("删除映射", func() error {
+				s.run(text(c, "删除映射"), func() error {
 					return s.app.UpdateState(func(state *core.State) error {
 						for i, cfg := range state.Mounts {
 							if cfg.ID == id {
@@ -354,7 +409,11 @@ func (s *nativeUI) mountRow(c *ui.Context, mount core.MountView) {
 				})
 			}).Disabled(s.busy)
 		}
-		ui.Button(c.Key("edit-"+mount.ID), "编辑…").Height(28).Padding(4, 10).OnClick(func() { s.beginMountEdit(mount.MountConfig) }).Disabled(s.busy)
+		ui.Button(c.Key("edit-"+mount.ID), text(c, "编辑…")).Height(28).Padding(4, 10).OnClick(func() { s.beginMountEdit(mount.MountConfig) }).Disabled(s.busy)
+		iconButton(c.Key("cache-"+mount.ID), iconResources, "查看缓存状态").Disabled(s.busy).OnClick(func() { s.inspectCache(mount.ID) })
+		iconButton(c.Key("offline-"+mount.ID), iconDownload, "保存离线副本").Disabled(s.busy).OnClick(func() {
+			s.cacheUI.offlineOpen, s.cacheUI.source, s.cacheUI.name = true, mount.Remote, mount.Name+locales.OfflineCopySuffix()
+		})
 	})
 }
 
@@ -369,13 +428,13 @@ func (s *nativeUI) beginMountEdit(cfg core.MountConfig) {
 func (s *nativeUI) addJob() {
 	transfers, err := strconv.Atoi(s.jobTransfers)
 	if err != nil {
-		s.isError, s.notice = true, "transfers 必须是数字"
+		s.isError, s.notice = true, locales.Text("transfers 必须是数字")
 		s.invalidate()
 		return
 	}
 	checkers, err := strconv.Atoi(s.jobCheckers)
 	if err != nil {
-		s.isError, s.notice = true, "checkers 必须是数字"
+		s.isError, s.notice = true, locales.Text("checkers 必须是数字")
 		s.invalidate()
 		return
 	}
@@ -387,16 +446,24 @@ func (s *nativeUI) addJob() {
 		ChunkSize: s.jobChunk, BufferSize: s.jobBuffer,
 		PreviewID: s.jobPreview.ID,
 	}
+	if request.Operation == "sync" {
+		maxDelete, err := strconv.Atoi(s.jobMaxDelete)
+		if err != nil || maxDelete < 1 || maxDelete > 10000 {
+			s.setError(fmt.Errorf("%s", locales.Text("单次删除上限必须为 1–10000")))
+			return
+		}
+		request.MaxDelete = maxDelete
+	}
 	cpus, err := strconv.Atoi(s.jobCPU)
 	if err != nil {
-		s.setError(fmt.Errorf("CPU 并行度必须是数字"))
+		s.setError(fmt.Errorf("%s", locales.Text("CPU 并行度必须是数字")))
 		return
 	}
 	request.CPUParallelism = &cpus
 	if strings.TrimSpace(s.jobSchedule) != "" {
 		at, err := time.ParseInLocation("2006-01-02 15:04", s.jobSchedule, time.Local)
 		if err != nil {
-			s.setError(fmt.Errorf("计划时间格式为 YYYY-MM-DD HH:MM"))
+			s.setError(fmt.Errorf("%s", locales.Text("计划时间格式为 YYYY-MM-DD HH:MM")))
 			return
 		}
 		request.NotBefore = &at
@@ -409,18 +476,19 @@ func (s *nativeUI) addJob() {
 	if s.previewOnly || request.Operation == "sync" && s.jobPreview.ID == "" {
 		s.previewOnly = false
 		var preview core.Preview
-		s.runAfter("预览更改", func() error {
+		previewKey := s.currentPreviewKey()
+		s.runAfter(locales.Text("预览更改"), func() error {
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 			defer cancel()
 			var err error
 			preview, err = s.app.PreviewJob(ctx, request)
 			return err
-		}, func() { s.jobPreview = preview })
+		}, func() { s.jobPreview, s.jobPreviewKey = preview, previewKey })
 		return
 	}
 	editID, workflow, proof := s.editingJobID, s.jobWorkflow, s.jobProof
 	saveDefinition := s.saveDefinition
-	s.runAfter("保存任务", func() error {
+	s.runAfter(locales.Text("保存任务"), func() error {
 		settings := core.TransferSettings{Transfers: transfers, Checkers: checkers, ChunkSize: request.ChunkSize, BufferSize: request.BufferSize, CPUParallelism: cpus, Bandwidth: request.Bandwidth}
 		if editID != "" {
 			return s.app.UpdateParameters(editID, core.JobUpdateRequest{Settings: settings, NotBefore: request.NotBefore})
@@ -448,6 +516,7 @@ func (s *nativeUI) addJob() {
 
 func (s *nativeUI) beginJobForm(job *core.Job) {
 	s.jobPreview, s.previewOnly = core.Preview{}, false
+	s.jobMaxDelete, s.jobPreviewKey = "10", ""
 	s.showJobForm, s.showJobAdvanced, s.jobWorkflow = true, false, false
 	s.saveDefinition = false
 	s.editingJobID, s.jobProof = "", ""
@@ -467,6 +536,9 @@ func (s *nativeUI) beginJobForm(job *core.Job) {
 	s.jobChunk, s.jobBuffer, s.jobBandwidth = job.ChunkSize, job.BufferSize, job.Bandwidth
 	s.jobIncludes = strings.Join(job.Includes, "\n")
 	s.jobChecksum, s.jobCreateDirs, s.jobAllowDelete = job.Checksum, job.CreateDirs, job.AllowDelete
+	if job.MaxDelete > 0 {
+		s.jobMaxDelete = itoa(job.MaxDelete)
+	}
 	s.jobSchedule = ""
 	if job.NotBefore != nil {
 		s.jobSchedule = job.NotBefore.Local().Format("2006-01-02 15:04")
@@ -475,7 +547,7 @@ func (s *nativeUI) beginJobForm(job *core.Job) {
 
 func (s *nativeUI) loadLog(id string) {
 	s.logJobID = id
-	s.logText = "加载中…"
+	s.logText = locales.Loading()
 	s.invalidate()
 	go func() {
 		text, err := s.app.JobLog(id, 128*1024)
@@ -486,7 +558,7 @@ func (s *nativeUI) loadLog(id string) {
 			if err != nil {
 				s.logText = err.Error()
 			} else {
-				s.logText = core.ValueOr(text, "（暂无日志）")
+				s.logText = core.ValueOr(text, locales.NoLog())
 			}
 		})
 	}()
@@ -500,7 +572,7 @@ func (s *nativeUI) invalidate() {
 
 func (s *nativeUI) sparkline(c *ui.Context, samples []float64, width, height float32) {
 	if len(samples) < 2 {
-		ui.Text(c, "采集吞吐…").FontSize(10).TextColor(c.Theme().TextMuted)
+		ui.Text(c, text(c, "采集吞吐…")).FontSize(10).TextColor(c.Theme().TextMuted)
 		return
 	}
 	accent := c.Theme().Accent
@@ -521,29 +593,7 @@ func (s *nativeUI) sparkline(c *ui.Context, samples []float64, width, height flo
 			points = append(points, [2]float32{x, y})
 		}
 		p.StrokePolyline(points, 1.5, accent)
-	}).Label("吞吐速度趋势")
-}
-
-func formatDuration(seconds float64) string {
-	if math.IsNaN(seconds) || math.IsInf(seconds, 0) || seconds < 0 {
-		return "—"
-	}
-	if seconds < 60 {
-		return fmt.Sprintf("%d 秒", int(seconds))
-	}
-	minutes := int(seconds / 60)
-	if minutes < 1 {
-		return "0 秒"
-	}
-	if minutes < 60 {
-		return fmt.Sprintf("%d 分钟", minutes)
-	}
-	hours := minutes / 60
-	minutes %= 60
-	if hours >= 24 {
-		return fmt.Sprintf("%d 天 %d 小时", hours/24, hours%24)
-	}
-	return fmt.Sprintf("%d 小时 %d 分", hours, minutes)
+	}).Label(text(c, "吞吐速度趋势"))
 }
 
 func statusColor(c *ui.Context, status string) ui.Color {

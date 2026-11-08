@@ -73,7 +73,7 @@ func (s *nativeUI) transferFolders(c *ui.Context, scope string, nodes []*core.Tr
 		if node.Directory {
 			key := scope + "/" + node.Path
 			open := s.openState(key, false)
-			disclosure(c.Key(key), iconFolder, node.Name, fmt.Sprintf("%d 个文件 · %.2f MiB/s", node.FileCount, node.Speed/1048576), open, func() {
+			disclosure(c.Key(key), iconFolder, node.Name, fmt.Sprintf(text(c, "%d 个文件 · %.2f MiB/s"), node.FileCount, node.Speed/1048576), open, func() {
 				s.transferFolders(c, scope, node.Children)
 			})
 		} else {
@@ -81,7 +81,7 @@ func (s *nativeUI) transferFolders(c *ui.Context, scope string, nodes []*core.Tr
 				ui.Icon(c, iconFile).FontSize(16).TextColor(c.Theme().TextMuted)
 				ui.Column(c).Grow(1).MinWidth(0).Gap(4).Children(func() {
 					ui.Text(c, node.Name).FontSize(12).SingleLine().Tooltip(node.Path)
-					ui.Progress(c, progressValue(node.Bytes, node.TotalBytes)).Height(3).Label(node.Name + " 的进度")
+					ui.Progress(c, progressValue(node.Bytes, node.TotalBytes)).Height(3).Label(node.Name + text(c, " 的进度"))
 				})
 				ui.Column(c).Width(105).Gap(2).Children(func() {
 					ui.Text(c, formatBytes(node.Bytes)+" / "+formatBytes(node.TotalBytes)).FontSize(10).TextColor(c.Theme().TextMuted).SingleLine()
@@ -94,9 +94,9 @@ func (s *nativeUI) transferFolders(c *ui.Context, scope string, nodes []*core.Tr
 
 func (s *nativeUI) queuedJobs(c *ui.Context) {
 	pending := core.PendingJobs(s.jobs)
-	ui.Collapsible(c.Key("pending-jobs"), fmt.Sprintf("等待执行 · %d", len(pending)), &s.waitingOpen, func() {
+	ui.Collapsible(c.Key("pending-jobs"), fmt.Sprintf(text(c, "等待执行 · %d"), len(pending)), &s.waitingOpen, func() {
 		if len(pending) == 0 {
-			ui.Text(c, "暂无等待任务").FontSize(12).TextColor(c.Theme().TextMuted)
+			ui.Text(c, text(c, "暂无等待任务")).FontSize(12).TextColor(c.Theme().TextMuted)
 		}
 		for i, job := range pending {
 			ui.Row(c.Key("queued-"+job.ID)).Padding(9, 0).Gap(10).
@@ -104,25 +104,25 @@ func (s *nativeUI) queuedJobs(c *ui.Context) {
 				ui.Text(c, fmt.Sprintf("%02d", i+1)).FontSize(11).TextColor(c.Theme().TextMuted).Width(24)
 				ui.Column(c).Grow(1).MinWidth(0).Gap(3).Children(func() {
 					ui.Text(c, job.Name).FontWeight(500).SingleLine()
-					when := "接续执行"
+					when := text(c, "接续执行")
 					if job.NotBefore != nil {
-						when = "计划于 " + job.NotBefore.Local().Format("01月02日 15:04")
+						when = text(c, "计划于 ") + dateTime(c, *job.NotBefore)
 					}
 					if job.WorkflowID != "" {
-						when = fmt.Sprintf("步骤 %d / %d", job.WorkflowStep, job.WorkflowSize)
+						when = fmt.Sprintf(text(c, "步骤 %d / %d"), job.WorkflowStep, job.WorkflowSize)
 						if core.WorkflowBlocked(s.jobs, job) {
-							when += " · 等待前序"
+							when += text(c, " · 等待前序")
 						}
 					}
-					ui.Text(c, operationLabel(job.Operation)+" · "+when).FontSize(11).TextColor(c.Theme().TextMuted).SingleLine()
+					ui.Text(c, text(c, operationLabel(job.Operation))+" · "+when).FontSize(11).TextColor(c.Theme().TextMuted).SingleLine()
 				})
 				iconButton(c.Key("up-"+job.ID), iconUp, "上移").Disabled(s.busy || i == 0 || (i > 0 && job.WorkflowID != "" && job.WorkflowID == pending[i-1].WorkflowID)).OnClick(func() {
 					id := job.ID
-					s.run("调整顺序", func() error { return s.app.Move(id, -1) })
+					s.run(text(c, "调整顺序"), func() error { return s.app.Move(id, -1) })
 				})
 				iconButton(c.Key("down-"+job.ID), iconDown, "下移").Disabled(s.busy || i == len(pending)-1 || (i+1 < len(pending) && job.WorkflowID != "" && job.WorkflowID == pending[i+1].WorkflowID)).OnClick(func() {
 					id := job.ID
-					s.run("调整顺序", func() error { return s.app.Move(id, 1) })
+					s.run(text(c, "调整顺序"), func() error { return s.app.Move(id, 1) })
 				})
 				iconButton(c.Key("log-"+job.ID), iconArrow, "任务详情").OnClick(func() { s.loadLog(job.ID) })
 			})

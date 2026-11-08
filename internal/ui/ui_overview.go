@@ -3,6 +3,7 @@ package desktop
 import (
 	"fmt"
 	"github.com/DeliciousBuding/rclonego/internal/core"
+	"github.com/DeliciousBuding/rclonego/locales"
 	"strings"
 
 	"github.com/egoist/mygo/ui"
@@ -18,13 +19,13 @@ func (s *nativeUI) overviewPage(c *ui.Context) {
 			s.recentJobCard(c).Basis(0).Grow(1).MinWidth(0)
 		})
 		ui.Row(c).Gap(8).Padding(4, 0).Children(func() {
-			ui.Text(c, fmt.Sprintf("%d 个云端账户", len(s.remotes))).FontSize(11).TextColor(t.TextMuted)
+			ui.Text(c, fmt.Sprintf(text(c, "%d 个云端账户"), len(s.remotes))).FontSize(11).TextColor(t.TextMuted)
 			ui.Text(c, "·").TextColor(t.TextMuted)
-			ui.Text(c, strings.TrimPrefix(core.ValueOr(s.version, "正在连接 rclone…"), "rclone ")).
+			ui.Text(c, strings.TrimPrefix(core.ValueOr(s.version, text(c, "正在连接 rclone…")), "rclone ")).
 				FontSize(11).TextColor(t.TextMuted)
 			ui.Spacer(c)
 			if !s.lastUpdated.IsZero() {
-				ui.Text(c, "更新于 "+s.lastUpdated.Format("15:04:05")).FontSize(11).TextColor(t.TextMuted)
+				ui.Text(c, text(c, "更新于 ")+s.lastUpdated.Format("15:04:05")).FontSize(11).TextColor(t.TextMuted)
 			}
 		})
 	})
@@ -40,7 +41,7 @@ func (s *nativeUI) activityCard(c *ui.Context) {
 				ui.Icon(c, appMark).FontSize(26).TextColor(t.Accent)
 			})
 			ui.Column(c).Gap(3).Grow(1).MinWidth(0).Children(func() {
-				title := "传输总览"
+				title := text(c, "传输总览")
 				for _, job := range s.jobs {
 					if job.Status == "running" {
 						title = job.Name
@@ -54,7 +55,7 @@ func (s *nativeUI) activityCard(c *ui.Context) {
 					}
 				}
 				ui.Text(c, title).FontSize(22).FontWeight(600).SingleLine().Tooltip(title)
-				phase := s.activityPhase()
+				phase := s.activityPhase(c.Locale())
 				ui.Text(c, phase).FontSize(12).TextColor(t.TextMuted).SingleLine()
 			})
 			label, color := "正在连接", t.TextMuted
@@ -101,9 +102,9 @@ func (s *nativeUI) activityCard(c *ui.Context) {
 					ui.Text(c, pct).FontSize(38).FontWeight(400)
 					ui.Text(c, "%").FontSize(17).TextColor(t.TextMuted)
 					ui.Spacer(c)
-					ui.Text(c, "当前阶段").FontSize(11).TextColor(t.TextMuted)
+					ui.Text(c, text(c, "当前阶段")).FontSize(11).TextColor(t.TextMuted)
 				})
-				ui.Progress(c, progress).Height(4).Radius(2).Label("当前阶段上传进度")
+				ui.Progress(c, progress).Height(4).Radius(2).Label(text(c, "当前阶段上传进度"))
 				progressText := formatBytes(st.Bytes) + " / " + formatBytes(st.TotalBytes)
 				if workflow {
 					progressText = formatBytes(doneBytes) + " / " + formatBytes(totalBytes)
@@ -111,7 +112,7 @@ func (s *nativeUI) activityCard(c *ui.Context) {
 				ui.Text(c, progressText).
 					FontSize(12).TextColor(t.TextMuted)
 				if workflow {
-					ui.Text(c, fmt.Sprintf("当前阶段 %s / %s · 第 %d / %d 步", formatBytes(st.Bytes), formatBytes(st.TotalBytes), active.WorkflowStep, active.WorkflowSize)).
+					ui.Text(c, fmt.Sprintf(text(c, "当前阶段 %s / %s · 第 %d / %d 步"), formatBytes(st.Bytes), formatBytes(st.TotalBytes), active.WorkflowStep, active.WorkflowSize)).
 						FontSize(11).TextColor(t.TextMuted).SingleLine()
 				}
 			})
@@ -120,41 +121,47 @@ func (s *nativeUI) activityCard(c *ui.Context) {
 					ui.Text(c, fmt.Sprintf("%.2f", st.Speed/1024/1024)).FontSize(26).FontWeight(400)
 					ui.Text(c, " MiB/s").FontSize(12).TextColor(t.TextMuted)
 					ui.Spacer(c)
-					ui.Text(c, "传输速度").FontSize(11).TextColor(t.TextMuted)
+					ui.Text(c, text(c, "传输速度")).FontSize(11).TextColor(t.TextMuted)
 				})
 				s.speedChart(c, s.activitySpeeds, 42)
-				caption := "正在采集速度"
+				caption := text(c, "正在采集速度")
 				if len(s.activitySpeeds) > 1 {
-					caption = fmt.Sprintf("最近 %d 秒", (len(s.activitySpeeds)-1)*3)
+					caption = fmt.Sprintf(text(c, "最近 %d 秒"), (len(s.activitySpeeds)-1)*3)
 					if len(s.activitySpeeds) == 60 {
-						caption = "最近 3 分钟"
+						caption = text(c, "最近 3 分钟")
 					}
 				}
 				ui.Text(c, caption).FontSize(10).TextColor(t.TextMuted)
 			})
 		})
 		ui.Row(c).Gap(24).Wrap().Children(func() {
-			ui.Text(c, fmt.Sprintf("已传 %d / %d 个文件", st.Transfers, st.TotalTransfers)).
+			ui.Text(c, fmt.Sprintf(text(c, "已传 %d / %d 个文件"), st.Transfers, st.TotalTransfers)).
 				FontSize(12).TextColor(t.TextMuted)
-			ui.Text(c, fmt.Sprintf("%d 个文件正在上传", len(st.Transferring))).
+			ui.Text(c, fmt.Sprintf(text(c, "%d 个文件正在上传"), len(st.Transferring))).
 				FontSize(12).TextColor(t.TextMuted)
 			if st.ETA > 0 {
-				ui.Text(c, "约剩 "+formatDuration(st.ETA)).FontSize(12).TextColor(t.TextMuted)
+				ui.Text(c, text(c, "约剩 ")+durationText(c, st.ETA)).FontSize(12).TextColor(t.TextMuted)
 			} else if workflow && st.Speed > 0 && totalBytes > doneBytes {
-				ui.Text(c, "约剩 "+formatDuration(float64(totalBytes-doneBytes)/st.Speed)).FontSize(12).TextColor(t.TextMuted)
+				ui.Text(c, text(c, "约剩 ")+durationText(c, float64(totalBytes-doneBytes)/st.Speed)).FontSize(12).TextColor(t.TextMuted)
 			}
-			ui.Text(c, fmt.Sprintf("%d 个错误", st.Errors)).FontSize(12).TextColor(t.TextMuted)
+			ui.Text(c, fmt.Sprintf(text(c, "%d 个错误"), st.Errors)).FontSize(12).TextColor(t.TextMuted)
 		})
 	})
 }
 
-func (s *nativeUI) activityPhase() string {
+func (s *nativeUI) activityPhase(language ...string) string {
+	translate := func(source string) string {
+		if len(language) > 0 {
+			return locales.TextIn(language[0], source)
+		}
+		return source
+	}
 	for _, job := range s.jobs {
 		if job.Status != "running" {
 			continue
 		}
 		if len(job.CheckingFiles) > 0 {
-			return "校验 " + job.Name + " · " + job.CheckingFiles[0]
+			return translate("校验 ") + job.Name + " · " + job.CheckingFiles[0]
 		}
 		if job.Source != "" {
 			return job.Source + "  →  " + job.Destination
@@ -171,7 +178,7 @@ func (s *nativeUI) activityPhase() string {
 		}
 		return src + "  →  " + dst
 	}
-	return "实时传输状态"
+	return translate("实时传输状态")
 }
 
 func (s *nativeUI) activeJob() *core.Job {
@@ -247,7 +254,7 @@ func (s *nativeUI) recentJobCard(c *ui.Context) ui.Element {
 				ui.Icon(c, iconFile).FontSize(18).TextColor(c.Theme().TextMuted)
 				ui.Column(c).Grow(1).MinWidth(0).Gap(2).Children(func() {
 					ui.Text(c, job.Name).SingleLine()
-					ui.Text(c, operationLabel(job.Operation)).FontSize(11).TextColor(c.Theme().TextMuted)
+					ui.Text(c, text(c, operationLabel(job.Operation))).FontSize(11).TextColor(c.Theme().TextMuted)
 				})
 				statusDot(c, statusLabel(job.Status), statusColor(c, job.Status))
 			})
@@ -257,7 +264,7 @@ func (s *nativeUI) recentJobCard(c *ui.Context) ui.Element {
 
 func (s *nativeUI) metric(c *ui.Context, label, value string) {
 	ui.Column(c).Gap(4).Children(func() {
-		ui.Text(c, label).FontSize(11).TextColor(c.Theme().TextMuted)
+		ui.Text(c, text(c, label)).FontSize(11).TextColor(c.Theme().TextMuted)
 		ui.Text(c, value).FontSize(17).FontWeight(500)
 	})
 }
@@ -292,5 +299,5 @@ func (s *nativeUI) speedChart(c *ui.Context, samples []float64, height float32) 
 		area.LineTo(r.X+r.W, r.Y+r.H).Close()
 		p.FillPathGradient(area, ui.LinearGradient{From: accent.Alpha(0.14), To: accent.Alpha(0.01), Angle: 180})
 		p.StrokePolyline(points, 1.5, accent)
-	}).Role(ui.RoleImage).Label("实时传输速度趋势")
+	}).Role(ui.RoleImage).Label(text(c, "实时传输速度趋势"))
 }

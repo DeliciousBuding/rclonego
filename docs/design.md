@@ -11,6 +11,32 @@ opaque for readable paths, progress and error messages. Light, dark and system
 appearance use the same hierarchy. MyGo's native active/inactive button treatment
 is preserved; icon/text children inherit the button's color.
 
+Active navigation and title-bar chrome use one thin tint over the system material.
+Inactive windows, high contrast and reduced transparency use a consistent opaque
+theme color. Windows uses Mica for the persistent main window; macOS uses MyGo's
+system Glass material. Toolbar buttons sit directly on that material; transient messages
+use MyGo Glass over the content. A fine canvas border separates content without
+adding another full-window blur.
+
+## Page structure and density
+
+Each management page starts with a 22px title, one short description or count,
+and its primary action aligned at the trailing side. Repeated rows align names,
+secondary paths, status and actions. Workflow rows show Run and Edit; clone,
+export and deletion use a More menu. Resource counters have labelled columns,
+and live bandwidth controls appear when a transfer can use them.
+
+Related preferences share a row when space permits and wrap at smaller widths.
+Advanced settings remain collapsed. Keep default text and control sizes; increase
+useful density through grouping and disclosure before reducing click targets or
+font sizes. Current task details replace the list at narrow widths.
+
+These choices follow [Apple's layout guidance](https://developer.apple.com/design/human-interface-guidelines/layout),
+[Fluent productivity guidance](https://learn.microsoft.com/en-us/windows/apps/get-started/line-of-business/design-for-lob),
+and [Mica layering](https://learn.microsoft.com/en-us/windows/apps/design/style/mica).
+Operation forms also follow [Rclone UI's path-first and collapsible-options pattern](https://rcloneui.com/docs/ui/operations)
+using the supported [MyGo components](https://mygo.egoist.dev/docs/ui).
+
 The default scale uses a 13px body, 11–12px supporting text, 15px section headings
 and 22px page headings. Action icons use a 24-unit grid with 1.65-unit rounded
 strokes and appear at 15–18px. Important state uses text and icons or dots together,
@@ -29,6 +55,11 @@ so color alone does not communicate outcome.
 Text buttons stay labelled. Icon-only controls have an accessible name and tooltip.
 Native browse dialogs select local paths; the text field still accepts remote
 locations directly. Destructive mirror execution requires its own verified preview.
+
+The sidebar's **Settings** entry opens one page for appearance, language, login
+startup and client updates. Engine management and new-task defaults are collapsed
+until needed. The engine status shortcut opens Settings with its engine section
+expanded. Resources keeps process observations and live transfer controls.
 
 ## Layout boundaries
 

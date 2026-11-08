@@ -62,7 +62,7 @@ func brandIcon(c *ui.Context, logo *ui.SVG, size float32) ui.Element {
 
 func remoteLogo(c *ui.Context, kind string, size float32) {
 	if style, ok := providerStyles[kind]; ok && style.logo != nil {
-		brandIcon(c, style.logo, size).Label(style.label)
+		brandIcon(c, style.logo, size).Label(text(c, style.label))
 		return
 	}
 	ui.Icon(c, iconRemotes).FontSize(size).TextColor(c.Theme().Accent)
@@ -75,34 +75,37 @@ func lineIcon(body string) *ui.SVG {
 }
 
 var (
-	iconOverview   = lineIcon(`<rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/>`)
-	iconRemotes    = lineIcon(`<path d="M6.5 18a4.5 4.5 0 0 1-.8-8.9 6.4 6.4 0 0 1 12.4-1A4.9 4.9 0 0 1 18 18Z"/>`)
-	iconMounts     = lineIcon(`<path d="m4 5-2 10v4a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-4L20 5a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2Z"/><path d="M2 15h20m-6 3h.01m3 0h.01"/>`)
-	iconQueue      = lineIcon(`<path d="M4 6h16M4 12h12M4 18h8m4-1 3 3 3-3m-3 3v-8"/>`)
-	iconRefresh    = lineIcon(`<path d="M20 8a8 8 0 1 0 .6 6M20 3v5h-5"/>`)
-	iconPlus       = lineIcon(`<path d="M12 5v14M5 12h14"/>`)
-	iconClose      = lineIcon(`<path d="m6 6 12 12M18 6 6 18"/>`)
-	iconPause      = lineIcon(`<path d="M8 5v14M16 5v14"/>`)
-	iconPlay       = lineIcon(`<path d="m8 5 11 7-11 7Z"/>`)
-	iconFile       = lineIcon(`<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z"/><path d="M14 3v6h6m-12 5h8m-8 3h5"/>`)
-	iconCheck      = lineIcon(`<path d="m5 12 4 4L19 6"/>`)
-	iconArrow      = lineIcon(`<path d="M4 12h16m-5-5 5 5-5 5"/>`)
-	iconAppearance = lineIcon(`<circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16Z" fill="currentColor" stroke="none"/>`)
-	appMark        = lineIcon(`<path d="M9 5H7a4 4 0 0 0-4 4v5a4 4 0 0 0 4 4h2m6-12h2a4 4 0 0 1 4 4v5a4 4 0 0 1-4 4h-2M9 12h6"/>`)
-	iconWorkflow   = lineIcon(`<rect x="3" y="3" width="7" height="6" rx="2"/><rect x="14" y="15" width="7" height="6" rx="2"/><path d="M6.5 9v6a3 3 0 0 0 3 3H14"/>`)
-	iconFolder     = lineIcon(`<path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/>`)
-	iconUp         = lineIcon(`<path d="m6 14 6-6 6 6"/>`)
-	iconDown       = lineIcon(`<path d="m6 10 6 6 6-6"/>`)
-	iconChevron    = lineIcon(`<path d="m9 6 6 6-6 6"/>`)
-	iconResources  = lineIcon(`<path d="M3 12h4l3-8 4 16 3-8h4"/>`)
-	iconDownload   = lineIcon(`<path d="M12 3v12m-5-5 5 5 5-5M4 17v3h16v-3"/>`)
-	iconEngine     = lineIcon(`<rect x="3" y="4" width="18" height="16" rx="3"/><path d="m7 9 3 3-3 3m6 0h4"/>`)
-	iconInfo       = lineIcon(`<circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10h.01"/>`)
-	iconTrash      = lineIcon(`<path d="M3 6h18m-13 0V3h8v3m-11 0 1 15h12l1-15m-9 4v7m4-7v7"/>`)
-	iconWarning    = lineIcon(`<path d="m12 3 10 18H2Z"/><path d="M12 9v5m0 3h.01"/>`)
+	iconOverview  = lineIcon(`<rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/>`)
+	iconRemotes   = lineIcon(`<path d="M6.5 18a4.5 4.5 0 0 1-.8-8.9 6.4 6.4 0 0 1 12.4-1A4.9 4.9 0 0 1 18 18Z"/>`)
+	iconMounts    = lineIcon(`<path d="m4 5-2 10v4a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-4L20 5a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2Z"/><path d="M2 15h20m-6 3h.01m3 0h.01"/>`)
+	iconQueue     = lineIcon(`<path d="M4 6h16M4 12h12M4 18h8m4-1 3 3 3-3m-3 3v-8"/>`)
+	iconRefresh   = lineIcon(`<path d="M20 8a8 8 0 1 0 .6 6M20 3v5h-5"/>`)
+	iconPlus      = lineIcon(`<path d="M12 5v14M5 12h14"/>`)
+	iconClose     = lineIcon(`<path d="m6 6 12 12M18 6 6 18"/>`)
+	iconPause     = lineIcon(`<path d="M8 5v14M16 5v14"/>`)
+	iconPlay      = lineIcon(`<path d="m8 5 11 7-11 7Z"/>`)
+	iconFile      = lineIcon(`<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z"/><path d="M14 3v6h6m-12 5h8m-8 3h5"/>`)
+	iconCheck     = lineIcon(`<path d="m5 12 4 4L19 6"/>`)
+	iconArrow     = lineIcon(`<path d="M4 12h16m-5-5 5 5-5 5"/>`)
+	iconSettings  = lineIcon(`<path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2" fill="currentColor"/><circle cx="15" cy="12" r="2" fill="currentColor"/><circle cx="9" cy="18" r="2" fill="currentColor"/>`)
+	iconMore      = lineIcon(`<circle cx="5" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="19" cy="12" r="1" fill="currentColor"/>`)
+	appMark       = lineIcon(`<path d="M9 5H7a4 4 0 0 0-4 4v5a4 4 0 0 0 4 4h2m6-12h2a4 4 0 0 1 4 4v5a4 4 0 0 1-4 4h-2M9 12h6"/>`)
+	iconWorkflow  = lineIcon(`<rect x="3" y="3" width="7" height="6" rx="2"/><rect x="14" y="15" width="7" height="6" rx="2"/><path d="M6.5 9v6a3 3 0 0 0 3 3H14"/>`)
+	iconFolder    = lineIcon(`<path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/>`)
+	iconUp        = lineIcon(`<path d="m6 14 6-6 6 6"/>`)
+	iconDown      = lineIcon(`<path d="m6 10 6 6 6-6"/>`)
+	iconChevron   = lineIcon(`<path d="m9 6 6 6-6 6"/>`)
+	iconResources = lineIcon(`<path d="M3 12h4l3-8 4 16 3-8h4"/>`)
+	iconDownload  = lineIcon(`<path d="M12 3v12m-5-5 5 5 5-5M4 17v3h16v-3"/>`)
+	iconEngine    = lineIcon(`<rect x="3" y="4" width="18" height="16" rx="3"/><path d="m7 9 3 3-3 3m6 0h4"/>`)
+	iconInfo      = lineIcon(`<circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10h.01"/>`)
+	iconTrash     = lineIcon(`<path d="M3 6h18m-13 0V3h8v3m-11 0 1 15h12l1-15m-9 4v7m4-7v7"/>`)
+	iconWarning   = lineIcon(`<path d="m12 3 10 18H2Z"/><path d="M12 9v5m0 3h.01"/>`)
+	iconSchedule  = lineIcon(`<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>`)
 )
 
 func actionButton(c *ui.Context, icon *ui.SVG, label string, primary bool) ui.Element {
+	label = text(c, label)
 	var b ui.Element
 	if primary {
 		b = ui.PrimaryButton(c, "")
@@ -118,11 +121,12 @@ func actionButton(c *ui.Context, icon *ui.SVG, label string, primary bool) ui.El
 
 func (s *nativeUI) pathInput(c *ui.Context, value *string, label, placeholder string, directory, disabled bool, filters []mygo.FileFilter) {
 	ui.Row(c).Gap(6).MinWidth(0).Children(func() {
-		ui.TextInput(c.Key("value"), value).Grow(1).MinWidth(0).Label(label).Placeholder(placeholder).Disabled(disabled)
-		iconButton(c.Key("browse"), iconFolder, "浏览"+label).Disabled(s.busy || disabled).OnClick(func() {
+		ui.TextInput(c.Key("value"), value).Grow(1).MinWidth(0).Label(text(c, label)).Placeholder(text(c, placeholder)).Disabled(disabled)
+		iconButton(c.Key("browse"), iconFolder, fmt.Sprintf(text(c, "浏览%s"), text(c, label))).Disabled(s.busy || disabled).OnClick(func() {
 			defaultPath := *value
+			dialogTitle := fmt.Sprintf(text(c, "选择%s"), text(c, label))
 			go func() {
-				paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Parent: s.win, Title: "选择" + label, DefaultPath: defaultPath, Directory: directory, Filters: filters})
+				paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Parent: s.win, Title: dialogTitle, DefaultPath: defaultPath, Directory: directory, Filters: filters})
 				s.win.Update(func() {
 					if err != nil {
 						s.setError(err)
@@ -135,6 +139,7 @@ func (s *nativeUI) pathInput(c *ui.Context, value *string, label, placeholder st
 	})
 }
 func iconButton(c *ui.Context, icon *ui.SVG, label string) ui.Element {
+	label = text(c, label)
 	t := c.Theme()
 	b := ui.ButtonBase(c).Size(30, 30).Radius(8).Role(ui.RoleButton).Label(label).Tooltip(label)
 	switch {
@@ -150,6 +155,7 @@ func iconButton(c *ui.Context, icon *ui.SVG, label string) ui.Element {
 }
 
 func statusDot(c *ui.Context, label string, color ui.Color) {
+	label = text(c, label)
 	ui.Row(c).Gap(6).Children(func() {
 		ui.Box(c).Size(5, 5).Radius(3).Background(color)
 		ui.Text(c, label).FontSize(12).TextColor(color).SingleLine()
@@ -157,14 +163,26 @@ func statusDot(c *ui.Context, label string, color ui.Color) {
 }
 
 func sectionHeading(c *ui.Context, title string) {
-	ui.Text(c, title).FontSize(15).FontWeight(600)
+	ui.Text(c, text(c, title)).FontSize(15).FontWeight(600)
+}
+
+func pageHeading(c *ui.Context, title, description string, actions func()) {
+	ui.Row(c).Gap(16).AlignItems(ui.Center).Children(func() {
+		ui.Column(c).Grow(1).MinWidth(0).Gap(4).Children(func() {
+			ui.Text(c, text(c, title)).FontSize(22).FontWeight(600).SingleLine()
+			ui.Text(c, text(c, description)).FontSize(12).TextColor(c.Theme().TextMuted).MaxLines(2)
+		})
+		if actions != nil {
+			ui.Row(c).Gap(8).Shrink(0).Children(actions)
+		}
+	})
 }
 
 func emptyState(c *ui.Context, icon *ui.SVG, title, detail string) {
 	ui.Column(c).Padding(24, 12).Gap(8).AlignItems(ui.Center).Children(func() {
 		ui.Icon(c, icon).FontSize(28).TextColor(c.Theme().TextMuted.Alpha(0.65))
-		ui.Text(c, title).FontSize(13).FontWeight(500)
-		ui.Text(c, detail).FontSize(12).TextColor(c.Theme().TextMuted)
+		ui.Text(c, text(c, title)).FontSize(13).FontWeight(500)
+		ui.Text(c, text(c, detail)).FontSize(12).TextColor(c.Theme().TextMuted)
 	})
 }
 

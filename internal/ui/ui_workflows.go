@@ -2,90 +2,325 @@ package desktop
 
 import (
 	"fmt"
+	"github.com/DeliciousBuding/rclonego/locales"
+	"sort"
 	"strings"
 
+	"github.com/DeliciousBuding/rclonego/internal/core"
 	"github.com/egoist/mygo/ui"
 )
 
+const workflowHistoryPageSize = 20
+
+var (
+	workflowEditIcon = lineIcon(`<path d="m16 3 5 5-12 12H4v-5Z"/><path d="m14 5 5 5"/>`)
+)
+
+type workflowRunSummary struct {
+	status    string
+	steps     int
+	completed int
+}
+
+// One pass over the already refreshed jobs replaces one full snapshot clone
+// for every run in the list. Archived runs load their complete report on demand.
+func workflowRunSummaries(jobs []core.Job) map[string]workflowRunSummary {
+	summaries := make(map[string]workflowRunSummary)
+	rank := map[string]int{"completed": 0, "pending": 1, "running": 2, "paused": 3, "cancelled": 4, "interrupted": 5, "failed": 6}
+	for _, job := range jobs {
+		if job.WorkflowID == "" {
+			continue
+		}
+		summary, exists := summaries[job.WorkflowID]
+		if !exists {
+			summary.status = "completed"
+		}
+		summary.steps++
+		if job.Status == "completed" {
+			summary.completed++
+		}
+		jobRank, known := rank[job.Status]
+		if !known {
+			jobRank = 7
+		}
+		summaryRank, known := rank[summary.status]
+		if !known {
+			summaryRank = 7
+		}
+		if jobRank > summaryRank {
+			summary.status = job.Status
+		}
+		summaries[job.WorkflowID] = summary
+	}
+	return summaries
+}
+
+func workflowDefinitionsMatching(definitions []core.WorkflowDefinition, query string) []core.WorkflowDefinition {
+	query = strings.ToLower(strings.TrimSpace(query))
+	filtered := make([]core.WorkflowDefinition, 0, len(definitions))
+	for _, definition := range definitions {
+		if query == "" || strings.Contains(strings.ToLower(definition.Name+"\n"+definition.Source+"\n"+definition.Destination), query) {
+			filtered = append(filtered, definition)
+		}
+	}
+	return filtered
+}
+
+func recentWorkflowRuns(runs []core.Run) ([]core.Run, bool) {
+	rows := append([]core.Run(nil), runs...)
+	sort.Slice(rows, func(i, j int) bool {
+		if rows[i].CreatedAt.Equal(rows[j].CreatedAt) {
+			return rows[i].ID > rows[j].ID
+		}
+		return rows[i].CreatedAt.After(rows[j].CreatedAt)
+	})
+	hasNext := len(rows) > workflowHistoryPageSize
+	if hasNext {
+		rows = rows[:workflowHistoryPageSize]
+	}
+	return rows, hasNext
+}
+
+func workflowRunMatches(run core.Run, summary workflowRunSummary, query, category string) bool {
+	if query = strings.ToLower(strings.TrimSpace(query)); query != "" && !strings.Contains(strings.ToLower(run.Name+"\n"+run.ID), query) {
+		return false
+	}
+	switch category {
+	case "活动":
+		return summary.status == "running" || summary.status == "pending"
+	case "需处理":
+		return summary.status == "failed" || summary.status == "paused" || summary.status == "interrupted" || summary.status == "cancelled"
+	case "已完成":
+		return summary.status == "completed"
+	case "已归档":
+		return summary.status == ""
+	default:
+		return true
+	}
+}
+
 func (s *nativeUI) workflowsPage(c *ui.Context) {
 	t := c.Theme()
+	w := &s.workflowUI
+	definitions := workflowDefinitionsMatching(s.workflows, w.definitionSearch)
+	summaries := workflowRunSummaries(s.jobs)
+	rows, hasNext := recentWorkflowRuns(s.runs)
+	if w.historyLoaded {
+		rows, hasNext = w.historyRows, w.historyHasNext
+	}
+	if w.historyStatus == "" {
+		w.historyStatus = "全部状态"
+	}
 	ui.Column(c).Grow(1).MinHeight(0).Gap(16).Children(func() {
-		ui.Row(c).Gap(10).Children(func() {
-			ui.Text(c, "保存常用步骤，按需执行").FontSize(12).TextColor(t.TextMuted)
-			ui.Spacer(c)
-			actionButton(c.Key("save-workflow"), iconPlus, "新建工作流…", true).Disabled(s.busy).OnClick(func() {
-				s.beginJobForm(nil)
-				s.saveDefinition = true
-				s.jobWorkflow = true
-			})
+		pageHeading(c, "工作流", "保存定义，重复执行，查看结果", func() {
+			iconButton(c.Key("import-workflow"), iconDownload, "导入工作流").Disabled(s.busy).OnClick(s.importWorkflow)
+			actionButton(c.Key("save-workflow"), iconPlus, "新建工作流…", true).Disabled(s.busy).
+				OnClick(func() { s.beginWorkflowEditor(core.WorkflowDefinition{}, false) })
 		})
+		ui.TextInput(c.Key("workflow-search"), &w.definitionSearch).FillWidth().
+			Label(text(c, "搜索工作流")).Placeholder(text(c, "搜索名称或路径"))
 		contentScroll(c).Grow(1).Gap(18).Children(func() {
-			sectionHeading(c, "已保存的工作流")
-			if len(s.workflows) == 0 {
-				emptyState(c, iconWorkflow, "保存一次，重复执行", "按目录分步复制，所有步骤完成后执行最终校验")
+			ui.Row(c).Children(func() {
+				sectionHeading(c, "已保存的工作流")
+				ui.Spacer(c)
+				ui.Text(c, fmt.Sprintf(text(c, "%d 项"), len(definitions))).FontSize(11).TextColor(t.TextMuted)
+			})
+			if len(definitions) == 0 {
+				title, detail := "保存一次，重复执行", "按目录分步复制，所有步骤完成后执行最终校验"
+				if w.definitionSearch != "" {
+					title, detail = "没有匹配的工作流", "尝试其他名称或路径"
+				}
+				emptyState(c, iconWorkflow, title, detail)
+			} else {
+				// MyGo's native virtual list keeps large definition collections
+				// bounded. History pages below are limited to twenty records.
+				w.definitionList.Key = func(i int) any { return definitions[i].ID }
+				w.definitionList.Label = func(i int) string { return definitions[i].Name }
+				ui.List(c.Key("workflow-definitions"), &w.definitionList, len(definitions), func(i int) {
+					s.workflowDefinitionRow(c.Key(definitions[i].ID), definitions[i])
+				}).Height(float32(min(len(definitions)*66, 264))).Padding(0, 16, 0, 0)
 			}
-			for _, definition := range s.workflows {
-				ui.Row(c.Key("workflow-"+definition.ID)).Gap(12).Padding(14, 0).BorderWidth(0, 0, .5, 0).BorderColor(t.Border).Children(func() {
-					ui.Icon(c, iconWorkflow).FontSize(23).TextColor(t.Accent)
-					ui.Column(c).Grow(1).MinWidth(0).Gap(4).Children(func() {
-						ui.Text(c, definition.Name).FontSize(13).FontWeight(600)
-						ui.Text(c, definition.Source+" → "+definition.Destination).FontSize(11).TextColor(t.TextMuted).SingleLine()
-					})
-					actionButton(c.Key("run-"+definition.ID), iconPlay, "执行", false).Disabled(s.busy).OnClick(func() {
-						id := definition.ID
-						s.run("启动工作流", func() error { _, err := s.app.StartWorkflow(id, ""); return err })
-					})
-					iconButton(c.Key("delete-definition-"+definition.ID), iconTrash, "删除定义，保留执行记录").Disabled(s.busy).OnClick(func() {
-						id := definition.ID
-						s.run("删除定义", func() error { return s.app.DeleteDefinition(id) })
-					})
-				})
-			}
-			sectionHeading(c, "执行记录")
-			for i := len(s.runs) - 1; i >= 0; i-- {
-				run := s.runs[i]
-				report, err := s.app.ReportRun(run.ID)
-				if err != nil {
+			ui.Row(c).Gap(8).Children(func() {
+				sectionHeading(c, "执行记录")
+				ui.Spacer(c)
+				iconButton(c.Key("refresh-workflow-history"), iconRefresh, "刷新执行记录").Disabled(s.busy).
+					OnClick(func() { s.loadWorkflowHistory(w.historyOffset) })
+			})
+			ui.Row(c).Gap(8).Children(func() {
+				ui.TextInput(c.Key("history-search"), &w.historySearch).Grow(1).MinWidth(0).
+					Label(text(c, "筛选本页执行记录")).Placeholder(text(c, "筛选本页名称或运行 ID"))
+				translatedSelect(c.Key("history-status"), &w.historyStatus, []string{"全部状态", "活动", "需处理", "已完成", "已归档"}).
+					Width(112).Label(text(c, "执行状态筛选"))
+			})
+			visible := 0
+			for _, run := range rows {
+				summary := summaries[run.ID]
+				if !workflowRunMatches(run, summary, w.historySearch, w.historyStatus) {
 					continue
 				}
-				ui.Row(c.Key("run-report-"+run.ID)).Gap(10).Padding(12, 0).Children(func() {
-					ui.Column(c).Grow(1).MinWidth(0).Gap(3).Children(func() {
-						ui.Text(c, run.Name).FontSize(13).FontWeight(500).SingleLine().Tooltip(run.Name)
-						ui.Text(c, run.CreatedAt.Local().Format("01月02日 15:04")+" · "+fmt.Sprint(len(report.Steps))+" 个步骤").
-							FontSize(11).TextColor(t.TextMuted)
-					})
-					statusDot(c, statusLabel(report.Status), statusColor(c, report.Status))
-					if report.Status == "failed" || report.Status == "paused" || report.Status == "interrupted" || report.Status == "cancelled" {
-						ui.Button(c.Key("resume-run-"+run.ID), "恢复").Disabled(s.busy).OnClick(func() {
-							id := run.ID
-							s.run("恢复执行", func() error { return s.app.ActOnRun(id, "resume") })
-						})
-					}
-					ui.Button(c.Key("report-"+run.ID), "结果").Height(28).OnClick(func() {
-						var lines []string
-						lines = append(lines, run.Name+" · "+statusLabel(report.Status))
-						lines = append(lines, "校验："+report.Verification)
-						for _, step := range report.Steps {
-							lines = append(lines, fmt.Sprintf("%d/%d %s · %s · %d 次尝试",
-								step.WorkflowStep, step.WorkflowSize, step.Name, statusLabel(step.Status), step.Attempt))
-						}
-						s.runReport = strings.Join(lines, "\n")
-					})
-				})
+				visible++
+				s.workflowRunRow(c.Key("run-"+run.ID), run, summary)
 			}
-			if len(s.runs) == 0 {
-				ui.Text(c, "暂无执行记录").FontSize(12).TextColor(t.TextMuted)
+			if visible == 0 {
+				label := "暂无执行记录"
+				if len(rows) > 0 {
+					label = "本页没有匹配的执行记录"
+				}
+				ui.Text(c, text(c, label)).FontSize(12).TextColor(t.TextMuted)
 			}
-			if s.runReport != "" {
-				ui.Column(c).Padding(14).Radius(8).Background(t.Surface).Gap(8).Children(func() {
-					ui.Row(c).Children(func() {
-						sectionHeading(c, "执行结果")
-						ui.Spacer(c)
-						iconButton(c.Key("close-run-report"), iconClose, "关闭结果").OnClick(func() { s.runReport = "" })
-					})
-					ui.Text(c, s.runReport).FontSize(12)
-				})
+			ui.Row(c).Gap(8).Children(func() {
+				ui.Text(c, fmt.Sprintf(text(c, "第 %d 页 · 每页 %d 项"), w.historyOffset/workflowHistoryPageSize+1, workflowHistoryPageSize)).
+					FontSize(11).TextColor(t.TextMuted).Grow(1).MinWidth(0)
+				ui.Button(c.Key("history-previous"), text(c, "上一页")).Height(28).Disabled(s.busy || w.historyOffset == 0).
+					OnClick(func() { s.loadWorkflowHistory(max(0, w.historyOffset-workflowHistoryPageSize)) })
+				ui.Button(c.Key("history-next"), text(c, "下一页")).Height(28).Disabled(s.busy || !hasNext).
+					OnClick(func() { s.loadWorkflowHistory(w.historyOffset + workflowHistoryPageSize) })
+			})
+			if w.report != nil {
+				s.workflowReport(c)
 			}
 		})
+	})
+}
+
+func (s *nativeUI) workflowDefinitionRow(c *ui.Context, definition core.WorkflowDefinition) {
+	t := c.Theme()
+	ui.Row(c).Gap(8).Padding(12, 0).MinWidth(0).BorderWidth(0, 0, .5, 0).BorderColor(t.Border).Children(func() {
+		ui.Icon(c, iconWorkflow).FontSize(22).TextColor(t.Accent).Shrink(0)
+		ui.Column(c).Grow(1).MinWidth(0).Gap(4).Children(func() {
+			ui.Text(c, definition.Name).FontSize(13).FontWeight(600).SingleLine().Tooltip(definition.Name)
+			ui.Text(c, definition.Source+" → "+definition.Destination).FontSize(11).TextColor(t.TextMuted).
+				SingleLine().Tooltip(definition.Source + " → " + definition.Destination)
+		})
+		actionButton(c.Key("run"), iconPlay, "执行", false).Disabled(s.busy).OnClick(func() {
+			s.run(text(c, "启动工作流"), func() error { _, err := s.app.StartWorkflow(definition.ID, ""); return err })
+		})
+		iconButton(c.Key("edit"), workflowEditIcon, "编辑工作流").Disabled(s.busy).OnClick(func() { s.beginWorkflowEditor(definition, false) })
+		iconButton(c.Key("more"), iconMore, "更多工作流操作").Disabled(s.busy).Menu(func(m *ui.Menu) {
+			if m.Item(text(c, "复制工作流")).Chosen() {
+				s.beginWorkflowEditor(definition, true)
+			}
+			if m.Item(text(c, "导出工作流")).Chosen() {
+				s.exportWorkflow(definition)
+			}
+			m.Separator()
+			if m.Item(text(c, "删除定义，保留执行记录")).Chosen() {
+				s.run(text(c, "删除工作流"), func() error { return s.app.DeleteDefinition(definition.ID) })
+			}
+		})
+	})
+}
+
+func (s *nativeUI) workflowRunRow(c *ui.Context, run core.Run, summary workflowRunSummary) {
+	t := c.Theme()
+	ui.Row(c).Gap(10).Padding(10, 0).MinWidth(0).Children(func() {
+		ui.Column(c).Grow(1).MinWidth(0).Gap(3).Children(func() {
+			ui.Text(c, run.Name).FontSize(13).FontWeight(500).SingleLine().Tooltip(run.Name)
+			detail := dateTime(c, run.CreatedAt)
+			if summary.steps > 0 {
+				detail += fmt.Sprintf(text(c, " · %d / %d 步完成"), summary.completed, summary.steps)
+			} else {
+				detail += text(c, " · 打开结果查看完整记录")
+			}
+			ui.Text(c, detail).FontSize(11).TextColor(t.TextMuted).SingleLine()
+		})
+		if summary.status == "" {
+			statusDot(c, "已归档", t.TextMuted)
+		} else {
+			statusDot(c, statusLabel(summary.status), statusColor(c, summary.status))
+		}
+		if summary.status == "failed" || summary.status == "paused" || summary.status == "interrupted" || summary.status == "cancelled" {
+			ui.Button(c.Key("resume"), text(c, "恢复")).Height(28).Disabled(s.busy).OnClick(func() {
+				s.run(text(c, "恢复执行"), func() error { return s.app.ActOnRun(run.ID, "resume") })
+			})
+		}
+		ui.Button(c.Key("report"), text(c, "结果")).Height(28).Disabled(s.busy).OnClick(func() { s.openWorkflowReport(run.ID) })
+	})
+}
+
+func (s *nativeUI) loadWorkflowHistory(offset int) {
+	var rows []core.Run
+	s.runAfter(locales.Text("读取执行记录"), func() error {
+		var err error
+		rows, err = s.app.ListRuns(offset, workflowHistoryPageSize+1)
+		return err
+	}, func() {
+		w := &s.workflowUI
+		w.historyOffset, w.historyLoaded = offset, true
+		w.historyHasNext = len(rows) > workflowHistoryPageSize
+		if w.historyHasNext {
+			rows = rows[:workflowHistoryPageSize]
+		}
+		w.historyRows = rows
+	})
+}
+
+func (s *nativeUI) openWorkflowReport(id string) {
+	var report core.RunReport
+	s.runAfter(locales.Text("读取执行结果"), func() error {
+		var err error
+		report, err = s.app.ReportRun(id)
+		return err
+	}, func() {
+		sort.Slice(report.Steps, func(i, j int) bool { return report.Steps[i].WorkflowStep < report.Steps[j].WorkflowStep })
+		s.workflowUI.report = &report
+	})
+}
+
+func workflowVerificationLabel(mode string) string {
+	switch mode {
+	case "content", "content_compared":
+		return "已下载并比较文件内容"
+	case "size", "size_compared":
+		return "已比较文件大小"
+	case "not_run":
+		return "尚未执行最终校验"
+	case "backend_check_completed: size and available hashes; hash availability not attested":
+		return "已比较大小和后端可用哈希；哈希可用性未单独验证"
+	case "":
+		return "未提供校验结果"
+	default:
+		return "校验结果：" + mode
+	}
+}
+
+func (s *nativeUI) workflowReport(c *ui.Context) {
+	t := c.Theme()
+	report := s.workflowUI.report
+	ui.Column(c).Padding(14).Radius(10).Background(t.Surface).Gap(12).MinWidth(0).Children(func() {
+		ui.Row(c).Gap(8).Children(func() {
+			sectionHeading(c, "执行结果")
+			ui.Spacer(c)
+			iconButton(c.Key("close-run-report"), iconClose, "关闭结果").OnClick(func() { s.workflowUI.report = nil })
+		})
+		ui.Text(c, report.Run.Name).FontSize(14).FontWeight(600).MaxLines(2)
+		statusDot(c, statusLabel(report.Status), statusColor(c, report.Status))
+		ui.Text(c, workflowVerificationLabel(report.Verification)).FontSize(12).TextColor(t.TextMuted)
+		ui.Text(c, text(c, "范围：只比较源目录中的文件；目标多余文件不属于复制校验结果。")).FontSize(11).TextColor(t.TextMuted).MaxLines(3)
+		ui.Text(c, text(c, "累计传输 ")+formatBytes(report.WireBytes)+" · "+fmt.Sprint(len(report.Attempts))+text(c, " 次尝试")).
+			FontSize(11).TextColor(t.TextMuted)
+		s.workflowUI.reportList.Key = func(i int) any { return report.Steps[i].ID }
+		s.workflowUI.reportList.Label = func(i int) string { return report.Steps[i].Name }
+		ui.List(c.Key("report-steps"), &s.workflowUI.reportList, len(report.Steps), func(i int) {
+			step := report.Steps[i]
+			ui.Row(c.Key("report-step-" + step.ID)).Gap(8).MinWidth(0).Children(func() {
+				ui.Text(c, fmt.Sprintf("%d", step.WorkflowStep)).Width(24).FontSize(11).TextColor(t.TextMuted)
+				ui.Column(c).Grow(1).MinWidth(0).Gap(3).Children(func() {
+					ui.Text(c, step.Name).FontSize(12).SingleLine().Tooltip(step.Name)
+					ui.Text(c, fmt.Sprintf(text(c, "%d 次尝试 · %s"), step.Attempt, text(c, operationLabel(step.Operation)))).
+						FontSize(11).TextColor(t.TextMuted)
+					if step.Error != "" {
+						ui.Text(c, step.Error).FontSize(11).TextColor(t.Danger).MaxLines(3)
+					}
+				})
+				statusDot(c, statusLabel(step.Status), statusColor(c, step.Status))
+			})
+		}).Height(float32(min(len(report.Steps)*48, 288))).Padding(0, 16, 0, 0)
+		if report.Status == "failed" || report.Status == "paused" || report.Status == "interrupted" || report.Status == "cancelled" {
+			ui.Button(c.Key("resume-reported-run"), text(c, "恢复未完成步骤")).Disabled(s.busy).OnClick(func() {
+				id := report.Run.ID
+				s.runAfter(text(c, "恢复执行"), func() error { return s.app.ActOnRun(id, "resume") }, func() { s.workflowUI.report = nil })
+			})
+		}
 	})
 }

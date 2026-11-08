@@ -30,11 +30,19 @@ It is not an official rclone or MyGo application.
 - **Connect storage.** Verified engine installation, offline import, provider-driven
   account setup, browser OAuth and read verification. Mounts stay under recorded ownership.
 - **Work from any interface.** Native light/dark/system appearance, tray background
-  operation, CLI JSON, offline OpenAPI, event cursors and read-only observer tokens.
+  operation, English/Chinese UI, CLI JSON, offline OpenAPI, event streaming and
+  revocable observer/task tokens.
+- **Reuse and automate.** Edit, clone, import and export workflows. Opt-in
+  directory watching and recurring workflows submit to the same queue.
+- **Choose and inspect paths.** Browse cloud folders, inspect structured dry-run
+  changes, observe owned VFS cache/writeback state and save independent offline copies.
 
 A mirror requires a matching dry-run preview and explicit deletion permission.
 Verification reports distinguish sizes, available hashes and content-download
 comparison. A completed copy is not automatically a completed content check.
+Partial workflows verify the selected top-level entries and their descendants.
+Storage failures suspend new dispatch until recovery. Hidden windows stop UI polling;
+idle windows refresh less often, and logs have bounded retention.
 
 ## Install
 
@@ -55,10 +63,14 @@ Windows portable users can copy the executable alone. SQLite is embedded and
 extracted to a verified private cache on first use. On Linux, use the packaged
 install script or the distribution package.
 
-Open **Resources** to download the pinned official rclone release, select an
+Open **Settings → rclone engine** to download the pinned official rclone release, select an
 existing executable or import its verified ZIP offline. This does not modify PATH
 or a package-manager installation. Mounts separately require WinFsp on Windows,
 FUSE on Linux, or a compatible FUSE/engine combination on macOS.
+
+**Settings** also contains appearance, interface language, login startup,
+client updates and collapsible defaults for new tasks. **Resources** shows
+current process usage and live bandwidth controls.
 
 ## First workflow
 
@@ -91,8 +103,12 @@ Ctrl+C stops waiting without cancelling the task.
 
 See the [Agent guide](docs/agents.md), [API](docs/api.md),
 [architecture](docs/architecture.md) and [privacy](docs/privacy.md).
-Automatic synchronization, separate-daemon GUI attachment, MCP and signed
-automatic application updates remain future work.
+See [automations](docs/automation.md), [mount caching](docs/mounts.md) and
+[languages](docs/languages.md). Automatic copies retain destination-only files.
+Bidirectional synchronization, separate-daemon GUI attachment and MCP remain
+future work. The official MyGo native updater supports signed releases and
+stable/preview channels; the release page identifies which builds/feed are available.
+Renamed standalone Windows executables use manual updates.
 
 ## Develop and contribute
 
