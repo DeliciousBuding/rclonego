@@ -36,7 +36,7 @@ type Queue struct {
 	unsavedFinal *Job
 	cleanupAt    time.Time
 	cleanupError error
-	externalBusy func() bool
+	blocked      func(Job, State) bool
 }
 
 func NewQueue(store *Store, rclonePath, dataDir string) *Queue {
@@ -190,12 +190,20 @@ func (q *Queue) loop() {
 			q.storageFailure(err, nil)
 			continue
 		}
-		if q.externalBusy != nil && q.externalBusy() {
-			continue
-		}
 		q.addMu.Lock()
 		snapshot := q.store.Snapshot()
-		job, ok := nextRunnable(snapshot.Jobs)
+		var job Job
+		ok := false
+		for _, candidate := range PendingJobs(snapshot.Jobs) {
+			if WorkflowBlocked(snapshot.Jobs, candidate) || (q.blocked != nil && q.blocked(candidate, snapshot)) {
+				continue
+			}
+			if candidate.NotBefore != nil && time.Now().Before(*candidate.NotBefore) {
+				continue
+			}
+			job, ok = candidate, true
+			break
+		}
 		if !ok || snapshot.QueuePaused {
 			q.addMu.Unlock()
 			continue
@@ -673,7 +681,7 @@ func (q *Queue) Retry(id string) error {
 			if job.ID != id {
 				continue
 			}
-			if job.Status == "running" || job.Status == "pending" {
+			if job.Status == "handoff" || job.Status == "running" || job.Status == "pending" {
 				return errors.New("only finished or interrupted jobs can be retried")
 			}
 			for _, peer := range state.Jobs {
@@ -733,7 +741,7 @@ func (q *Queue) Delete(id string) error {
 	return q.store.Update(func(state *State) error {
 		for i, job := range state.Jobs {
 			if job.ID == id {
-				if job.Status == "running" {
+				if job.Status == "running" || job.Status == "handoff" {
 					return errors.New("running job cannot be deleted")
 				}
 				if job.WorkflowID != "" {
@@ -762,7 +770,7 @@ func (q *Queue) DeleteWorkflow(workflowID string) error {
 				kept = append(kept, job)
 				continue
 			}
-			if job.Status == "running" {
+			if job.Status == "running" || job.Status == "handoff" {
 				return errors.New("running workflow must be cancelled first")
 			}
 			removed++

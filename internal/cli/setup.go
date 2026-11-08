@@ -7,11 +7,30 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+
+	"github.com/DeliciousBuding/rclonego/internal/core"
 )
 
 func setupRequest(args []string) (method, path string, body any, key string, err error) {
 	method = http.MethodGet
 	switch args[0] {
+	case "handoff":
+		if len(args) == 1 || len(args) == 2 && args[1] == "status" {
+			path = "/api/v1/handoff"
+			return
+		}
+		if len(args) == 2 && args[1] == "return" {
+			method, path, body = http.MethodPost, "/api/v1/handoff/return", map[string]string{}
+			return
+		}
+		if len(args) == 4 && (args[1] == "preview" || args[1] == "begin") && args[2] == "--file" {
+			var request core.HandoffRequest
+			err = readCommandFile(args[3], &request)
+			method, path, body = http.MethodPost, "/api/v1/handoff/"+args[1], request
+			return
+		}
+		err = errors.New("use handoff status|return|preview --file <request.json>|begin --file <request.json>")
+		return
 	case "engine":
 		if len(args) == 1 || len(args) == 2 && args[1] == "status" {
 			path = "/api/v1/engine"

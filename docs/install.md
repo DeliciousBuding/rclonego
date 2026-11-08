@@ -1,5 +1,29 @@
 # Install, update and uninstall / 安装、更新与卸载
 
+For Data Ops Console users, **Settings → Legacy client handoff** previews an
+import of `state.json` and the explicitly selected rclone configuration.
+Use a profile with no task history. Beginning the handoff pauses old dispatch
+without stopping its current transfer, copies private account configuration,
+bounded logs and exclusion evidence, and preserves task IDs and step order.
+Mounts retain their original owner. The old client must remain open until its
+active step finishes and records an exit result. The new queue then continues
+unfinished steps; a failed copy still blocks final verification.
+
+“Return to previous client” is available before this client starts imported
+work. After return, use a fresh empty profile for another import. A crash or
+lost pause response may leave the old queue paused: read the handoff status and
+resume the old client explicitly if no import was committed. Neither process
+disappearance nor a progress bar reaching 100% proves completion.
+
+Data Ops Console 用户可在**设置 → 旧客户端接管**中选择 `state.json` 和原 rclone
+配置，先预览，再导入到没有任务历史的配置目录。开始交接只暂停旧队列的后续派发，
+当前上传继续，任务顺序、私有配置、有界日志和排除证明会保留。
+原挂载仍由原程序管理。旧客户端需保持打开，直到当前步骤记录最终退出结果；
+新队列随后接续未完成步骤，复制失败仍会阻止最终校验。
+新客户端启动过导入任务后不再允许直接交还。交还后若需重新导入，使用新的空白配置。
+如果交接期间崩溃或暂停响应丢失，旧队列可能保持暂停，应先查询交接状态；
+没有提交导入时可在旧客户端手动恢复队列。
+
 ## English
 
 Download from [GitHub Releases](https://github.com/DeliciousBuding/rclonego/releases).

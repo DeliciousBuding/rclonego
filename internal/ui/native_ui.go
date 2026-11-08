@@ -137,6 +137,8 @@ type nativeUI struct {
 	storageUI           map[string]*storageUIState
 	storageDetail       string
 	showStorageDetails  bool
+	handoffUI           handoffUIState
+	handoff             *core.LegacyHandoff
 }
 
 func New(app *core.App, api string) *nativeUI {
@@ -224,31 +226,10 @@ func (s *nativeUI) refresh(ctx context.Context, includeRemoteState bool) {
 	})
 	state := s.app.Snapshot()
 	runtime := s.app.RuntimeSnapshot()
-	activity := core.ActivityStatus{}
-	for _, external := range runtime.External {
-		if external.Available {
-			activity = core.ActivityStatus{Available: true, Stats: external.Stats}
-			break
-		}
-	}
-	if !activity.Available {
-		for _, job := range state.Jobs {
-			if job.Status == "running" {
-				activity = core.ActivityStatus{Available: true, Stats: &core.RCStats{
-					Bytes: job.Bytes, TotalBytes: job.TotalBytes, Speed: job.Speed,
-					Transfers: job.FilesDone, TotalTransfers: job.FilesTotal,
-					Checks: job.ChecksDone, TotalChecks: job.ChecksTotal,
-					Transferring: job.ActiveFiles, Checking: job.CheckingFiles,
-					Errors: job.EngineErrors, Listed: job.EngineListed, ElapsedTime: job.EngineElapsed, ETA: job.EngineETA,
-					FatalError: job.EngineFatalError, RetryError: job.EngineRetryError, LastError: job.EngineLastError,
-				}}
-				break
-			}
-		}
-	}
+	activity := core.CurrentActivity(state, runtime)
 	active := activity.Available && activity.Stats != nil && (activity.Stats.Speed > 0 || len(activity.Stats.Transferring) > 0 || len(activity.Stats.Checking) > 0)
 	for _, job := range state.Jobs {
-		active = active || job.Status == "running"
+		active = active || job.Status == "running" || job.Status == "handoff"
 	}
 	s.pollActive.Store(active)
 	jobs := append([]core.Job(nil), state.Jobs...)
@@ -282,6 +263,7 @@ func (s *nativeUI) refresh(ctx context.Context, includeRemoteState bool) {
 			s.setError(fmt.Errorf("%s", runtime.CatalogError))
 		}
 		s.jobs, s.paused, s.activity = jobs, state.QueuePaused, activity
+		s.handoff = state.Handoff
 		s.workflows, s.runs = state.Workflows, state.Runs
 		s.automations = s.app.ListAutomations()
 		s.external, s.resources = runtime.External, runtime.Resources
@@ -604,6 +586,8 @@ func statusColor(c *ui.Context, status string) ui.Color {
 
 func statusLabel(status string) string {
 	switch status {
+	case "handoff":
+		return "旧客户端执行中"
 	case "paused":
 		return "已暂停"
 	case "pending":

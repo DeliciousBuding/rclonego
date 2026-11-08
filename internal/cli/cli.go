@@ -56,6 +56,7 @@ const cliHelp = `RcloneGo — 本机数据工作台
   logs cleanup                             按保留规则清理任务日志
   remotes [list]                           列出云端账户
   accounts quota <远端名称>                 读取服务提供的账户容量，不扫描文件
+  handoff status|preview --file <json>|begin --file <json>|return
   accounts info <远端名称>                  查看后端能力和校验算法
   usage <本机绝对路径或remote:path>          按需统计文件数和目录大小
   remotes reconnect <远端名称>              开始独立账户授权会话
@@ -110,7 +111,7 @@ func IsCLI(args []string) bool {
 	switch args[0] {
 	case "status", "jobs", "mounts", "remotes", "queue", "theme", "api", "help", "--help", "-h", "--version":
 		return true
-	case "resources", "bandwidth", "workflow", "workflows", "runs", "doctor", "settings", "external", "engine", "accounts", "events", "schema", "diagnostics", "licenses", "browse", "usage", "automations", "tokens", "offline", "logs":
+	case "resources", "bandwidth", "workflow", "workflows", "runs", "doctor", "settings", "external", "engine", "accounts", "handoff", "events", "schema", "diagnostics", "licenses", "browse", "usage", "automations", "tokens", "offline", "logs":
 		return true
 	case "--api", "--json", "--timeout":
 		return true
@@ -258,7 +259,7 @@ func cliRequest(args []string) (method, path string, body any, key string, err e
 	if args[0] == "browse" || args[0] == "usage" || args[0] == "tokens" || args[0] == "automations" || args[0] == "offline" || args[0] == "logs" || len(args) == 3 && args[0] == "mounts" && args[1] == "cache" {
 		return agentRequest(args)
 	}
-	if args[0] == "engine" || args[0] == "accounts" {
+	if args[0] == "engine" || args[0] == "accounts" || args[0] == "handoff" {
 		return setupRequest(args)
 	}
 	if args[0] == "workflows" || args[0] == "runs" || args[0] == "doctor" {

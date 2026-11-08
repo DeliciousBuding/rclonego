@@ -100,7 +100,7 @@ func (s *nativeUI) sidebar(c *ui.Context) {
 	t := c.Theme()
 	queued := 0
 	for _, job := range s.jobs {
-		if job.Status == "pending" || job.Status == "running" {
+		if job.Status == "pending" || job.Status == "running" || job.Status == "handoff" {
 			queued++
 		}
 	}
@@ -169,8 +169,6 @@ func (s *nativeUI) main(c *ui.Context) {
 		ui.Row(c).Height(56).Shrink(0).Padding(0, c.TitleBar().Right+16, 0, 28).Gap(12).AlignItems(ui.Center).
 			Background(ui.Transparent).
 			DragWindow().Children(func() {
-			title, _ := s.pageTitle()
-			ui.Text(c, text(c, title)).FontSize(15).FontWeight(600).Grow(1).MinWidth(0).SingleLine()
 			ui.Spacer(c)
 			ui.Row(c).Gap(4).Children(func() {
 				iconButton(c.Key("commands"), iconOverview, "搜索命令").KeyShortcuts(ui.Cmd, ui.KeyK).

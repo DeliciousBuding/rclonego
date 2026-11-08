@@ -94,7 +94,8 @@ func TestTaskGrantEnforcesOperationsPathBoundariesAndRevocation(t *testing.T) {
 			}
 		})
 	}
-	for _, endpoint := range []string{"/api/v1/tokens/read", "/api/v1/queue/pause", "/api/v1/accounts", "/api/v1/runs"} {
+	for _, endpoint := range []string{"/api/v1/tokens/read", "/api/v1/queue/pause", "/api/v1/accounts", "/api/v1/runs",
+		"/api/v1/handoff/preview", "/api/v1/handoff/begin", "/api/v1/handoff/return"} {
 		if recorder := apiRequest(t, server, grant.Token, "POST", endpoint, map[string]any{}); recorder.Code != 403 {
 			t.Fatalf("configuration endpoint %s status %d", endpoint, recorder.Code)
 		}

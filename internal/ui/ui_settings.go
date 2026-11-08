@@ -47,6 +47,7 @@ func (s *nativeUI) settingsPage(c *ui.Context) {
 		ui.Column(c).Gap(8).Children(func() { s.updatesPreferences(c) })
 		ui.Divider(c)
 		sectionHeading(c, locales.In(c.Locale()).AdvancedSettings())
+		s.handoffPreferences(c)
 		ui.Collapsible(c.Key("engine-settings"), text(c, "rclone 引擎"), &s.showEngineSettings, func() {
 			ui.Text(c, core.ValueOr(s.version, text(c, "尚未安装引擎 · 窗口和设置仍可使用"))).FontSize(12).TextColor(t.TextMuted)
 			ui.Row(c).Gap(8).Children(func() {

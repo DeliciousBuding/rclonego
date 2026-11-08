@@ -35,12 +35,16 @@ var githubSVG []byte
 //go:embed assets/rclone.svg
 var rcloneSVG []byte
 
+//go:embed assets/app-mark.svg
+var appMarkSVG []byte
+
 var googleDriveLogo = ui.MustParseSVG(googleDriveSVG)
 var googleGLogo = ui.MustParseSVG(googleGSVG)
 var oneDriveLogo = ui.MustParseSVG(oneDriveSVG)
 var dropboxLogo = ui.MustParseSVG(dropboxSVG)
 var githubLogo = ui.MustParseSVG(githubSVG)
 var rcloneLogo = ui.MustParseSVG(rcloneSVG)
+var appMark = ui.MustParseSVG(appMarkSVG)
 
 type providerStyle struct {
 	label string
@@ -94,7 +98,6 @@ var (
 	iconArrow     = lineIcon(`<path d="M4 12h16m-5-5 5 5-5 5"/>`)
 	iconSettings  = lineIcon(`<path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2" fill="currentColor"/><circle cx="15" cy="12" r="2" fill="currentColor"/><circle cx="9" cy="18" r="2" fill="currentColor"/>`)
 	iconMore      = lineIcon(`<circle cx="5" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="19" cy="12" r="1" fill="currentColor"/>`)
-	appMark       = lineIcon(`<path d="M9 5H7a4 4 0 0 0-4 4v5a4 4 0 0 0 4 4h2m6-12h2a4 4 0 0 1 4 4v5a4 4 0 0 1-4 4h-2M9 12h6"/>`)
 	iconWorkflow  = lineIcon(`<rect x="3" y="3" width="7" height="6" rx="2"/><rect x="14" y="15" width="7" height="6" rx="2"/><path d="M6.5 9v6a3 3 0 0 0 3 3H14"/>`)
 	iconFolder    = lineIcon(`<path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/>`)
 	iconUp        = lineIcon(`<path d="m6 14 6-6 6 6"/>`)

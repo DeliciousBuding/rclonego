@@ -17,6 +17,10 @@ RcloneGo 是管理传输、挂载与校验的原生桌面客户端，由
 
 项目处于 alpha 开发阶段，是独立社区项目，不代表 rclone 或 MyGo 官方。
 
+**版本状态：**本页描述 alpha.3 开发源码，最新公开预览版仍为
+[v0.1.0-alpha.2](https://github.com/DeliciousBuding/rclonego/releases/tag/v0.1.0-alpha.2)。
+alpha.3 新增能力需要从源码构建，或使用后续公开预览版；目前尚无稳定版。
+
 <p align="center"><img src="assets/screenshots/resources-light.png" width="900" alt="RcloneGo 原生资源监控"></p>
 
 ## 主要能力
@@ -34,6 +38,8 @@ RcloneGo 是管理传输、挂载与校验的原生桌面客户端，由
   保存独立的本机离线副本。
 - **了解存储状态。** 读取服务返回的容量、校验算法与后端能力；浏览文件大小，
   按需统计目录并可取消；系统里的其他 rclone 与本客户端分别展示资源占用。
+- **接续旧客户端。** 预览导入 Data Ops Console 的任务，保留步骤顺序和排除证明，
+  当前上传完成后由统一队列接续后续步骤。
 
 镜像同步要求先 dry-run 预览，再明确授权删除。报告区分大小、可用哈希与下载内容对比；
 复制完成不等于内容校验完成。
@@ -43,7 +49,7 @@ RcloneGo 是管理传输、挂载与校验的原生桌面客户端，由
 ## 安装
 
 从 [Releases](https://github.com/DeliciousBuding/rclonego/releases) 选择发行包。
-预览版标为 prerelease，目前尚无稳定版。
+实际可下载的包与平台验证范围以对应发行页为准。
 
 | 平台 | 包形式与验证范围 |
 | --- | --- |

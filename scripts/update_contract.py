@@ -149,6 +149,7 @@ request_types = {
     ("POST", "/api/v1/tokens/read"): "ReadTokenRequest",
     ("POST", "/api/v1/tokens/tasks"): "TaskTokenRequest",
     ("POST", "/api/v1/engine/{action}"): "EngineRequest",
+    ("POST", "/api/v1/handoff/{action}"): "HandoffRequest",
     ("POST", "/api/v1/accounts/{id}/{action}"): "AnswerRequest",
     ("POST", "/api/v1/automations"): "AutomationRequest",
     ("PUT", "/api/v1/automations/{id}"): "AutomationRequest",
@@ -165,6 +166,7 @@ def response(method, endpoint, kind, status=200):
 
 for endpoint, kind in {
     "/api": "APIInfo", "/api/v1": "APIInfo", "/api/v1/schema": "OpenAPIDocument",
+    "/api/v1/handoff": "*LegacyHandoff",
     "/api/v1/health": "Health", "/api/v1/doctor": "[]Diagnostic", "/api/v1/diagnostics": "DiagnosticReport",
     "/api/v1/events": "EventsResponse", "/api/v1/engine": "Installation", "/api/v1/providers": "[]Provider",
     "/api/v1/accounts/{id}": "AccountView", "/api/v1/settings": "Settings", "/api/v1/overview": "Overview",
@@ -185,6 +187,7 @@ for method, endpoint, kind, status in [
     ("POST", "/api/v1/tokens/tasks", "TokenResponse", 201),
     ("POST", "/api/v1/tokens/{id}/revoke", "OK", 200),
     ("POST", "/api/v1/engine/{action}", "Installation", 200),
+    ("POST", "/api/v1/handoff/{action}", "LegacyHandoff", 200),
     ("POST", "/api/v1/accounts", "AccountView", 202),
     ("POST", "/api/v1/accounts/{id}/{action}", "OK", 202),
     ("PUT", "/api/v1/settings", "Settings", 200),
@@ -289,6 +292,10 @@ for method, path in re.findall(r'mux\.HandleFunc\("(\w+) ([^"]+)"', transport):
         operation["parameters"].append({"name": "Idempotency-Key", "in": "header", "schema": {"type": "string"}})
     if path == "/api/v1/accounts/{id}/{action}":
         operation["responses"]["200"] = operation["responses"]["202"]
+        operation["requestBody"]["required"] = False
+    if path == "/api/v1/handoff/{action}":
+        operation["responses"]["200"]["content"]["application/json"]["schema"] = {
+            "anyOf": [field_schema("HandoffPreview"), field_schema("LegacyHandoff")]}
         operation["requestBody"]["required"] = False
     paths.setdefault(path, {})[method.lower()] = operation
 

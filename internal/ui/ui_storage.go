@@ -10,10 +10,11 @@ import (
 )
 
 type storageUIState struct {
-	info    core.StorageInfo
-	quota   core.RemoteQuota
-	loading bool
-	err     string
+	info        core.StorageInfo
+	quota       core.RemoteQuota
+	loading     bool
+	err         string
+	detailsOpen bool
 }
 
 func (s *nativeUI) loadStorage(name string) {
@@ -25,6 +26,9 @@ func (s *nativeUI) loadStorage(name string) {
 		return
 	}
 	next := &storageUIState{loading: true}
+	if current != nil {
+		next.detailsOpen = current.detailsOpen
+	}
 	s.storageUI[name] = next
 	go func() {
 		info, err := s.app.StorageInfo(context.Background(), name)
@@ -140,29 +144,30 @@ func (s *nativeUI) storageDetails(c *ui.Context) {
 		return
 	}
 	ui.Divider(c)
-	sectionHeading(c, "后端能力")
 	hashes := strings.Join(state.info.Hashes, ", ")
 	if hashes == "" {
 		hashes = text(c, "未提供")
 	}
-	ui.Text(c, text(c, "校验算法")+" · "+hashes).FontSize(12).Selectable()
+	ui.Text(c, text(c, "校验算法")+" · "+hashes).FontSize(12).MaxLines(3).Tooltip(hashes).Selectable()
 	ui.Text(c, text(c, "校验仍取决于两端共有的算法；复制完成不代表内容校验完成。")).FontSize(11).TextColor(t.TextMuted).MaxLines(2)
-	f := state.info.Capabilities
-	for _, item := range []struct {
-		label string
-		value bool
-	}{{"容量查询", f.Quota}, {"服务端复制", f.ServerSideCopy}, {"服务端移动", f.ServerSideMove},
-		{"分享链接", f.PublicLink}, {"空目录", f.EmptyDirectories}, {"递归列举", f.RecursiveListing},
-		{"读取元数据", f.ReadMetadata}, {"写入元数据", f.WriteMetadata}, {"大小写不敏感", f.CaseInsensitive}} {
-		ui.Row(c).Gap(10).Children(func() {
-			ui.Text(c, text(c, item.label)).Grow(1).FontSize(12)
-			value, icon, color := "未支持", iconClose, t.TextMuted
-			if item.value {
-				value, icon, color = "支持", iconCheck, t.Success
-			}
-			ui.Icon(c, icon).FontSize(13).TextColor(color)
-			ui.Text(c, text(c, value)).FontSize(11).TextColor(color)
-		})
-	}
-	ui.Text(c, text(c, "能力来自当前 rclone 后端；具体操作仍受账户权限和服务限制。")).FontSize(11).TextColor(t.TextMuted).MaxLines(2)
+	ui.Collapsible(c.Key("backend-capabilities"), text(c, "后端能力"), &state.detailsOpen, func() {
+		f := state.info.Capabilities
+		for _, item := range []struct {
+			label string
+			value bool
+		}{{"容量查询", f.Quota}, {"服务端复制", f.ServerSideCopy}, {"服务端移动", f.ServerSideMove},
+			{"分享链接", f.PublicLink}, {"空目录", f.EmptyDirectories}, {"递归列举", f.RecursiveListing},
+			{"读取元数据", f.ReadMetadata}, {"写入元数据", f.WriteMetadata}, {"大小写不敏感", f.CaseInsensitive}} {
+			ui.Row(c).Gap(10).Children(func() {
+				ui.Text(c, text(c, item.label)).Grow(1).FontSize(12)
+				value, icon, color := "未支持", iconClose, t.TextMuted
+				if item.value {
+					value, icon, color = "支持", iconCheck, t.Success
+				}
+				ui.Icon(c, icon).FontSize(13).TextColor(color)
+				ui.Text(c, text(c, value)).FontSize(11).TextColor(color)
+			})
+		}
+		ui.Text(c, text(c, "能力来自当前 rclone 后端；具体操作仍受账户权限和服务限制。")).FontSize(11).TextColor(t.TextMuted).MaxLines(2)
+	})
 }

@@ -86,6 +86,14 @@ func (d *DB) Check() error {
 	return err
 }
 
+func (d *DB) HasTaskHistory() (bool, error) {
+	rows, err := d.db.Query(context.Background(), "SELECT EXISTS(SELECT 1 FROM steps UNION ALL SELECT 1 FROM runs UNION ALL SELECT 1 FROM attempts)")
+	if err != nil {
+		return false, err
+	}
+	return len(rows.Values) != 0 && rows.Values[0][0] == int64(1), nil
+}
+
 func (d *DB) JobByKey(key string) (json.RawMessage, error) {
 	rows, err := d.db.Query(context.Background(), "SELECT payload FROM steps WHERE json_extract(CAST(payload AS TEXT),'$.idempotency_key')=? LIMIT 1", key)
 	if err != nil {
@@ -114,12 +122,12 @@ func (d *DB) Load() (map[string][]json.RawMessage, error) {
 		d.cached[table] = map[string][]byte{}
 		switch table {
 		case "runs":
-			query += " WHERE id IN (SELECT id FROM runs ORDER BY rowid DESC LIMIT 200) OR id IN (SELECT run_id FROM steps WHERE status IN ('pending','running','paused','interrupted'))"
+			query += " WHERE id IN (SELECT id FROM runs ORDER BY rowid DESC LIMIT 200) OR id IN (SELECT run_id FROM steps WHERE status IN ('handoff','pending','running','paused','interrupted'))"
 		case "steps":
-			query += " WHERE status IN ('pending','running','paused','interrupted') OR run_id IN (SELECT id FROM runs ORDER BY rowid DESC LIMIT 200) OR id IN (SELECT id FROM steps WHERE run_id='' ORDER BY rowid DESC LIMIT 500)"
+			query += " WHERE status IN ('handoff','pending','running','paused','interrupted') OR run_id IN (SELECT id FROM runs ORDER BY rowid DESC LIMIT 200) OR id IN (SELECT id FROM steps WHERE run_id='' ORDER BY rowid DESC LIMIT 500)"
 			query += " ORDER BY position,id"
 		case "attempts":
-			query += " WHERE step_id IN (SELECT id FROM steps WHERE status IN ('pending','running','paused','interrupted') OR run_id IN (SELECT id FROM runs ORDER BY rowid DESC LIMIT 200) OR id IN (SELECT id FROM steps WHERE run_id='' ORDER BY rowid DESC LIMIT 500))"
+			query += " WHERE step_id IN (SELECT id FROM steps WHERE status IN ('handoff','pending','running','paused','interrupted') OR run_id IN (SELECT id FROM runs ORDER BY rowid DESC LIMIT 200) OR id IN (SELECT id FROM steps WHERE run_id='' ORDER BY rowid DESC LIMIT 500))"
 		}
 		rows, err := d.db.Query(context.Background(), query)
 		if err != nil {

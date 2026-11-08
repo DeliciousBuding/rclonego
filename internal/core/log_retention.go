@@ -83,7 +83,7 @@ func (log *taskLog) Close() error {
 }
 
 func retainedJob(status string) bool {
-	return status == "pending" || status == "running" || status == "paused" || status == "interrupted"
+	return status == "handoff" || status == "pending" || status == "running" || status == "paused" || status == "interrupted"
 }
 
 func (q *Queue) CleanupLogs() error {

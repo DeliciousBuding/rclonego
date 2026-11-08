@@ -6148,3 +6148,475 @@ func CapacityStoredFiles() string { return In(i18n.Locale()).CapacityStoredFiles
 func (msgs Messages) CapacityStoredFiles() string {
 	return Catalog.Format(msgs.locale, "capacityStoredFiles", nil)
 }
+
+// LegacyHandoff says "Legacy client handoff"
+// in the language the app shows.
+func LegacyHandoff() string { return In(i18n.Locale()).LegacyHandoff() }
+
+// LegacyHandoff says "Legacy client handoff"
+// in the language of msgs.
+func (msgs Messages) LegacyHandoff() string {
+	return Catalog.Format(msgs.locale, "legacyHandoff", nil)
+}
+
+// LegacyHandoffDescription says "Preview and import legacy tasks. This client continues the remaining steps after the active upload finishes."
+// in the language the app shows.
+func LegacyHandoffDescription() string { return In(i18n.Locale()).LegacyHandoffDescription() }
+
+// LegacyHandoffDescription says "Preview and import legacy tasks. This client continues the remaining steps after the active upload finishes."
+// in the language of msgs.
+func (msgs Messages) LegacyHandoffDescription() string {
+	return Catalog.Format(msgs.locale, "legacyHandoffDescription", nil)
+}
+
+// LegacyImportAction says "Import legacy client…"
+// in the language the app shows.
+func LegacyImportAction() string { return In(i18n.Locale()).LegacyImportAction() }
+
+// LegacyImportAction says "Import legacy client…"
+// in the language of msgs.
+func (msgs Messages) LegacyImportAction() string {
+	return Catalog.Format(msgs.locale, "legacyImportAction", nil)
+}
+
+// LegacyWaiting says "Previous client is running · handoff after this step"
+// in the language the app shows.
+func LegacyWaiting() string { return In(i18n.Locale()).LegacyWaiting() }
+
+// LegacyWaiting says "Previous client is running · handoff after this step"
+// in the language of msgs.
+func (msgs Messages) LegacyWaiting() string {
+	return Catalog.Format(msgs.locale, "legacyWaiting", nil)
+}
+
+// LegacyNeedsAttention says "Handoff needs attention"
+// in the language the app shows.
+func LegacyNeedsAttention() string { return In(i18n.Locale()).LegacyNeedsAttention() }
+
+// LegacyNeedsAttention says "Handoff needs attention"
+// in the language of msgs.
+func (msgs Messages) LegacyNeedsAttention() string {
+	return Catalog.Format(msgs.locale, "legacyNeedsAttention", nil)
+}
+
+// LegacyManaged says "Handoff complete · remaining steps managed here"
+// in the language the app shows.
+func LegacyManaged() string { return In(i18n.Locale()).LegacyManaged() }
+
+// LegacyManaged says "Handoff complete · remaining steps managed here"
+// in the language of msgs.
+func (msgs Messages) LegacyManaged() string {
+	return Catalog.Format(msgs.locale, "legacyManaged", nil)
+}
+
+// LegacyReturned says "Returned to previous client"
+// in the language the app shows.
+func LegacyReturned() string { return In(i18n.Locale()).LegacyReturned() }
+
+// LegacyReturned says "Returned to previous client"
+// in the language of msgs.
+func (msgs Messages) LegacyReturned() string {
+	return Catalog.Format(msgs.locale, "legacyReturned", nil)
+}
+
+// LegacyDetails says "Handoff details"
+// in the language the app shows.
+func LegacyDetails() string { return In(i18n.Locale()).LegacyDetails() }
+
+// LegacyDetails says "Handoff details"
+// in the language of msgs.
+func (msgs Messages) LegacyDetails() string {
+	return Catalog.Format(msgs.locale, "legacyDetails", nil)
+}
+
+// LegacyImportedCount says "Imported %d tasks, preserving step order and filters."
+// in the language the app shows.
+func LegacyImportedCount() string { return In(i18n.Locale()).LegacyImportedCount() }
+
+// LegacyImportedCount says "Imported %d tasks, preserving step order and filters."
+// in the language of msgs.
+func (msgs Messages) LegacyImportedCount() string {
+	return Catalog.Format(msgs.locale, "legacyImportedCount", nil)
+}
+
+// LegacyKeepOpen says "Keep the previous client open. The active upload continues; stopping its client interrupts that upload."
+// in the language the app shows.
+func LegacyKeepOpen() string { return In(i18n.Locale()).LegacyKeepOpen() }
+
+// LegacyKeepOpen says "Keep the previous client open. The active upload continues; stopping its client interrupts that upload."
+// in the language of msgs.
+func (msgs Messages) LegacyKeepOpen() string {
+	return Catalog.Format(msgs.locale, "legacyKeepOpen", nil)
+}
+
+// LegacyReturnCheckbox says "Return execution to the previous client"
+// in the language the app shows.
+func LegacyReturnCheckbox() string { return In(i18n.Locale()).LegacyReturnCheckbox() }
+
+// LegacyReturnCheckbox says "Return execution to the previous client"
+// in the language of msgs.
+func (msgs Messages) LegacyReturnCheckbox() string {
+	return Catalog.Format(msgs.locale, "legacyReturnCheckbox", nil)
+}
+
+// LegacyReturnScope says "Available before this client starts any imported work."
+// in the language the app shows.
+func LegacyReturnScope() string { return In(i18n.Locale()).LegacyReturnScope() }
+
+// LegacyReturnScope says "Available before this client starts any imported work."
+// in the language of msgs.
+func (msgs Messages) LegacyReturnScope() string {
+	return Catalog.Format(msgs.locale, "legacyReturnScope", nil)
+}
+
+// LegacyStateFile says "Legacy task file"
+// in the language the app shows.
+func LegacyStateFile() string { return In(i18n.Locale()).LegacyStateFile() }
+
+// LegacyStateFile says "Legacy task file"
+// in the language of msgs.
+func (msgs Messages) LegacyStateFile() string {
+	return Catalog.Format(msgs.locale, "legacyStateFile", nil)
+}
+
+// LegacyConfigFile says "Original rclone configuration"
+// in the language the app shows.
+func LegacyConfigFile() string { return In(i18n.Locale()).LegacyConfigFile() }
+
+// LegacyConfigFile says "Original rclone configuration"
+// in the language of msgs.
+func (msgs Messages) LegacyConfigFile() string {
+	return Catalog.Format(msgs.locale, "legacyConfigFile", nil)
+}
+
+// LegacyEndpoint says "Previous client API"
+// in the language the app shows.
+func LegacyEndpoint() string { return In(i18n.Locale()).LegacyEndpoint() }
+
+// LegacyEndpoint says "Previous client API"
+// in the language of msgs.
+func (msgs Messages) LegacyEndpoint() string {
+	return Catalog.Format(msgs.locale, "legacyEndpoint", nil)
+}
+
+// LegacyPreviewScope says "Preview first. Beginning the handoff pauses dispatch in the old queue and copies account configuration into this app…"
+// in the language the app shows.
+func LegacyPreviewScope() string { return In(i18n.Locale()).LegacyPreviewScope() }
+
+// LegacyPreviewScope says "Preview first. Beginning the handoff pauses dispatch in the old queue and copies account configuration into this app…"
+// in the language of msgs.
+func (msgs Messages) LegacyPreviewScope() string {
+	return Catalog.Format(msgs.locale, "legacyPreviewScope", nil)
+}
+
+// LegacyMountScope says "Existing mounts stay with their current owner. Importing does not grant permission to stop them."
+// in the language the app shows.
+func LegacyMountScope() string { return In(i18n.Locale()).LegacyMountScope() }
+
+// LegacyMountScope says "Existing mounts stay with their current owner. Importing does not grant permission to stop them."
+// in the language of msgs.
+func (msgs Messages) LegacyMountScope() string {
+	return Catalog.Format(msgs.locale, "legacyMountScope", nil)
+}
+
+// LegacyPreviewCounts says "%d tasks · %d accounts"
+// in the language the app shows.
+func LegacyPreviewCounts() string { return In(i18n.Locale()).LegacyPreviewCounts() }
+
+// LegacyPreviewCounts says "%d tasks · %d accounts"
+// in the language of msgs.
+func (msgs Messages) LegacyPreviewCounts() string {
+	return Catalog.Format(msgs.locale, "legacyPreviewCounts", nil)
+}
+
+// LegacyReturnAction says "Return to previous client"
+// in the language the app shows.
+func LegacyReturnAction() string { return In(i18n.Locale()).LegacyReturnAction() }
+
+// LegacyReturnAction says "Return to previous client"
+// in the language of msgs.
+func (msgs Messages) LegacyReturnAction() string {
+	return Catalog.Format(msgs.locale, "legacyReturnAction", nil)
+}
+
+// LegacyPreviewAction says "Preview import"
+// in the language the app shows.
+func LegacyPreviewAction() string { return In(i18n.Locale()).LegacyPreviewAction() }
+
+// LegacyPreviewAction says "Preview import"
+// in the language of msgs.
+func (msgs Messages) LegacyPreviewAction() string {
+	return Catalog.Format(msgs.locale, "legacyPreviewAction", nil)
+}
+
+// LegacyBeginAction says "Begin handoff"
+// in the language the app shows.
+func LegacyBeginAction() string { return In(i18n.Locale()).LegacyBeginAction() }
+
+// LegacyBeginAction says "Begin handoff"
+// in the language of msgs.
+func (msgs Messages) LegacyBeginAction() string {
+	return Catalog.Format(msgs.locale, "legacyBeginAction", nil)
+}
+
+// LegacyRunning says "Previous client is running"
+// in the language the app shows.
+func LegacyRunning() string { return In(i18n.Locale()).LegacyRunning() }
+
+// LegacyRunning says "Previous client is running"
+// in the language of msgs.
+func (msgs Messages) LegacyRunning() string {
+	return Catalog.Format(msgs.locale, "legacyRunning", nil)
+}
+
+// ManagedHere says "Managed by this client"
+// in the language the app shows.
+func ManagedHere() string { return In(i18n.Locale()).ManagedHere() }
+
+// ManagedHere says "Managed by this client"
+// in the language of msgs.
+func (msgs Messages) ManagedHere() string {
+	return Catalog.Format(msgs.locale, "managedHere", nil)
+}
+
+// ExternalObservation says "Observed externally · controls and final result belong to the original client"
+// in the language the app shows.
+func ExternalObservation() string { return In(i18n.Locale()).ExternalObservation() }
+
+// ExternalObservation says "Observed externally · controls and final result belong to the original client"
+// in the language of msgs.
+func (msgs Messages) ExternalObservation() string {
+	return Catalog.Format(msgs.locale, "externalObservation", nil)
+}
+
+// WorkflowTotalProgress says "Overall progress"
+// in the language the app shows.
+func WorkflowTotalProgress() string { return In(i18n.Locale()).WorkflowTotalProgress() }
+
+// WorkflowTotalProgress says "Overall progress"
+// in the language of msgs.
+func (msgs Messages) WorkflowTotalProgress() string {
+	return Catalog.Format(msgs.locale, "workflowTotalProgress", nil)
+}
+
+// BrowserSearchCurrentPage says "Search this page"
+// in the language the app shows.
+func BrowserSearchCurrentPage() string { return In(i18n.Locale()).BrowserSearchCurrentPage() }
+
+// BrowserSearchCurrentPage says "Search this page"
+// in the language of msgs.
+func (msgs Messages) BrowserSearchCurrentPage() string {
+	return Catalog.Format(msgs.locale, "browserSearchCurrentPage", nil)
+}
+
+// BrowserSearchCurrentPagePlaceholder says "Search this page…"
+// in the language the app shows.
+func BrowserSearchCurrentPagePlaceholder() string {
+	return In(i18n.Locale()).BrowserSearchCurrentPagePlaceholder()
+}
+
+// BrowserSearchCurrentPagePlaceholder says "Search this page…"
+// in the language of msgs.
+func (msgs Messages) BrowserSearchCurrentPagePlaceholder() string {
+	return Catalog.Format(msgs.locale, "browserSearchCurrentPagePlaceholder", nil)
+}
+
+// BrowserSearchScope says "Search and sorting apply to this page only. Other directories are not scanned."
+// in the language the app shows.
+func BrowserSearchScope() string { return In(i18n.Locale()).BrowserSearchScope() }
+
+// BrowserSearchScope says "Search and sorting apply to this page only. Other directories are not scanned."
+// in the language of msgs.
+func (msgs Messages) BrowserSearchScope() string {
+	return Catalog.Format(msgs.locale, "browserSearchScope", nil)
+}
+
+// BrowserSort says "Sort"
+// in the language the app shows.
+func BrowserSort() string { return In(i18n.Locale()).BrowserSort() }
+
+// BrowserSort says "Sort"
+// in the language of msgs.
+func (msgs Messages) BrowserSort() string {
+	return Catalog.Format(msgs.locale, "browserSort", nil)
+}
+
+// BrowserNameAscending says "Name A–Z"
+// in the language the app shows.
+func BrowserNameAscending() string { return In(i18n.Locale()).BrowserNameAscending() }
+
+// BrowserNameAscending says "Name A–Z"
+// in the language of msgs.
+func (msgs Messages) BrowserNameAscending() string {
+	return Catalog.Format(msgs.locale, "browserNameAscending", nil)
+}
+
+// BrowserNameDescending says "Name Z–A"
+// in the language the app shows.
+func BrowserNameDescending() string { return In(i18n.Locale()).BrowserNameDescending() }
+
+// BrowserNameDescending says "Name Z–A"
+// in the language of msgs.
+func (msgs Messages) BrowserNameDescending() string {
+	return Catalog.Format(msgs.locale, "browserNameDescending", nil)
+}
+
+// BrowserSizeDescending says "Largest first"
+// in the language the app shows.
+func BrowserSizeDescending() string { return In(i18n.Locale()).BrowserSizeDescending() }
+
+// BrowserSizeDescending says "Largest first"
+// in the language of msgs.
+func (msgs Messages) BrowserSizeDescending() string {
+	return Catalog.Format(msgs.locale, "browserSizeDescending", nil)
+}
+
+// BrowserNoMatches says "No matches on this page"
+// in the language the app shows.
+func BrowserNoMatches() string { return In(i18n.Locale()).BrowserNoMatches() }
+
+// BrowserNoMatches says "No matches on this page"
+// in the language of msgs.
+func (msgs Messages) BrowserNoMatches() string {
+	return Catalog.Format(msgs.locale, "browserNoMatches", nil)
+}
+
+// BrowserPageShown says "Showing %d / %d items on this page"
+// in the language the app shows.
+func BrowserPageShown() string { return In(i18n.Locale()).BrowserPageShown() }
+
+// BrowserPageShown says "Showing %d / %d items on this page"
+// in the language of msgs.
+func (msgs Messages) BrowserPageShown() string {
+	return Catalog.Format(msgs.locale, "browserPageShown", nil)
+}
+
+// BrowserFile says "File"
+// in the language the app shows.
+func BrowserFile() string { return In(i18n.Locale()).BrowserFile() }
+
+// BrowserFile says "File"
+// in the language of msgs.
+func (msgs Messages) BrowserFile() string {
+	return Catalog.Format(msgs.locale, "browserFile", nil)
+}
+
+// BrowserCopyPath says "Copy path"
+// in the language the app shows.
+func BrowserCopyPath() string { return In(i18n.Locale()).BrowserCopyPath() }
+
+// BrowserCopyPath says "Copy path"
+// in the language of msgs.
+func (msgs Messages) BrowserCopyPath() string {
+	return Catalog.Format(msgs.locale, "browserCopyPath", nil)
+}
+
+// HandoffRuntime0 says "Imported tasks are waiting for the previous client to finish its active step"
+// in the language the app shows.
+func HandoffRuntime0() string { return In(i18n.Locale()).HandoffRuntime0() }
+
+// HandoffRuntime0 says "Imported tasks are waiting for the previous client to finish its active step"
+// in the language of msgs.
+func (msgs Messages) HandoffRuntime0() string {
+	return Catalog.Format(msgs.locale, "handoffRuntime0", nil)
+}
+
+// HandoffRuntime1 says "Cannot read the previous client's final task result"
+// in the language the app shows.
+func HandoffRuntime1() string { return In(i18n.Locale()).HandoffRuntime1() }
+
+// HandoffRuntime1 says "Cannot read the previous client's final task result"
+// in the language of msgs.
+func (msgs Messages) HandoffRuntime1() string {
+	return Catalog.Format(msgs.locale, "handoffRuntime1", nil)
+}
+
+// HandoffRuntime2 says "The previous task definitions changed; return ownership to the previous client"
+// in the language the app shows.
+func HandoffRuntime2() string { return In(i18n.Locale()).HandoffRuntime2() }
+
+// HandoffRuntime2 says "The previous task definitions changed; return ownership to the previous client"
+// in the language of msgs.
+func (msgs Messages) HandoffRuntime2() string {
+	return Catalog.Format(msgs.locale, "handoffRuntime2", nil)
+}
+
+// HandoffRuntime3 says "The previous queue was resumed; pause it before continuing the handoff"
+// in the language the app shows.
+func HandoffRuntime3() string { return In(i18n.Locale()).HandoffRuntime3() }
+
+// HandoffRuntime3 says "The previous queue was resumed; pause it before continuing the handoff"
+// in the language of msgs.
+func (msgs Messages) HandoffRuntime3() string {
+	return Catalog.Format(msgs.locale, "handoffRuntime3", nil)
+}
+
+// HandoffRuntime4 says "The previous client no longer contains the active task"
+// in the language the app shows.
+func HandoffRuntime4() string { return In(i18n.Locale()).HandoffRuntime4() }
+
+// HandoffRuntime4 says "The previous client no longer contains the active task"
+// in the language of msgs.
+func (msgs Messages) HandoffRuntime4() string {
+	return Catalog.Format(msgs.locale, "handoffRuntime4", nil)
+}
+
+// HandoffRuntime5 says "The previous client has not recorded the exited transfer's result"
+// in the language the app shows.
+func HandoffRuntime5() string { return In(i18n.Locale()).HandoffRuntime5() }
+
+// HandoffRuntime5 says "The previous client has not recorded the exited transfer's result"
+// in the language of msgs.
+func (msgs Messages) HandoffRuntime5() string {
+	return Catalog.Format(msgs.locale, "handoffRuntime5", nil)
+}
+
+// HandoffRuntime6 says "The previous client's final result is not available"
+// in the language the app shows.
+func HandoffRuntime6() string { return In(i18n.Locale()).HandoffRuntime6() }
+
+// HandoffRuntime6 says "The previous client's final result is not available"
+// in the language of msgs.
+func (msgs Messages) HandoffRuntime6() string {
+	return Catalog.Format(msgs.locale, "handoffRuntime6", nil)
+}
+
+// HandoffRuntime7 says "Waiting for the previous transfer process to exit"
+// in the language the app shows.
+func HandoffRuntime7() string { return In(i18n.Locale()).HandoffRuntime7() }
+
+// HandoffRuntime7 says "Waiting for the previous transfer process to exit"
+// in the language of msgs.
+func (msgs Messages) HandoffRuntime7() string {
+	return Catalog.Format(msgs.locale, "handoffRuntime7", nil)
+}
+
+// CurrentStageRemaining says "Current stage remaining "
+// in the language the app shows.
+func CurrentStageRemaining() string { return In(i18n.Locale()).CurrentStageRemaining() }
+
+// CurrentStageRemaining says "Current stage remaining "
+// in the language of msgs.
+func (msgs Messages) CurrentStageRemaining() string {
+	return Catalog.Format(msgs.locale, "currentStageRemaining", nil)
+}
+
+// StageEtaScope says "Estimated at the current speed, excluding later steps and final verification."
+// in the language the app shows.
+func StageEtaScope() string { return In(i18n.Locale()).StageEtaScope() }
+
+// StageEtaScope says "Estimated at the current speed, excluding later steps and final verification."
+// in the language of msgs.
+func (msgs Messages) StageEtaScope() string {
+	return Catalog.Format(msgs.locale, "stageEtaScope", nil)
+}
+
+// HandoffRuntimeAdvanced says "The previous queue advanced to another step; return ownership to the previous client"
+// in the language the app shows.
+func HandoffRuntimeAdvanced() string { return In(i18n.Locale()).HandoffRuntimeAdvanced() }
+
+// HandoffRuntimeAdvanced says "The previous queue advanced to another step; return ownership to the previous client"
+// in the language of msgs.
+func (msgs Messages) HandoffRuntimeAdvanced() string {
+	return Catalog.Format(msgs.locale, "handoffRuntimeAdvanced", nil)
+}

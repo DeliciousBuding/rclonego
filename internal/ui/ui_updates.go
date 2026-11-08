@@ -94,7 +94,7 @@ func updateRestartBlocked(app *core.App) bool {
 
 func updateBusyReason(state core.State, mounts []core.MountView) string {
 	for _, job := range state.Jobs {
-		if job.Status == "running" {
+		if job.Status == "running" || job.Status == "handoff" {
 			return "任务正在运行，更新将在空闲后重启应用"
 		}
 	}

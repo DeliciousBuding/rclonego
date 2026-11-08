@@ -2,6 +2,10 @@
 
 ### English
 
+- Preview a legacy task import and continue remaining steps after the previous
+  client's active transfer finishes, preserving filters and final verification.
+- Refine file browsing with bounded search/sort, keyboard selection and path
+  details. Unify the runtime brand mark with the generated assets.
 - Inspect provider capacity and backend capabilities, browse files with sizes,
   and request cancellable directory totals through the GUI, CLI and API.
 - Identify the engine with the official rclone symbol and show external rclone
@@ -36,6 +40,8 @@
 
 ### 简体中文
 
+- 预览导入旧客户端任务，当前上传完成后接续剩余步骤，保留过滤条件与最终校验。
+- 完善文件浏览搜索排序、键盘选择和路径详情，运行时标志与生成资产共用品牌源。
 - GUI、CLI、API 共用云盘容量、后端能力、文件大小与可取消的目录统计。
 - 使用官方 rclone 标识，单独展示外部 rclone 资源与本客户端尝试诊断。
 - 接入 MyGo 官方原生更新窗口、签名归档校验和稳定版/预览版通道。

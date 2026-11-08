@@ -20,17 +20,18 @@ type RuntimeSnapshot struct {
 }
 
 type Runtime struct {
-	store       *Store
-	rclone      RcloneClient
-	mu          sync.RWMutex
-	snapshot    RuntimeSnapshot
-	cancel      context.CancelFunc
-	done        chan struct{}
-	resourceAt  time.Time
-	resources   ResourceSnapshot
-	cpuReadings map[int]cpuReading
-	catalogAt   time.Time
-	wake        chan struct{}
+	store         *Store
+	rclone        RcloneClient
+	mu            sync.RWMutex
+	snapshot      RuntimeSnapshot
+	cancel        context.CancelFunc
+	done          chan struct{}
+	resourceAt    time.Time
+	resources     ResourceSnapshot
+	cpuReadings   map[int]cpuReading
+	catalogAt     time.Time
+	wake          chan struct{}
+	beforeRefresh func(context.Context)
 }
 
 func newRuntime(store *Store, rclone RcloneClient) *Runtime {
@@ -73,6 +74,9 @@ func (r *Runtime) Close() {
 }
 
 func (r *Runtime) refresh(ctx context.Context) {
+	if r.beforeRefresh != nil {
+		r.beforeRefresh(ctx)
+	}
 	r.mu.RLock()
 	client := r.rclone
 	r.mu.RUnlock()
@@ -87,9 +91,12 @@ func (r *Runtime) refresh(ctx context.Context) {
 			view.Tree = TransferTree(stats.Transferring)
 		}
 		next.External = append(next.External, view)
-		if view.Available || (external.OwnerPID > 0 && processExists(external.OwnerPID)) {
+		if external.BlockQueue && (view.Available || (external.OwnerPID > 0 && processExists(external.OwnerPID))) {
 			next.QueueBlockReason = external.Name + "运行中，新队列等待接续"
 		}
+	}
+	if state.Handoff != nil && state.Handoff.Status != "complete" && state.Handoff.Status != "returned" {
+		next.QueueBlockReason = "Imported tasks are waiting for the previous client to finish its active step"
 	}
 	for _, job := range state.Jobs {
 		if job.Status == "interrupted" && interruptedProcessActive(job) {

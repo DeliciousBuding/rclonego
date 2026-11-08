@@ -31,6 +31,9 @@ func (s *nativeUI) statusBar(c *ui.Context) {
 			ui.Text(c, text(c, label)).FontSize(10).TextColor(t.TextMuted)
 		})
 		if active := s.activeJob(); active != nil {
+			if active.Status == "handoff" {
+				ui.Text(c, text(c, "旧客户端执行中")).FontSize(10).TextColor(t.TextMuted)
+			}
 			ui.Text(c, fmt.Sprintf("· %.2f MiB/s", active.Speed/1048576)).FontSize(10).TextColor(t.TextMuted)
 		}
 		ui.Spacer(c)

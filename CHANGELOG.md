@@ -4,6 +4,10 @@
 
 ### English
 
+- Import Data Ops Console tasks through an explicit preview and step-boundary
+  handoff, retaining order, historical results and exclusion evidence.
+- Add current-page file search/sorting, keyboard navigation and copy-path
+  details. Collapse backend capabilities and unify generated/runtime marks.
 - Inspect account quota and backend capabilities, browse files with sizes, and
   request cancellable directory statistics through GUI, CLI and API.
 - Show the official rclone engine mark and distinguish external engine
@@ -37,6 +41,8 @@
 
 ### 简体中文
 
+- 通过预览与步骤边界交接导入旧客户端任务，保留顺序、历史结果和排除证明。
+- 文件浏览支持当前页搜索排序、键盘导航与路径复制，后端能力默认折叠，统一品牌源。
 - GUI、CLI 和 API 共用账户容量、后端能力、文件浏览与可取消的目录统计。
 - 使用官方 rclone 标识，区分外部引擎和本客户端资源，保留每次尝试的诊断计数。
 - 接入 MyGo 官方原生更新窗口、签名归档校验和稳定版/预览版通道。

@@ -106,6 +106,11 @@ func (a *App) ActOnRun(id, action string) error {
 	if err := a.store.RestoreRun(id); err != nil {
 		return err
 	}
+	for _, job := range report.Steps {
+		if job.Status == "handoff" {
+			return errors.New("this run is still managed by the previous client; use the handoff controls")
+		}
+	}
 	switch action {
 	case "pause":
 		for _, job := range report.Steps {
@@ -253,7 +258,7 @@ func (a *App) ReportRun(id string) (RunReport, error) {
 		}
 		stepIDs[job.ID] = true
 		result.Steps = append(result.Steps, job)
-		rank := map[string]int{"completed": 0, "pending": 1, "running": 2, "paused": 3, "cancelled": 4, "interrupted": 5, "failed": 6}
+		rank := map[string]int{"completed": 0, "pending": 1, "running": 2, "handoff": 3, "paused": 4, "cancelled": 5, "interrupted": 6, "failed": 7}
 		if rank[job.Status] > rank[result.Status] {
 			result.Status = job.Status
 		}

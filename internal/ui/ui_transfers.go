@@ -140,7 +140,7 @@ func (s *nativeUI) queuedJobs(c *ui.Context) {
 func historyJobs(jobs []core.Job) []core.Job {
 	var result []core.Job
 	for _, job := range jobs {
-		if job.Status != "pending" && job.Status != "running" {
+		if job.Status != "pending" && job.Status != "running" && job.Status != "handoff" {
 			result = append(result, job)
 		}
 	}

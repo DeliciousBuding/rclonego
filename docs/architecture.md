@@ -62,6 +62,21 @@ an explicit `external` flag and are excluded from the client's aggregate
 counters. Discovery reads executable names and resource counters, not command
 lines, credentials or configuration. Discovery grants no process control.
 
+Data Ops Console import is a one-time boundary into an empty task history.
+A preview fingerprints transfer definitions and selected configuration while
+excluding changing live counters. Begin pauses the old dispatcher, revalidates
+the paused snapshot, copies private configuration/proofs/logs, and commits jobs,
+runs and historical attempts transactionally. An external active step stays
+`handoff` across restarts. A runtime refresh accepts its old recorded exit result,
+then the existing queue handles remaining steps. Copy failure never releases
+dependent verification. A persisted `started_here` bit prevents returning
+ownership after any imported work has been reserved here, even after retry or
+history removal. No process or mount is adopted.
+
+External observations are passive by default; explicit path overlap or an
+opt-in whole-queue gate defers dispatch. Handoff defers imported and overlapping
+tasks, allowing independent work through the same scheduler.
+
 The engine installer accepts pinned official archives, verifies SHA-256, rejects
 unsafe archive members and stages a complete version before selection. Existing
 transfers keep their captured engine; later tasks use the new selection.
