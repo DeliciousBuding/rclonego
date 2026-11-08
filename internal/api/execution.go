@@ -27,7 +27,7 @@ func (a *Server) handleDefinitions(w http.ResponseWriter, r *http.Request) {
 	}
 	saved, err := a.app.SaveWorkflow(definition)
 	if err != nil {
-		writeError(w, 400, err.Error())
+		a.writeAppFailure(w, 400, err)
 		return
 	}
 	writeJSON(w, 201, saved)
@@ -35,7 +35,7 @@ func (a *Server) handleDefinitions(w http.ResponseWriter, r *http.Request) {
 
 func (a *Server) handleRunAction(w http.ResponseWriter, r *http.Request) {
 	if err := a.app.ActOnRun(r.PathValue("id"), r.PathValue("action")); err != nil {
-		writeError(w, 400, err.Error())
+		a.writeAppFailure(w, 400, err)
 		return
 	}
 	writeJSON(w, 200, map[string]bool{"ok": true})
@@ -70,7 +70,7 @@ func (a *Server) handleRuns(w http.ResponseWriter, r *http.Request) {
 	}
 	run, err := a.app.StartWorkflow(request.WorkflowID, request.IdempotencyKey)
 	if err != nil {
-		writeError(w, 400, err.Error())
+		a.writeAppFailure(w, 400, err)
 		return
 	}
 	writeJSON(w, 202, run)

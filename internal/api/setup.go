@@ -26,7 +26,7 @@ func (a *Server) handleEngine(w http.ResponseWriter, r *http.Request) {
 	if r.PathValue("action") == "install" {
 		result, err := a.app.InstallEngine(ctx, input.Archive)
 		if err != nil {
-			writeError(w, 400, err.Error())
+			writeFailure(w, 400, err)
 			return
 		}
 		writeJSON(w, 200, result)
@@ -38,7 +38,7 @@ func (a *Server) handleEngine(w http.ResponseWriter, r *http.Request) {
 	}
 	result, err := a.app.SelectEngine(ctx, input.Path)
 	if err != nil {
-		writeError(w, 400, err.Error())
+		writeFailure(w, 400, err)
 		return
 	}
 	writeJSON(w, 200, result)
@@ -59,11 +59,17 @@ func (a *Server) handlePreview(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 400, err.Error())
 		return
 	}
+	if input.Operation == "" {
+		input.Operation = "copy"
+	}
+	if !authorizeJobRequest(w, r, input) {
+		return
+	}
 	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Minute)
 	defer cancel()
 	result, err := a.app.PreviewJob(ctx, input)
 	if err != nil {
-		writeError(w, 400, err.Error())
+		writeFailure(w, 400, err)
 		return
 	}
 	writeJSON(w, 200, result)

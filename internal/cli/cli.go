@@ -51,9 +51,12 @@ const cliHelp = `RcloneGo — 本机数据工作台
   jobs log <任务ID>                         查看日志
   mounts [list]                            列出盘符映射
   mounts start|stop <映射ID>                 挂载或卸载
+  mounts cache <映射ID>                     查看所属挂载的 VFS 缓存与写回
+  offline --file <副本.json>                创建持久化离线副本任务
+  logs cleanup                             按保留规则清理任务日志
   remotes [list]                           列出云端账户
   remotes reconnect <远端名称>              开始独立账户授权会话
-  queue pause|resume                       暂停或继续队列调度
+  queue pause|resume|recover               暂停、继续或恢复持久化故障后的队列
   theme [light|dark|system]                 查看或切换外观
   settings                                查看持久化默认参数
   settings --file <设置.json>              保存 appearance 或 defaults
@@ -67,6 +70,10 @@ const cliHelp = `RcloneGo — 本机数据工作台
   jobs preview --file <json>                 预览，sync 提交时使用返回的 preview_id
   jobs pause <ID>                            中断当前任务，保留可恢复状态
   events [--after <cursor>] [--limit <count>] 持久状态事件，最多 500 条
+  events watch [--after <cursor>]            持续观察事件；--json 输出逐行 JSON
+  browse <本机绝对路径或remote:path> [--directories --offset 0 --limit 100]
+  automations list|save --file <json>|edit <ID> --file <json>|delete|trigger <ID>
+  tokens read [--ttl 3600]|tasks --file <grant.json>|revoke <ID>
   schema                                    离线输出 OpenAPI 契约
   licenses                                  离线查看随程序嵌入的许可文本
   diagnostics --json                        导出不含路径、账户、日志的诊断数据
@@ -100,7 +107,7 @@ func IsCLI(args []string) bool {
 	switch args[0] {
 	case "status", "jobs", "mounts", "remotes", "queue", "theme", "api", "help", "--help", "-h", "--version":
 		return true
-	case "resources", "bandwidth", "workflow", "workflows", "runs", "doctor", "settings", "external", "engine", "accounts", "events", "schema", "diagnostics", "licenses":
+	case "resources", "bandwidth", "workflow", "workflows", "runs", "doctor", "settings", "external", "engine", "accounts", "events", "schema", "diagnostics", "licenses", "browse", "automations", "tokens", "offline", "logs":
 		return true
 	case "--api", "--json", "--timeout":
 		return true
@@ -151,6 +158,9 @@ func Run(args []string, stdout, stderr io.Writer) int {
 	if len(command) > 1 && command[0] == "engine" && command[1] == "install" && !options.timeoutExplicit {
 		options.timeout = 10 * time.Minute
 	}
+	if len(command) > 1 && command[0] == "events" && command[1] == "watch" && !options.timeoutExplicit {
+		options.timeout = time.Hour
+	}
 	if options.api == "" {
 		dir, err := session.DataDir()
 		if err != nil {
@@ -182,6 +192,9 @@ func Run(args []string, stdout, stderr io.Writer) int {
 	defer cancel()
 	if len(command) == 3 && command[0] == "runs" && (command[1] == "wait" || command[1] == "watch") {
 		return waitRun(ctx, options, command, stdout, stderr)
+	}
+	if len(command) > 1 && command[0] == "events" && command[1] == "watch" {
+		return watchEvents(ctx, options, path, stdout, stderr)
 	}
 	raw, err := callAPI(ctx, options.api, method, path, body, key)
 	if err != nil {
@@ -242,6 +255,9 @@ func loopbackHost(host string) bool {
 }
 
 func cliRequest(args []string) (method, path string, body any, key string, err error) {
+	if args[0] == "browse" || args[0] == "tokens" || args[0] == "automations" || args[0] == "offline" || args[0] == "logs" || len(args) == 3 && args[0] == "mounts" && args[1] == "cache" {
+		return agentRequest(args)
+	}
 	if args[0] == "engine" || args[0] == "accounts" {
 		return setupRequest(args)
 	}
@@ -266,11 +282,18 @@ func cliRequest(args []string) (method, path string, body any, key string, err e
 		set.SetOutput(io.Discard)
 		after := set.Int64("after", 0, "")
 		limit := set.Int("limit", 100, "")
-		err = set.Parse(args[1:])
+		eventArgs, watch := args[1:], false
+		if len(eventArgs) > 0 && eventArgs[0] == "watch" {
+			eventArgs, watch = eventArgs[1:], true
+		}
+		err = set.Parse(eventArgs)
 		if err == nil && set.NArg() != 0 {
 			err = errors.New("unexpected event arguments")
 		}
 		path = fmt.Sprintf("/api/v1/events?after=%d&limit=%d", *after, *limit)
+		if watch {
+			path = fmt.Sprintf("/api/v1/events/watch?after=%d&limit=%d", *after, *limit)
+		}
 	case "settings", "external":
 		path = "/api/v1/settings"
 		if args[0] == "external" {
@@ -413,11 +436,15 @@ func cliRequest(args []string) (method, path string, body any, key string, err e
 		if !exact(2) {
 			break
 		}
-		if args[1] != "pause" && args[1] != "resume" {
-			err = errors.New("queue accepts pause or resume")
+		if args[1] != "pause" && args[1] != "resume" && args[1] != "recover" {
+			err = errors.New("queue accepts pause, resume or recover")
 			break
 		}
 		method = http.MethodPost
+		if args[1] == "recover" {
+			path, body = "/api/v1/queue/recover", map[string]string{}
+			break
+		}
 		path = "/api/v1/queue/pause"
 		body = map[string]bool{"paused": args[1] == "pause"}
 	case "theme":
@@ -544,19 +571,7 @@ func callAPI(ctx context.Context, base, method, path string, body any, key strin
 	if key != "" {
 		req.Header.Set("Idempotency-Key", key)
 	}
-	tokenFile := os.Getenv("RCLONEGO_TOKEN_FILE")
-	if tokenFile == "" {
-		dir, err := session.DataDir()
-		if err == nil {
-			if override := os.Getenv("RCLONEGO_DATA"); override != "" {
-				dir = override
-			}
-			tokenFile = filepath.Join(dir, "api-token")
-		}
-	}
-	if rawToken, err := os.ReadFile(tokenFile); err == nil {
-		req.Header.Set("Authorization", "Bearer "+strings.TrimSpace(string(rawToken)))
-	}
+	authenticateCLIRequest(req)
 	client := &http.Client{CheckRedirect: func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse }}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -582,7 +597,26 @@ func callAPI(ctx context.Context, base, method, path string, body any, key strin
 	return raw, nil
 }
 
+func authenticateCLIRequest(req *http.Request) {
+	tokenFile := os.Getenv("RCLONEGO_TOKEN_FILE")
+	if tokenFile == "" {
+		dir, err := session.DataDir()
+		if err == nil {
+			if override := os.Getenv("RCLONEGO_DATA"); override != "" {
+				dir = override
+			}
+			tokenFile = filepath.Join(dir, "api-token")
+		}
+	}
+	if rawToken, err := os.ReadFile(tokenFile); err == nil {
+		req.Header.Set("Authorization", "Bearer "+strings.TrimSpace(string(rawToken)))
+	}
+}
+
 func printCLIResult(out io.Writer, args []string, raw []byte) error {
+	if args[0] == "browse" || args[0] == "tokens" || args[0] == "automations" {
+		return printAgentResult(out, args, raw)
+	}
 	if args[0] == "workflows" || args[0] == "runs" || args[0] == "doctor" {
 		return printExecution(out, args, raw)
 	}
@@ -647,7 +681,24 @@ func printCLIResult(out io.Writer, args []string, raw []byte) error {
 			if err := json.Unmarshal(raw, &preview); err != nil {
 				return err
 			}
-			fmt.Fprintf(out, "预览 ID: %s\n有效期: %s\n%s\n", preview.ID, preview.ExpiresAt.Local().Format(time.RFC3339), preview.Log)
+			fmt.Fprintf(out, "预览 ID: %s\n有效期: %s\n源: %s\n目标: %s\n范围: %s\n",
+				preview.ID, preview.ExpiresAt.Local().Format(time.RFC3339), preview.Source, preview.Destination, preview.Scope)
+			fmt.Fprintf(out, "新增 %d · 修改 %d · 删除 %d · 目标额外文件 %d · 无变化 %d\n",
+				preview.Summary.Added, preview.Summary.Changed, preview.Summary.Deleted,
+				preview.Summary.DestinationOnly, preview.Summary.Unchanged)
+			actionLabels := map[string]string{"added": "新增", "changed": "修改", "deleted": "删除", "destination_only": "目标额外文件", "error": "比较错误"}
+			for _, entry := range preview.Entries {
+				fmt.Fprintf(out, "  %s  %s\n", core.ValueOr(actionLabels[entry.Action], entry.Action), entry.Path)
+			}
+			if preview.EntriesTruncated {
+				fmt.Fprintln(out, "仅显示部分明细；请同时检查报告完整性")
+			}
+			if preview.ReportIncomplete {
+				fmt.Fprintln(out, "比较报告不完整，请修正后重新预览")
+			}
+			if len(preview.Entries) == 0 && preview.Log != "" {
+				fmt.Fprintln(out, preview.Log)
+			}
 			return nil
 		}
 		if len(args) == 3 && args[1] == "log" {
@@ -733,6 +784,14 @@ func printCLIResult(out io.Writer, args []string, raw []byte) error {
 		}
 		fmt.Fprintf(w, "外观\t%s\n", result.Appearance)
 	case "queue":
+		if args[1] == "recover" {
+			var health core.ServiceHealth
+			if err := json.Unmarshal(raw, &health); err != nil {
+				return err
+			}
+			fmt.Fprintf(w, "队列\t%s\n状态\t%s\n", health.Code, health.Message)
+			break
+		}
 		fmt.Fprintln(w, "队列已"+map[string]string{"pause": "暂停", "resume": "继续"}[args[1]])
 	default:
 		var pretty bytes.Buffer

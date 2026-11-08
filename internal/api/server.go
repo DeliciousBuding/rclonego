@@ -20,7 +20,7 @@ type Server struct {
 	app        *core.App
 	token      string
 	tokensMu   sync.Mutex
-	readTokens map[[32]byte]readToken
+	readTokens map[[32]byte]tokenGrant
 }
 
 const headerGuard = "X-RcloneGo-Client"
@@ -31,10 +31,19 @@ func (a *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/v1", a.handleAPIInfo)
 	mux.HandleFunc("GET /api/v1/schema", a.handleSchema)
 	mux.HandleFunc("POST /api/v1/tokens/read", a.mutating(a.handleTokens))
+	mux.HandleFunc("POST /api/v1/tokens/tasks", a.mutating(a.handleTokens))
+	mux.HandleFunc("POST /api/v1/tokens/{id}/revoke", a.mutating(a.handleRevokeToken))
 	mux.HandleFunc("GET /api/v1/health", a.handleHealth)
 	mux.HandleFunc("GET /api/v1/doctor", a.handleDoctor)
 	mux.HandleFunc("GET /api/v1/diagnostics", a.handleDiagnostics)
 	mux.HandleFunc("GET /api/v1/events", a.handleEvents)
+	mux.HandleFunc("GET /api/v1/events/watch", a.handleWatchEvents)
+	mux.HandleFunc("GET /api/v1/browse", a.handleBrowse)
+	mux.HandleFunc("GET /api/v1/automations", a.handleAutomations)
+	mux.HandleFunc("POST /api/v1/automations", a.mutating(a.handleAutomations))
+	mux.HandleFunc("PUT /api/v1/automations/{id}", a.mutating(a.handleAutomations))
+	mux.HandleFunc("DELETE /api/v1/automations/{id}", a.mutating(a.handleAutomationAction))
+	mux.HandleFunc("POST /api/v1/automations/{id}/trigger", a.mutating(a.handleAutomationAction))
 	mux.HandleFunc("GET /api/v1/engine", a.handleEngine)
 	mux.HandleFunc("POST /api/v1/engine/{action}", a.mutating(a.handleEngine))
 	mux.HandleFunc("GET /api/v1/providers", a.handleProviders)
@@ -51,6 +60,9 @@ func (a *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/v1/remotes/reconnect", a.mutating(a.handleReconnect))
 	mux.HandleFunc("POST /api/v1/remotes/create", a.mutating(a.handleCreateRemote))
 	mux.HandleFunc("GET /api/v1/mounts", a.handleMounts)
+	mux.HandleFunc("GET /api/v1/mounts/{id}/cache", a.handleMountCache)
+	mux.HandleFunc("POST /api/v1/offline-copies", a.mutating(a.handleOfflineCopy))
+	mux.HandleFunc("POST /api/v1/logs/cleanup", a.mutating(a.handleCleanupLogs))
 	mux.HandleFunc("PUT /api/v1/mounts", a.mutating(a.handleSaveMounts))
 	mux.HandleFunc("POST /api/v1/mounts/start", a.mutating(a.handleStartMount))
 	mux.HandleFunc("POST /api/v1/mounts/stop", a.mutating(a.handleStopMount))
@@ -72,6 +84,7 @@ func (a *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/v1/jobs/action", a.mutating(a.handleJobAction))
 	mux.HandleFunc("GET /api/v1/jobs/log", a.handleJobLog)
 	mux.HandleFunc("POST /api/v1/queue/pause", a.mutating(a.handleQueuePause))
+	mux.HandleFunc("POST /api/v1/queue/recover", a.mutating(a.handleQueueRecover))
 	return securityHeaders(a.authenticate(mux))
 }
 
@@ -83,7 +96,7 @@ func (a *Server) handleWorkflow(w http.ResponseWriter, r *http.Request) {
 	}
 	jobs, err := a.app.AddWorkflow(request)
 	if err != nil {
-		writeError(w, 400, err.Error())
+		a.writeAppFailure(w, 400, err)
 		return
 	}
 	writeJSON(w, 202, jobs)
@@ -168,6 +181,7 @@ func (a *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{
 		"ok": true, "time": time.Now(), "api_version": 1,
 		"mutation_header": headerGuard + ": 1",
+		"service":         a.app.Health(),
 	})
 }
 
@@ -197,6 +211,10 @@ func (a *Server) handleAPIInfo(w http.ResponseWriter, _ *http.Request) {
 			"job_log":    "GET /api/v1/jobs/log?id=<id>", "queue_pause": "POST /api/v1/queue/pause",
 			"workflow_definitions": "GET/POST /api/v1/workflow-definitions",
 			"runs":                 "GET/POST /api/v1/runs", "run_report": "GET /api/v1/runs/{id}/report",
+			"browse": "GET /api/v1/browse", "automations": "GET/POST /api/v1/automations",
+			"events_watch": "GET /api/v1/events/watch", "task_token": "POST /api/v1/tokens/tasks",
+			"revoke_token":  "POST /api/v1/tokens/{id}/revoke",
+			"queue_recover": "POST /api/v1/queue/recover",
 		},
 		"safety": map[string]any{
 			"copy_never_deletes": true, "sync_requires_allow_delete": true,
@@ -226,7 +244,7 @@ func (a *Server) handleSaveSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := a.app.SaveSettings(request); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		a.writeAppFailure(w, http.StatusBadRequest, err)
 		return
 	}
 	a.handleSettings(w, r)
@@ -341,7 +359,7 @@ func (a *Server) handleSaveMounts(w http.ResponseWriter, r *http.Request) {
 		ids[mounts[i].ID], drives[mounts[i].Drive] = true, true
 	}
 	if err := a.app.SaveMounts(mounts); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		a.writeAppFailure(w, http.StatusInternalServerError, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, mounts)
@@ -401,15 +419,18 @@ func findMount(mounts []core.MountConfig, id string) (core.MountConfig, error) {
 	return core.MountConfig{}, errors.New("mount not found")
 }
 
-func (a *Server) handleJobs(w http.ResponseWriter, _ *http.Request) {
+func (a *Server) handleJobs(w http.ResponseWriter, r *http.Request) {
 	state := a.app.Snapshot()
 	jobs := append([]core.Job(nil), state.Jobs...)
 	sort.Slice(jobs, func(i, j int) bool { return jobs[i].CreatedAt.After(jobs[j].CreatedAt) })
-	writeJSON(w, http.StatusOK, map[string]any{"paused": state.QueuePaused, "jobs": jobs})
+	writeJSON(w, http.StatusOK, map[string]any{"paused": state.QueuePaused, "jobs": visibleJobs(r, jobs)})
 }
 
 func (a *Server) handleJob(w http.ResponseWriter, r *http.Request) {
-	for _, job := range a.app.Snapshot().Jobs {
+	if !authorizeStoredJob(w, r, a.app, r.PathValue("id")) {
+		return
+	}
+	for _, job := range visibleJobs(r, a.app.Snapshot().Jobs) {
 		if job.ID == r.PathValue("id") {
 			writeJSON(w, 200, job)
 			return
@@ -424,6 +445,12 @@ func (a *Server) handleAddJob(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	if request.Operation == "" {
+		request.Operation = "copy"
+	}
+	if !authorizeJobRequest(w, r, request) {
+		return
+	}
 	if key := strings.TrimSpace(r.Header.Get("Idempotency-Key")); key != "" {
 		if request.IdempotencyKey != "" && request.IdempotencyKey != key {
 			writeError(w, 400, "conflicting idempotency keys")
@@ -433,7 +460,11 @@ func (a *Server) handleAddJob(w http.ResponseWriter, r *http.Request) {
 	}
 	job, err := a.app.AddJob(request)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		a.writeAppFailure(w, http.StatusBadRequest, err)
+		return
+	}
+	if grant := delegatedGrant(r); grant != nil && grant.Scope == "tasks" && !grant.allowsJob(job) {
+		writeErrorCode(w, 403, "scope_denied", "idempotency key belongs to a job outside this token's grant", false, "use a new idempotency key for this task")
 		return
 	}
 	writeJSON(w, http.StatusAccepted, job)
@@ -446,7 +477,7 @@ func (a *Server) handleUpdateJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := a.app.UpdateParameters(r.PathValue("id"), request); err != nil {
-		writeError(w, 400, err.Error())
+		a.writeAppFailure(w, 400, err)
 		return
 	}
 	a.app.Wake()
@@ -462,6 +493,17 @@ func (a *Server) handleJobAction(w http.ResponseWriter, r *http.Request) {
 	if err := decodeJSON(w, r, &request); err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
+	}
+	if grant := delegatedGrant(r); grant != nil && grant.Scope == "tasks" {
+		switch request.Action {
+		case "retry", "cancel", "pause":
+		default:
+			writeErrorCode(w, 403, "scope_denied", "delegated tasks support retry, cancel and pause actions", false, "use the owner token for queue or workflow management")
+			return
+		}
+		if !authorizeStoredJob(w, r, a.app, request.ID) {
+			return
+		}
 	}
 	var err error
 	switch request.Action {
@@ -497,16 +539,28 @@ func (a *Server) handleQueuePause(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := a.app.SetPaused(request.Paused); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		a.writeAppFailure(w, http.StatusInternalServerError, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]bool{"paused": request.Paused})
+}
+
+func (a *Server) handleQueueRecover(w http.ResponseWriter, _ *http.Request) {
+	if err := a.app.Recover(); err != nil {
+		health := a.app.Health()
+		writeErrorCode(w, http.StatusServiceUnavailable, health.Code, health.Message, false, health.NextAction)
+		return
+	}
+	writeJSON(w, 200, a.app.Health())
 }
 
 func (a *Server) handleJobLog(w http.ResponseWriter, r *http.Request) {
 	id := strings.TrimSpace(r.URL.Query().Get("id"))
 	if !regexp.MustCompile(`^[a-f0-9]{16}$`).MatchString(id) {
 		writeError(w, http.StatusBadRequest, "invalid job id")
+		return
+	}
+	if !authorizeStoredJob(w, r, a.app, id) {
 		return
 	}
 	text, err := a.app.JobLog(id, 256*1024)
@@ -542,6 +596,11 @@ func writeError(w http.ResponseWriter, status int, message string) {
 	if code == "" {
 		code = "request_failed"
 	}
+	writeErrorCode(w, status, code, message, status == 502 || status == 503,
+		map[int]string{401: "use a local API token", 403: "use an owner token or a matching grant", 503: "install or select an engine"}[status])
+}
+
+func writeErrorCode(w http.ResponseWriter, status int, code, message string, retryable bool, nextAction string) {
 	writeJSON(w, status, map[string]any{"error": message, "code": code, "message": message,
-		"retryable": status == 502 || status == 503, "next_action": map[int]string{401: "use a local API token", 503: "install or select an engine"}[status]})
+		"retryable": retryable, "next_action": nextAction})
 }
