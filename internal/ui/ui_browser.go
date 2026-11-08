@@ -22,6 +22,9 @@ type browserUIState struct {
 	cancel      context.CancelFunc
 	generation  int
 	list        ui.ListState
+	selected    int
+	query       string
+	order       string
 	usage       core.DirectoryUsage
 	usageBusy   bool
 	usageErr    string
@@ -44,6 +47,7 @@ func (s *nativeUI) beginBrowse(target *string) {
 		b.cancel()
 	}
 	b.open, b.target, b.offset = true, target, 0
+	b.query, b.order, b.selected = "", "名称 A–Z", -1
 	b.path = *target
 	b.remote = ""
 	for _, remote := range s.remotes {
@@ -68,6 +72,7 @@ func (s *nativeUI) beginStorageBrowse(name string) {
 		b.cancel()
 	}
 	b.open, b.target, b.offset = true, nil, 0
+	b.query, b.order, b.selected = "", "名称 A–Z", -1
 	b.remote = strings.TrimSuffix(name, ":") + ":"
 	b.path = b.remote
 	s.loadBrowser(b.path, 0)
@@ -97,6 +102,7 @@ func (s *nativeUI) loadBrowser(path string, offset int) {
 		b.usageCancel = nil
 	}
 	b.usage, b.usageBusy, b.usageErr = core.DirectoryUsage{}, false, ""
+	b.selected = -1
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	b.cancel, b.path, b.offset, b.loading, b.err = cancel, path, offset, true, ""
 	b.generation++
@@ -146,8 +152,8 @@ func (s *nativeUI) browserOverlay(c *ui.Context) {
 	ui.DialogBase(c.Key("directory-browser"), &b.open, func(backdrop, panel ui.Element) {
 		t := c.Theme()
 		backdrop.Background(t.Text.Alpha(0.12))
-		panel.Width(560).MaxWidthPercent(90).MaxHeightPercent(88).Padding(20).Gap(12).Radius(16).Background(t.Background)
-		ui.Row(c).Children(func() {
+		panel.Width(580).MaxWidthPercent(90).MaxHeightPercent(88).Padding(18).Gap(8).Radius(16).Background(t.Background)
+		ui.Row(c).Shrink(0).Children(func() {
 			title := "选择云端目录"
 			if b.target == nil {
 				title = "浏览云端文件"
@@ -160,22 +166,37 @@ func (s *nativeUI) browserOverlay(c *ui.Context) {
 		for _, remote := range s.remotes {
 			remotes = append(remotes, strings.TrimSuffix(remote.Name, ":")+":")
 		}
-		if ui.Select(c.Key("remote"), &b.remote, remotes).Label(text(c, "云端账户")).Disabled(b.loading).Changed() {
-			s.loadBrowser(b.remote, 0)
-		}
-		ui.Row(c).Gap(6).Children(func() {
-			ui.TextInput(c.Key("path"), &b.path).Grow(1).MinWidth(0).Label(text(c, "云端路径")).Disabled(b.loading)
+		ui.Row(c).Shrink(0).Gap(6).Children(func() {
+			if ui.Select(c.Key("remote"), &b.remote, remotes).Width(160).Label(text(c, "云端账户")).Disabled(b.loading).Changed() {
+				s.loadBrowser(b.remote, 0)
+			}
+			path := ui.TextInput(c.Key("path"), &b.path).Grow(1).MinWidth(0).Label(text(c, "云端路径")).Disabled(b.loading)
+			if path.Submitted() {
+				s.loadBrowser(b.path, 0)
+			}
 			iconButton(c.Key("open-path"), iconArrow, "打开目录").Disabled(b.loading).OnClick(func() { s.loadBrowser(b.path, 0) })
 		})
-		ui.Row(c).Gap(8).Children(func() {
+		ui.Row(c).Shrink(0).Gap(8).Children(func() {
 			iconButton(c.Key("parent"), iconUp, "上一级目录").Disabled(b.loading || b.result.Parent == "").OnClick(func() { s.loadBrowser(b.result.Parent, 0) })
 			ui.Text(c, b.result.Path).Grow(1).MinWidth(0).SingleLine().FontSize(11).TextColor(t.TextMuted).Tooltip(b.result.Path)
 			iconButton(c.Key("refresh"), iconRefresh, "刷新目录").Disabled(b.loading).OnClick(func() { s.loadBrowser(b.path, b.offset) })
 		})
+		if b.order == "" {
+			b.order = "名称 A–Z"
+		}
+		ui.Row(c).Shrink(0).Gap(8).Children(func() {
+			ui.SearchField(c.Key("search"), &b.query).Grow(1).MinWidth(0).Label(text(c, "搜索当前页")).
+				Placeholder(text(c, "搜索当前页…")).Tooltip(text(c, "搜索与排序仅作用于当前页，不扫描其他目录。"))
+			translatedSelect(c.Key("order"), &b.order, []string{"名称 A–Z", "名称 Z–A", "大小由大到小"}).
+				Width(140).Label(text(c, "排序")).Tooltip(text(c, "搜索与排序仅作用于当前页，不扫描其他目录。"))
+		})
+		entries := browserEntries(b.result.Entries, b.query, b.order)
 		if b.loading {
 			ui.Text(c, text(c, "正在读取目录…")).FontSize(12).TextColor(t.TextMuted)
 		} else if b.err != "" {
 			ui.Text(c, b.err).FontSize(12).TextColor(t.Danger).MaxLines(3)
+		} else if len(entries) == 0 && b.query != "" {
+			ui.Text(c, text(c, "当前页没有匹配项")).FontSize(12).TextColor(t.TextMuted)
 		} else if len(b.result.Entries) == 0 {
 			label := "此目录没有子目录"
 			if b.target == nil {
@@ -183,31 +204,49 @@ func (s *nativeUI) browserOverlay(c *ui.Context) {
 			}
 			ui.Text(c, text(c, label)).FontSize(12).TextColor(t.TextMuted)
 		}
-		b.list.Key = func(i int) any { return b.result.Entries[i].Path }
-		b.list.Label = func(i int) string { return b.result.Entries[i].Name }
-		ui.List(c.Key("directories"), &b.list, len(b.result.Entries), func(i int) {
-			entry := b.result.Entries[i]
-			ui.Row(c).Gap(9).MinWidth(0).Children(func() {
+		b.list.Selected = &b.selected
+		b.list.Key = func(i int) any { return entries[i].Path }
+		b.list.Label = func(i int) string { return entries[i].Name }
+		list := ui.List(c.Key("directories"), &b.list, len(entries), func(i int) {
+			entry := entries[i]
+			ui.Row(c).Padding(6, 3).Gap(9).MinWidth(0).Children(func() {
+				iconColor, detailColor := t.Accent, t.TextMuted
+				if b.selected == i {
+					iconColor, detailColor = t.AccentText, t.AccentText
+				}
 				icon := iconFile
 				if entry.IsDir {
 					icon = iconFolder
 				}
-				ui.Icon(c, icon).FontSize(18).TextColor(t.Accent)
+				ui.Icon(c, icon).FontSize(18).TextColor(iconColor)
 				ui.Text(c, entry.Name).Grow(1).MinWidth(0).SingleLine().Tooltip(entry.Name)
 				if entry.IsDir {
 					iconButton(c.Key("enter"), iconChevron, "打开子目录").Disabled(b.loading).OnClick(func() { s.loadBrowser(entry.Path, 0) })
 				} else {
-					ui.Text(c, formatBytes(entry.Size)).FontSize(11).TextColor(t.TextMuted)
+					ui.Text(c, formatBytes(entry.Size)).FontSize(11).TextColor(detailColor).Shrink(0)
 				}
 			})
-		}).Height(220).MinHeight(64).Shrink(1).MinWidth(0).Label(text(c, "云端文件与目录"))
+		}).Height(192).MinHeight(64).Shrink(1).MinWidth(0).Label(text(c, "云端文件与目录")).Disabled(b.loading || b.err != "")
+		if selected := selectedBrowserEntry(entries, b.selected); selected != nil {
+			if list.Submitted() && selected.IsDir {
+				s.loadBrowser(selected.Path, 0)
+			}
+			if list.Shortcut(ui.Cmd, ui.KeyC) {
+				c.WriteClipboard(selected.Path)
+			}
+		}
+		if list.Shortcut(0, ui.KeyBackspace) && b.result.Parent != "" {
+			s.loadBrowser(b.result.Parent, 0)
+		}
+		s.browserSelection(c, entries)
 		if b.result.Truncated {
 			ui.Text(c, text(c, "目录过大，当前显示前一万项中的结果；可输入更具体的路径。")).FontSize(11).TextColor(t.Warning).MaxLines(2)
 		}
 		if b.target == nil {
-			ui.Row(c).Gap(8).Children(func() {
+			ui.Row(c).Shrink(0).Gap(8).Children(func() {
 				actionButton(c.Key("directory-usage"), iconResources, "统计目录大小", false).
 					Disabled(b.loading || b.usageBusy || b.err != "" || b.result.Path == "").
+					Tooltip(text(c, "目录统计会遍历文件；超时或取消时不显示不完整的总量。")).
 					OnClick(s.loadDirectoryUsage)
 				if b.usageBusy {
 					ui.Text(c, text(c, "正在统计文件…")).FontSize(11).TextColor(t.TextMuted)
@@ -227,9 +266,8 @@ func (s *nativeUI) browserOverlay(c *ui.Context) {
 			if b.usageErr != "" {
 				ui.Text(c, b.usageErr).FontSize(11).TextColor(t.Warning).MaxLines(2)
 			}
-			ui.Text(c, text(c, "目录统计会遍历文件；超时或取消时不显示不完整的总量。")).FontSize(11).TextColor(t.TextMuted).MaxLines(2)
 		}
-		ui.Row(c).Gap(8).Children(func() {
+		ui.Row(c).Shrink(0).Gap(8).Children(func() {
 			ui.Button(c.Key("previous"), text(c, "上一页")).Disabled(b.loading || b.offset == 0).OnClick(func() { s.loadBrowser(b.path, max(0, b.offset-100)) })
 			ui.Button(c.Key("next"), text(c, "下一页")).Disabled(b.loading || !b.result.HasMore).OnClick(func() { s.loadBrowser(b.path, b.result.NextOffset) })
 			ui.Spacer(c)
@@ -237,7 +275,7 @@ func (s *nativeUI) browserOverlay(c *ui.Context) {
 			if b.target == nil {
 				action = "新建传输…"
 			}
-			ui.PrimaryButton(c.Key("select"), text(c, action)).Disabled(b.loading || b.err != "" || b.result.Path == "" || b.path != b.result.Path).OnClick(func() {
+			ui.PrimaryButton(c.Key("select"), text(c, action)).Tooltip(b.result.Path).Disabled(b.loading || b.err != "" || b.result.Path == "" || b.path != b.result.Path).OnClick(func() {
 				if b.target != nil {
 					*b.target = b.result.Path
 					s.jobPreview = core.Preview{}

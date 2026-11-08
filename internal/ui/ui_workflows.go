@@ -26,7 +26,7 @@ type workflowRunSummary struct {
 // for every run in the list. Archived runs load their complete report on demand.
 func workflowRunSummaries(jobs []core.Job) map[string]workflowRunSummary {
 	summaries := make(map[string]workflowRunSummary)
-	rank := map[string]int{"completed": 0, "pending": 1, "running": 2, "paused": 3, "cancelled": 4, "interrupted": 5, "failed": 6}
+	rank := map[string]int{"completed": 0, "pending": 1, "running": 2, "handoff": 3, "paused": 4, "cancelled": 5, "interrupted": 6, "failed": 7}
 	for _, job := range jobs {
 		if job.WorkflowID == "" {
 			continue
@@ -41,11 +41,11 @@ func workflowRunSummaries(jobs []core.Job) map[string]workflowRunSummary {
 		}
 		jobRank, known := rank[job.Status]
 		if !known {
-			jobRank = 7
+			jobRank = 8
 		}
 		summaryRank, known := rank[summary.status]
 		if !known {
-			summaryRank = 7
+			summaryRank = 8
 		}
 		if jobRank > summaryRank {
 			summary.status = job.Status
@@ -87,7 +87,7 @@ func workflowRunMatches(run core.Run, summary workflowRunSummary, query, categor
 	}
 	switch category {
 	case "活动":
-		return summary.status == "running" || summary.status == "pending"
+		return summary.status == "running" || summary.status == "pending" || summary.status == "handoff"
 	case "需处理":
 		return summary.status == "failed" || summary.status == "paused" || summary.status == "interrupted" || summary.status == "cancelled"
 	case "已完成":

@@ -273,6 +273,106 @@
         "security": []
       }
     },
+    "/api/v1/handoff": {
+      "get": {
+        "operationId": "get_api_v1_handoff",
+        "summary": "GET /api/v1/handoff",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/LegacyHandoff"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/handoff/{action}": {
+      "post": {
+        "operationId": "post_api_v1_handoff_action",
+        "summary": "POST /api/v1/handoff/{action}",
+        "parameters": [
+          {
+            "name": "action",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-RcloneGo-Client",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "const": "1"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/HandoffPreview"
+                    },
+                    {
+                      "$ref": "#/components/schemas/LegacyHandoff"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HandoffRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/doctor": {
       "get": {
         "operationId": "get_api_v1_doctor",
@@ -3457,6 +3557,148 @@
           }
         }
       },
+      "HandoffRequest": {
+        "type": "object",
+        "properties": {
+          "state_path": {
+            "type": "string"
+          },
+          "config_path": {
+            "type": "string"
+          },
+          "endpoint": {
+            "type": "string"
+          },
+          "preview_key": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "LegacyHandoff": {
+        "type": "object",
+        "properties": {
+          "state_path": {
+            "type": "string"
+          },
+          "endpoint": {
+            "type": "string"
+          },
+          "preview_key": {
+            "type": "string"
+          },
+          "definition_key": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "started_here": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "active_job_id": {
+            "type": "string"
+          },
+          "job_ids": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "source_statuses": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "HandoffPreview": {
+        "type": "object",
+        "properties": {
+          "preview_key": {
+            "type": "string"
+          },
+          "jobs": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/Job"
+            }
+          },
+          "remotes": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/RemoteInfo"
+            }
+          },
+          "defaults": {
+            "$ref": "#/components/schemas/TransferSettings"
+          },
+          "queue_paused": {
+            "type": "boolean"
+          },
+          "active_job_id": {
+            "type": "string"
+          },
+          "mounts": {
+            "type": "integer"
+          }
+        }
+      },
+      "legacyState": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer"
+          },
+          "appearance": {
+            "type": "string"
+          },
+          "defaults": {
+            "$ref": "#/components/schemas/TransferSettings"
+          },
+          "queue_paused": {
+            "type": "boolean"
+          },
+          "jobs": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/Job"
+            }
+          },
+          "mounts": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/MountConfig"
+            }
+          }
+        }
+      },
       "ServiceHealth": {
         "type": "object",
         "properties": {
@@ -4196,6 +4438,16 @@
             "items": {
               "$ref": "#/components/schemas/ExternalTransfer"
             }
+          },
+          "handoff": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LegacyHandoff"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         }
       },
@@ -4225,6 +4477,15 @@
           },
           "buffer_size": {
             "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "destination": {
+            "type": "string"
+          },
+          "block_queue": {
+            "type": "boolean"
           }
         }
       },
@@ -4329,6 +4590,9 @@
       "Job": {
         "type": "object",
         "properties": {
+          "origin": {
+            "type": "string"
+          },
           "dry_run": {
             "type": "boolean"
           },

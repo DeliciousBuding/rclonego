@@ -44,13 +44,13 @@ func (s *nativeUI) activityCard(c *ui.Context) {
 			ui.Column(c).Gap(3).Grow(1).MinWidth(0).Children(func() {
 				title := text(c, "传输总览")
 				for _, job := range s.jobs {
-					if job.Status == "running" {
+					if job.Status == "running" || job.Status == "handoff" {
 						title = job.Name
 						break
 					}
 				}
 				for _, external := range s.external {
-					if external.Available {
+					if active == nil && external.Available {
 						title = external.Name
 						break
 					}
@@ -83,6 +83,15 @@ func (s *nativeUI) activityCard(c *ui.Context) {
 			}
 			statusDot(c, label, color)
 		})
+		if active != nil {
+			label := "本客户端管理"
+			if active.Status == "handoff" {
+				label = "旧客户端执行中 · 完成当前步骤后接管"
+			}
+			ui.Text(c, text(c, label)).FontSize(12).TextColor(t.TextMuted)
+		} else if s.activity.Available {
+			ui.Text(c, text(c, "外部观察 · 操作与最终结果由原客户端负责")).FontSize(12).TextColor(t.TextMuted)
+		}
 		if !s.activity.Available || s.activity.Stats == nil {
 			emptyState(c, iconQueue, "暂无活动传输", "任务开始后，这里会显示真实进度和速度。")
 			return
@@ -103,7 +112,11 @@ func (s *nativeUI) activityCard(c *ui.Context) {
 					ui.Text(c, pct).FontSize(38).FontWeight(400)
 					ui.Text(c, "%").FontSize(17).TextColor(t.TextMuted)
 					ui.Spacer(c)
-					ui.Text(c, text(c, "当前阶段")).FontSize(11).TextColor(t.TextMuted)
+					caption := "当前阶段"
+					if workflow {
+						caption = "整批进度"
+					}
+					ui.Text(c, text(c, caption)).FontSize(11).TextColor(t.TextMuted)
 				})
 				ui.Progress(c, progress).Height(4).Radius(2).Label(text(c, "当前阶段上传进度"))
 				progressText := formatBytes(st.Bytes) + " / " + formatBytes(st.TotalBytes)
@@ -113,8 +126,11 @@ func (s *nativeUI) activityCard(c *ui.Context) {
 				ui.Text(c, progressText).
 					FontSize(12).TextColor(t.TextMuted)
 				if workflow {
-					ui.Text(c, fmt.Sprintf(text(c, "当前阶段 %s / %s · 第 %d / %d 步"), formatBytes(st.Bytes), formatBytes(st.TotalBytes), active.WorkflowStep, active.WorkflowSize)).
-						FontSize(11).TextColor(t.TextMuted).SingleLine()
+					caption := fmt.Sprintf(text(c, "当前阶段 %s / %s · 第 %d / %d 步"), formatBytes(st.Bytes), formatBytes(st.TotalBytes), active.WorkflowStep, active.WorkflowSize)
+					if st.TotalBytes > 0 {
+						caption += fmt.Sprintf(" · %.1f%%", 100*progressValue(st.Bytes, st.TotalBytes))
+					}
+					ui.Text(c, caption).FontSize(11).TextColor(t.TextMuted).MaxLines(2).Tooltip(caption)
 				}
 			})
 			ui.Column(c).Grow(1).Basis(0).Gap(10).Children(func() {
@@ -141,13 +157,20 @@ func (s *nativeUI) activityCard(c *ui.Context) {
 			ui.Text(c, fmt.Sprintf(text(c, "%d 个文件正在上传"), len(st.Transferring))).
 				FontSize(12).TextColor(t.TextMuted)
 			if st.TotalChecks > 0 {
-				ui.Text(c, fmt.Sprintf(text(c, "已校验 %d / %d 个文件"), st.Checks, st.TotalChecks)).
+				caption := "正在比对 %d / %d 个文件"
+				if active != nil && active.Operation == "check" {
+					caption = "已校验 %d / %d 个文件"
+				}
+				ui.Text(c, fmt.Sprintf(text(c, caption), st.Checks, st.TotalChecks)).
 					FontSize(12).TextColor(t.TextMuted)
 			}
-			if st.ETA > 0 {
-				ui.Text(c, text(c, "约剩 ")+durationText(c, st.ETA)).FontSize(12).TextColor(t.TextMuted)
-			} else if workflow && st.Speed > 0 && totalBytes > doneBytes {
-				ui.Text(c, text(c, "约剩 ")+durationText(c, float64(totalBytes-doneBytes)/st.Speed)).FontSize(12).TextColor(t.TextMuted)
+			eta := st.ETA
+			if eta <= 0 && st.Speed > 0 && st.TotalBytes > st.Bytes {
+				eta = float64(st.TotalBytes-st.Bytes) / st.Speed
+			}
+			if eta > 0 {
+				ui.Text(c, text(c, "当前阶段约剩 ")+durationText(c, eta)).FontSize(12).TextColor(t.TextMuted).
+					Tooltip(text(c, "按当前速度估算，不包含后续步骤与最终校验。"))
 			}
 			ui.Text(c, fmt.Sprintf(text(c, "%d 个错误"), st.Errors)).FontSize(12).TextColor(t.TextMuted)
 		})
@@ -162,7 +185,7 @@ func (s *nativeUI) activityPhase(language ...string) string {
 		return source
 	}
 	for _, job := range s.jobs {
-		if job.Status != "running" {
+		if job.Status != "running" && job.Status != "handoff" {
 			continue
 		}
 		if len(job.CheckingFiles) > 0 {
@@ -188,7 +211,7 @@ func (s *nativeUI) activityPhase(language ...string) string {
 
 func (s *nativeUI) activeJob() *core.Job {
 	for i := range s.jobs {
-		if s.jobs[i].Status == "running" {
+		if s.jobs[i].Status == "running" || s.jobs[i].Status == "handoff" {
 			return &s.jobs[i]
 		}
 	}

@@ -31,9 +31,10 @@ func (s *nativeUI) queuePage(c *ui.Context) {
 			actionButton(c.Key("show-job-form"), iconPlus, "新建任务…", true).
 				Disabled(s.busy).OnClick(func() { s.beginJobForm(nil) })
 		})
-		if s.queueBlockReason != "" {
-			ui.Text(c, s.queueBlockReason).FontSize(11).TextColor(t.TextMuted)
+		if s.queueBlockReason != "" && s.handoff == nil {
+			ui.Text(c, text(c, s.queueBlockReason)).FontSize(11).TextColor(t.TextMuted)
 		}
+		s.handoffStatus(c)
 		width, _ := c.Size()
 		narrow := s.logJobID != "" && width < 1040
 		var layout ui.Element
@@ -54,6 +55,7 @@ func (s *nativeUI) queuePage(c *ui.Context) {
 								continue
 							}
 							disclosure(c.Key("external-"+external.ID), iconQueue, external.Name, fmt.Sprintf("%.2f MiB/s", external.Stats.Speed/1048576), s.openState("external-"+external.ID, true), func() {
+								ui.Text(c, text(c, "外部观察 · 操作与最终结果由原客户端负责")).FontSize(11).TextColor(t.TextMuted)
 								ui.Text(c, text(c, "当前阶段 · ")+formatBytes(external.Stats.Bytes)+" / "+formatBytes(external.Stats.TotalBytes)).
 									FontSize(12).TextColor(t.TextMuted)
 								ui.Text(c, text(c, "当前活动文件；其他文件由 rclone 继续扫描和调度。")).FontSize(11).TextColor(t.TextMuted)
@@ -107,7 +109,7 @@ func jobProgress(job core.Job) float64 {
 func (s *nativeUI) activeJobCard(c *ui.Context) {
 	var active *core.Job
 	for i := range s.jobs {
-		if s.jobs[i].Status == "running" {
+		if s.jobs[i].Status == "running" || s.jobs[i].Status == "handoff" {
 			active = &s.jobs[i]
 			break
 		}
@@ -123,19 +125,23 @@ func (s *nativeUI) activeJobCard(c *ui.Context) {
 				ui.Text(c, active.Name).FontSize(17).FontWeight(600).SingleLine().Tooltip(active.Name)
 				statusDot(c, jobPhase(*active), t.Accent)
 			})
-			ui.Button(c.Key("pause-active"), text(c, "暂停")).Height(28).Padding(4, 10).
-				Disabled(s.busy).
-				OnClick(func() {
-					id := active.ID
-					s.run(text(c, "暂停任务"), func() error { return s.app.Pause(id) })
+			if active.Status != "handoff" {
+				ui.Button(c.Key("pause-active"), text(c, "暂停")).Height(28).Padding(4, 10).
+					Disabled(s.busy).
+					OnClick(func() {
+						id := active.ID
+						s.run(text(c, "暂停任务"), func() error { return s.app.Pause(id) })
+					})
+				iconButton(c.Key("active-details"), iconArrow, "查看活动任务详情").OnClick(func() { s.loadLog(active.ID) })
+				iconButton(c.Key("active-more"), iconMore, "更多活动任务操作").Disabled(s.busy).Menu(func(m *ui.Menu) {
+					if m.Item(text(c, "取消")).Chosen() {
+						id := active.ID
+						s.run(text(c, "停止任务"), func() error { return s.app.Cancel(id) })
+					}
 				})
-			iconButton(c.Key("active-details"), iconArrow, "查看活动任务详情").OnClick(func() { s.loadLog(active.ID) })
-			iconButton(c.Key("active-more"), iconMore, "更多活动任务操作").Disabled(s.busy).Menu(func(m *ui.Menu) {
-				if m.Item(text(c, "取消")).Chosen() {
-					id := active.ID
-					s.run(text(c, "停止任务"), func() error { return s.app.Cancel(id) })
-				}
-			})
+			} else {
+				statusDot(c, "旧客户端执行中", t.TextMuted)
+			}
 		})
 		pathSummary(c, active.Source, active.Destination)
 		ui.Progress(c, jobProgress(*active)).Height(4).Label(text(c, "活动任务进度"))
@@ -375,6 +381,7 @@ func (s *nativeUI) editOverlays(c *ui.Context) {
 	dialog("job-editor", &s.showJobForm, title, 520, func() { s.jobForm(c) }, func() { s.jobFooter(c) })
 	dialog("mount-editor", &s.editingMount, "映射配置", 500, func() { s.mountEditor(c) }, nil)
 	dialog("remote-editor", &s.showRemoteForm, "添加云端账户", 460, func() { s.remoteEditor(c) }, nil)
+	dialog("legacy-handoff", &s.handoffUI.open, "旧客户端接管", 580, func() { s.handoffForm(c) }, func() { s.handoffFooter(c) })
 	dialog("storage-details", &s.showStorageDetails, "云端账户详情", 520, func() { s.storageDetails(c) }, func() {
 		actionButton(c.Key("browse-storage"), iconFolder, "浏览文件", false).OnClick(func() {
 			s.showStorageDetails = false

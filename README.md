@@ -19,6 +19,11 @@ one persistent scheduler.
 This is an independent community project under active alpha development.
 It is not an official rclone or MyGo application.
 
+**Version status:** this README describes the alpha.3 development source.
+The latest published preview is [v0.1.0-alpha.2](https://github.com/DeliciousBuding/rclonego/releases/tag/v0.1.0-alpha.2).
+Changes introduced in alpha.3 require a source build or a later published preview.
+No stable release is available yet.
+
 <p align="center"><img src="assets/screenshots/resources-light.png" width="900" alt="RcloneGo native resource monitoring"></p>
 
 ## What it does
@@ -39,6 +44,9 @@ It is not an official rclone or MyGo application.
 - **Understand storage.** Read provider quota, hash algorithms and backend
   capabilities. Browse files with sizes and request cancellable directory
   statistics. See other rclone processes separately from this client's usage.
+- **Continue legacy work.** Preview a Data Ops Console import, preserve task
+  order and exclusion evidence, and let its current upload finish before the
+  shared queue takes over the remaining steps.
 
 A mirror requires a matching dry-run preview and explicit deletion permission.
 Verification reports distinguish sizes, available hashes and content-download
@@ -50,7 +58,7 @@ idle windows refresh less often, and logs have bounded retention.
 ## Install
 
 Choose a package from [Releases](https://github.com/DeliciousBuding/rclonego/releases).
-Preview packages are marked as prereleases; no stable version is available yet.
+Available assets and platform validation are listed with each release.
 
 | Platform | Package and validation |
 | --- | --- |

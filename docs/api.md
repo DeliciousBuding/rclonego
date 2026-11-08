@@ -25,6 +25,10 @@ Engine, account, mount, workflow and global queue configuration require the owne
 | `GET /api/v1` | Capabilities and constraints |
 | `GET /api/v1/doctor` | Engine and platform diagnostics |
 | `GET /api/v1/health` | Public liveness plus task-service readiness |
+| `GET /api/v1/handoff` | Current legacy handoff, or null |
+| `POST /api/v1/handoff/preview` | Read-only legacy import preview and definition key |
+| `POST /api/v1/handoff/begin` | Pause previous dispatch and commit the previewed import |
+| `POST /api/v1/handoff/return` | Relinquish imported execution before any step starts here |
 | `GET /api/v1/schema` | OpenAPI 3.1 contract |
 | `GET /api/v1/engine` | Selected engine |
 | `POST /api/v1/engine/install` | Verified recommended download or `archive` import |
@@ -74,6 +78,19 @@ Engine, account, mount, workflow and global queue configuration require the owne
 Job and concrete workflow submission support idempotency keys. For run
 submission, pass `Idempotency-Key` or `idempotency_key`. Keep the key stable when
 retrying a request after a network failure.
+
+Handoff requests contain absolute `state_path` and `config_path`, an optional
+loopback HTTP `endpoint` for the old client, and `preview_key` when beginning.
+CLI equivalents are `handoff preview --file request.json`, `handoff begin --file
+request.json`, `handoff status` and `handoff return`. Import requires empty task
+history and owner access. A running imported step has status `handoff`; controls
+remain with its original client. The persistent handoff tracks `waiting`,
+`blocked`, `complete` or `returned`, and an irreversible `started_here` flag.
+Task grants cannot inspect or change global handoff state.
+
+External observations can include `source` and `destination` to defer overlapping
+work. Passive observations do not block unrelated tasks. `block_queue: true`
+explicitly retains the whole-queue wait behavior.
 
 Quota comes from `rclone about --json`; `status: unsupported` means the provider
 does not report a quota. Missing fields are unknown, while `free: 0` means no

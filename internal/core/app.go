@@ -28,6 +28,7 @@ type App struct {
 	previews    map[string]Preview
 	mountMu     sync.Mutex
 	automations *automationService
+	handoffMu   sync.Mutex
 }
 
 func NewApp(store *Store, rclonePath, dataDir string) *App {
@@ -36,7 +37,8 @@ func NewApp(store *Store, rclonePath, dataDir string) *App {
 	app.queue = NewQueue(store, rclonePath, dataDir)
 	app.queue.setEngine(app.rclone)
 	app.runtime = newRuntime(store, app.rclone)
-	app.queue.externalBusy = app.runtime.Busy
+	app.queue.blocked = app.dispatchBlocked
+	app.runtime.beforeRefresh = app.refreshHandoff
 	app.automations = newAutomationService(app)
 	return app
 }

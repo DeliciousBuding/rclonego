@@ -21,17 +21,21 @@ type State struct {
 	Attempts          []Attempt            `json:"attempts"`
 	Automations       []Automation         `json:"automations,omitempty"`
 	ExternalTransfers []ExternalTransfer   `json:"external_transfers,omitempty"`
+	Handoff           *LegacyHandoff       `json:"handoff,omitempty"`
 }
 
 type ExternalTransfer struct {
-	ID         string `json:"id"`
-	Name       string `json:"name"`
-	RCPort     int    `json:"rc_port"`
-	OwnerPID   int    `json:"owner_pid,omitempty"`
-	Transfers  int    `json:"transfers,omitempty"`
-	Checkers   int    `json:"checkers,omitempty"`
-	ChunkSize  string `json:"chunk_size,omitempty"`
-	BufferSize string `json:"buffer_size,omitempty"`
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	RCPort      int    `json:"rc_port"`
+	OwnerPID    int    `json:"owner_pid,omitempty"`
+	Transfers   int    `json:"transfers,omitempty"`
+	Checkers    int    `json:"checkers,omitempty"`
+	ChunkSize   string `json:"chunk_size,omitempty"`
+	BufferSize  string `json:"buffer_size,omitempty"`
+	Source      string `json:"source,omitempty"`
+	Destination string `json:"destination,omitempty"`
+	BlockQueue  bool   `json:"block_queue,omitempty"`
 }
 
 type ExternalTransferView struct {
@@ -63,6 +67,7 @@ type MountView struct {
 }
 
 type Job struct {
+	Origin               string       `json:"origin,omitempty"`
 	DryRun               bool         `json:"dry_run"`
 	MaxDelete            int          `json:"max_delete"`
 	Attempt              int          `json:"attempt"`
@@ -195,4 +200,29 @@ type ActivityStatus struct {
 	Available bool     `json:"available"`
 	Stats     *RCStats `json:"stats,omitempty"`
 	Error     string   `json:"error,omitempty"`
+}
+
+func JobStats(job Job) *RCStats {
+	return &RCStats{Bytes: job.Bytes, TotalBytes: job.TotalBytes, Speed: job.Speed,
+		Transfers: job.FilesDone, TotalTransfers: job.FilesTotal,
+		Checks: job.ChecksDone, TotalChecks: job.ChecksTotal,
+		Transferring: job.ActiveFiles, Checking: job.CheckingFiles,
+		Errors: job.EngineErrors, Listed: job.EngineListed, ElapsedTime: job.EngineElapsed, ETA: job.EngineETA,
+		FatalError: job.EngineFatalError, RetryError: job.EngineRetryError, LastError: job.EngineLastError}
+}
+
+func CurrentActivity(state State, runtime RuntimeSnapshot) ActivityStatus {
+	for _, status := range []string{"running", "handoff"} {
+		for _, job := range state.Jobs {
+			if job.Status == status {
+				return ActivityStatus{Available: true, Stats: JobStats(job)}
+			}
+		}
+	}
+	for _, external := range runtime.External {
+		if external.Available {
+			return ActivityStatus{Available: true, Stats: external.Stats}
+		}
+	}
+	return ActivityStatus{}
 }

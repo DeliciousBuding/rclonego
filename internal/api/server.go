@@ -34,6 +34,8 @@ func (a *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/v1/tokens/tasks", a.mutating(a.handleTokens))
 	mux.HandleFunc("POST /api/v1/tokens/{id}/revoke", a.mutating(a.handleRevokeToken))
 	mux.HandleFunc("GET /api/v1/health", a.handleHealth)
+	mux.HandleFunc("GET /api/v1/handoff", a.handleHandoff)
+	mux.HandleFunc("POST /api/v1/handoff/{action}", a.mutating(a.handleHandoff))
 	mux.HandleFunc("GET /api/v1/doctor", a.handleDoctor)
 	mux.HandleFunc("GET /api/v1/diagnostics", a.handleDiagnostics)
 	mux.HandleFunc("GET /api/v1/events", a.handleEvents)
@@ -255,27 +257,8 @@ func (a *Server) handleSaveSettings(w http.ResponseWriter, r *http.Request) {
 
 func (a *Server) handleOverview(w http.ResponseWriter, r *http.Request) {
 	state := a.app.Snapshot()
-	activity := core.ActivityStatus{}
 	runtime := a.app.RuntimeSnapshot()
-	for _, external := range runtime.External {
-		if external.Available {
-			activity = core.ActivityStatus{Available: true, Stats: external.Stats}
-			break
-		}
-	}
-	if !activity.Available {
-		for _, job := range state.Jobs {
-			if job.Status == "running" {
-				activity = core.ActivityStatus{Available: true, Stats: &core.RCStats{
-					Bytes: job.Bytes, TotalBytes: job.TotalBytes, Speed: job.Speed,
-					Transfers: job.FilesDone, TotalTransfers: job.FilesTotal,
-					Checks: job.ChecksDone, TotalChecks: job.ChecksTotal,
-					Transferring: job.ActiveFiles, Checking: job.CheckingFiles,
-				}}
-				break
-			}
-		}
-	}
+	activity := core.CurrentActivity(state, runtime)
 	result := map[string]any{
 		"version": runtime.Version, "activity": activity,
 		"remote_count": len(runtime.Remotes), "mounts": runtime.Mounts,

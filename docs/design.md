@@ -46,6 +46,19 @@ Diagnostic counters expose listing, checks, elapsed time and engine errors.
 Provider colors identify services; controls keep the existing single-color
 action icon system.
 
+Activity identifies who manages a transfer. Imported active work shows the old
+client as owner until it records completion; pending steps and whole-run progress
+remain visible. Passive external observations do not imply ownership of their
+controls or final result. The title bar carries window commands while the page
+heading carries its title and primary action, avoiding repeated headings.
+
+File browsing offers current-page search, name/size sorting and native list
+selection. Enter opens a selected directory, Backspace returns to its parent,
+and Ctrl/Cmd+C copies the selected path. Selection details and bottom actions
+remain visible at the minimum window size. Search never silently scans remote
+trees or other pages. A [current native browser](../assets/screenshots/files-dark.png)
+uses a synthetic account and sample documents.
+
 Active tasks distinguish preparation, comparison, transfer and verification.
 Unknown totals stay indeterminate; verification progress uses file counts rather
 than transfer bytes. The sidebar count includes queued and running work. Empty
@@ -123,9 +136,21 @@ SVG rendering tests cover regression boundaries alongside native inspection.
 SVG service assets use paths supported by MyGo, avoiding embedded images, masks
 and CSS-dependent fills. Their [sources and licenses](third-party.md) are recorded.
 
-Brand assets include the [wordmark](../assets/wordmark.svg),
-[standalone mark](../assets/mark.svg) and [motion study](../assets/motion.gif).
-The app uses the static mark to avoid continuous animation at idle.
+The [monochrome mark](../assets/mark-mono.svg) is the brand geometry source.
+Run `python scripts/generate_brand.py` to regenerate the
+[color mark](../assets/mark.svg), [application icon SVG](../assets/icon.svg)
+and [wordmark](../assets/wordmark.svg); `--check` verifies their consistency.
+The wordmark uses the same symbol geometry and the host's system font. The
+application's existing [PNG icon](../assets/icon.png) retains the same geometry
+and color plate for native packaging. Raster exports and tray glyphs should be
+checked at their actual small display sizes when changed.
+
+Use the monochrome symbol for compact chrome and monochrome trays, the color
+symbol beside the product name, and the rounded plate for application launchers.
+The [motion study](../assets/motion.gif) is an optional presentation asset.
+The application stays static at idle. Service marks identify the provider or
+engine and remain separate from the product mark.
+
 The [account screenshot](../assets/screenshots/accounts-light.png) uses an empty
 synthetic profile with no account credentials.
 

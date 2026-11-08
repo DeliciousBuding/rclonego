@@ -164,6 +164,17 @@ func (s *Store) Snapshot() State {
 
 func cloneState(data State) State {
 	result := data
+	if data.Handoff != nil {
+		copy := *data.Handoff
+		copy.JobIDs = append([]string(nil), data.Handoff.JobIDs...)
+		if data.Handoff.SourceStatuses != nil {
+			copy.SourceStatuses = map[string]string{}
+			for id, status := range data.Handoff.SourceStatuses {
+				copy.SourceStatuses[id] = status
+			}
+		}
+		result.Handoff = &copy
+	}
 	if data.MountIdentities != nil {
 		result.MountIdentities = map[string]string{}
 		for id, identity := range data.MountIdentities {
@@ -283,6 +294,9 @@ func (s *Store) Update(fn func(*State) error) error {
 
 func (s *Store) SaveJob(job Job) error {
 	return s.Update(func(state *State) error {
+		if job.Origin == "data-ops-console" && job.Status == "running" && state.Handoff != nil {
+			state.Handoff.StartedHere = true
+		}
 		s.recordAttemptLocked(job)
 		for i := range state.Jobs {
 			if state.Jobs[i].ID == job.ID {
@@ -342,7 +356,7 @@ func (s *Store) saveLocked() error {
 
 func (s *Store) boundHistoryLocked() {
 	active := func(status string) bool {
-		return status == "running" || status == "pending" || status == "paused" || status == "interrupted"
+		return status == "handoff" || status == "running" || status == "pending" || status == "paused" || status == "interrupted"
 	}
 	keepRuns := map[string]bool{}
 	for _, job := range s.data.Jobs {
