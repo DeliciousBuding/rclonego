@@ -1,6 +1,9 @@
 package core
 
-import "path/filepath"
+import (
+	"path/filepath"
+	"strings"
+)
 
 type MountTargets struct {
 	Available  []string   `json:"available"`
@@ -34,4 +37,34 @@ func (a *App) OwnsMount(id string) bool {
 	state := a.Snapshot()
 	pid := state.OwnedMounts[id]
 	return pid > 0 && state.MountIdentities[id] != "" && state.MountIdentities[id] == processIdentity(pid)
+}
+
+// A task addressed through a mounted drive still shares the remote's files.
+// Resolve its route for queue overlap checks without adopting the mount.
+func mountedTransferPath(value string, mounts []MountView) string {
+	if !filepath.IsAbs(value) {
+		return value
+	}
+	for _, mount := range mounts {
+		if !mount.DriveAvailable {
+			continue
+		}
+		root := mount.Drive
+		if len(root) == 2 && strings.HasSuffix(root, ":") {
+			root += string(filepath.Separator)
+		}
+		relative, err := filepath.Rel(root, value)
+		if err != nil || relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
+			continue
+		}
+		if relative == "." {
+			return mount.Remote
+		}
+		target := mount.Remote
+		if !strings.HasSuffix(target, ":") && !strings.HasSuffix(target, "/") {
+			target += "/"
+		}
+		return target + filepath.ToSlash(relative)
+	}
+	return value
 }

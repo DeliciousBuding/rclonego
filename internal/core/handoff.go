@@ -620,6 +620,9 @@ func transferPathsOverlap(left, right string) bool {
 }
 
 func (a *App) dispatchBlocked(job Job, state State) bool {
+	mounts := a.runtime.Snapshot().Mounts
+	job.Source = mountedTransferPath(job.Source, mounts)
+	job.Destination = mountedTransferPath(job.Destination, mounts)
 	if state.Handoff != nil && state.Handoff.Status == "returned" && job.Origin == "data-ops-console" {
 		return true
 	}
