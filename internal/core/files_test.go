@@ -166,6 +166,11 @@ func TestPreviewLocalAndRemoteTextAndImageAreBounded(t *testing.T) {
 	if _, err = app.PreviewFile(context.Background(), "fixture:"); err == nil {
 		t.Fatal("folder preview accepted")
 	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if _, err = app.PreviewFile(ctx, filepath.Join(root, "text.txt")); err == nil {
+		t.Fatal("cancelled local preview read file")
+	}
 	for _, name := range []string{"..", "a/b", `a\b`, "a:b", "bad\nname", " name"} {
 		if _, err = ChildPath("fixture:", name); err == nil {
 			t.Fatalf("unsafe child accepted: %q", name)

@@ -289,6 +289,9 @@ func boundedFileCommand(ctx context.Context, client RcloneClient, limit int64, a
 }
 
 func (a *App) PreviewFile(ctx context.Context, value string) (FilePreview, error) {
+	if err := ctx.Err(); err != nil {
+		return FilePreview{}, err
+	}
 	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
 	client := a.EngineClient()
@@ -324,6 +327,9 @@ func (a *App) PreviewFile(ctx context.Context, value string) (FilePreview, error
 		}
 	}
 	result.MIME = http.DetectContentType(raw)
+	if err := ctx.Err(); err != nil {
+		return result, err
+	}
 	if strings.HasPrefix(result.MIME, "image/") {
 		if int64(len(raw)) > readLimit || info.Size > readLimit {
 			return result, errors.New("image preview is limited to 8 MiB; download the file to open it")
