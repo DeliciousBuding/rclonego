@@ -5328,3 +5328,183 @@ func TaskCountLabel(count int) string { return In(i18n.Locale()).TaskCountLabel(
 func (msgs Messages) TaskCountLabel(count int) string {
 	return Catalog.Format(msgs.locale, "taskCountLabel", map[string]any{"count": count})
 }
+
+// JobNameLabel says "Task name"
+// in the language the app shows.
+func JobNameLabel() string { return In(i18n.Locale()).JobNameLabel() }
+
+// JobNameLabel says "Task name"
+// in the language of msgs.
+func (msgs Messages) JobNameLabel() string {
+	return Catalog.Format(msgs.locale, "jobNameLabel", nil)
+}
+
+// EnterTaskName says "Enter a task name"
+// in the language the app shows.
+func EnterTaskName() string { return In(i18n.Locale()).EnterTaskName() }
+
+// EnterTaskName says "Enter a task name"
+// in the language of msgs.
+func (msgs Messages) EnterTaskName() string {
+	return Catalog.Format(msgs.locale, "enterTaskName", nil)
+}
+
+// ChooseTaskSource says "Choose a source folder"
+// in the language the app shows.
+func ChooseTaskSource() string { return In(i18n.Locale()).ChooseTaskSource() }
+
+// ChooseTaskSource says "Choose a source folder"
+// in the language of msgs.
+func (msgs Messages) ChooseTaskSource() string {
+	return Catalog.Format(msgs.locale, "chooseTaskSource", nil)
+}
+
+// ChooseTaskDestination says "Choose a destination folder"
+// in the language the app shows.
+func ChooseTaskDestination() string { return In(i18n.Locale()).ChooseTaskDestination() }
+
+// ChooseTaskDestination says "Choose a destination folder"
+// in the language of msgs.
+func (msgs Messages) ChooseTaskDestination() string {
+	return Catalog.Format(msgs.locale, "chooseTaskDestination", nil)
+}
+
+// DifferentTaskPaths says "Source and destination must be different"
+// in the language the app shows.
+func DifferentTaskPaths() string { return In(i18n.Locale()).DifferentTaskPaths() }
+
+// DifferentTaskPaths says "Source and destination must be different"
+// in the language of msgs.
+func (msgs Messages) DifferentTaskPaths() string {
+	return Catalog.Format(msgs.locale, "differentTaskPaths", nil)
+}
+
+// JobConcurrencyRange says "Transfers must be 1–32; checkers must be 1–64"
+// in the language the app shows.
+func JobConcurrencyRange() string { return In(i18n.Locale()).JobConcurrencyRange() }
+
+// JobConcurrencyRange says "Transfers must be 1–32; checkers must be 1–64"
+// in the language of msgs.
+func (msgs Messages) JobConcurrencyRange() string {
+	return Catalog.Format(msgs.locale, "jobConcurrencyRange", nil)
+}
+
+// JobCPURange says "CPU parallelism must be 0–64"
+// in the language the app shows.
+func JobCPURange() string { return In(i18n.Locale()).JobCPURange() }
+
+// JobCPURange says "CPU parallelism must be 0–64"
+// in the language of msgs.
+func (msgs Messages) JobCPURange() string {
+	return Catalog.Format(msgs.locale, "jobCPURange", nil)
+}
+
+// JobChunkRange says "Google Drive chunks must be a power of two from 256K to 1G"
+// in the language the app shows.
+func JobChunkRange() string { return In(i18n.Locale()).JobChunkRange() }
+
+// JobChunkRange says "Google Drive chunks must be a power of two from 256K to 1G"
+// in the language of msgs.
+func (msgs Messages) JobChunkRange() string {
+	return Catalog.Format(msgs.locale, "jobChunkRange", nil)
+}
+
+// JobBufferRange says "Buffer per transfer must be 0–1G, for example 8M"
+// in the language the app shows.
+func JobBufferRange() string { return In(i18n.Locale()).JobBufferRange() }
+
+// JobBufferRange says "Buffer per transfer must be 0–1G, for example 8M"
+// in the language of msgs.
+func (msgs Messages) JobBufferRange() string {
+	return Catalog.Format(msgs.locale, "jobBufferRange", nil)
+}
+
+// JobBandwidthFormat says "Use a bandwidth limit such as 4M, or off"
+// in the language the app shows.
+func JobBandwidthFormat() string { return In(i18n.Locale()).JobBandwidthFormat() }
+
+// JobBandwidthFormat says "Use a bandwidth limit such as 4M, or off"
+// in the language of msgs.
+func (msgs Messages) JobBandwidthFormat() string {
+	return Catalog.Format(msgs.locale, "jobBandwidthFormat", nil)
+}
+
+// ConfirmSync says "Confirm sync"
+// in the language the app shows.
+func ConfirmSync() string { return In(i18n.Locale()).ConfirmSync() }
+
+// ConfirmSync says "Confirm sync"
+// in the language of msgs.
+func (msgs Messages) ConfirmSync() string {
+	return Catalog.Format(msgs.locale, "confirmSync", nil)
+}
+
+// ResultVerificationFormat says "Verification result: %s"
+// in the language the app shows.
+func ResultVerificationFormat() string { return In(i18n.Locale()).ResultVerificationFormat() }
+
+// ResultVerificationFormat says "Verification result: %s"
+// in the language of msgs.
+func (msgs Messages) ResultVerificationFormat() string {
+	return Catalog.Format(msgs.locale, "resultVerificationFormat", nil)
+}
+
+// SelectedResultScope says "Scope: selected top-level entries and their contents; extra destination files are outside verification."
+// in the language the app shows.
+func SelectedResultScope() string { return In(i18n.Locale()).SelectedResultScope() }
+
+// SelectedResultScope says "Scope: selected top-level entries and their contents; extra destination files are outside verification."
+// in the language of msgs.
+func (msgs Messages) SelectedResultScope() string {
+	return Catalog.Format(msgs.locale, "selectedResultScope", nil)
+}
+
+// ResultAttentionFormat says "Needs attention: %s"
+// in the language the app shows.
+func ResultAttentionFormat() string { return In(i18n.Locale()).ResultAttentionFormat() }
+
+// ResultAttentionFormat says "Needs attention: %s"
+// in the language of msgs.
+func (msgs Messages) ResultAttentionFormat() string {
+	return Catalog.Format(msgs.locale, "resultAttentionFormat", nil)
+}
+
+// ResultCompletedSteps says "%d / %d steps completed"
+// in the language the app shows.
+func ResultCompletedSteps() string { return In(i18n.Locale()).ResultCompletedSteps() }
+
+// ResultCompletedSteps says "%d / %d steps completed"
+// in the language of msgs.
+func (msgs Messages) ResultCompletedSteps() string {
+	return Catalog.Format(msgs.locale, "resultCompletedSteps", nil)
+}
+
+// CopyCompleteUnverified says "Copy completed; no separate content verification was run."
+// in the language the app shows.
+func CopyCompleteUnverified() string { return In(i18n.Locale()).CopyCompleteUnverified() }
+
+// CopyCompleteUnverified says "Copy completed; no separate content verification was run."
+// in the language of msgs.
+func (msgs Messages) CopyCompleteUnverified() string {
+	return Catalog.Format(msgs.locale, "copyCompleteUnverified", nil)
+}
+
+// SyncCompleteUnverified says "Sync completed; no separate content verification was run."
+// in the language the app shows.
+func SyncCompleteUnverified() string { return In(i18n.Locale()).SyncCompleteUnverified() }
+
+// SyncCompleteUnverified says "Sync completed; no separate content verification was run."
+// in the language of msgs.
+func (msgs Messages) SyncCompleteUnverified() string {
+	return Catalog.Format(msgs.locale, "syncCompleteUnverified", nil)
+}
+
+// AttemptCount says "{count, plural, one {# attempt} other {# attempts}}"
+// in the language the app shows.
+func AttemptCount(count int) string { return In(i18n.Locale()).AttemptCount(count) }
+
+// AttemptCount says "{count, plural, one {# attempt} other {# attempts}}"
+// in the language of msgs.
+func (msgs Messages) AttemptCount(count int) string {
+	return Catalog.Format(msgs.locale, "attemptCount", map[string]any{"count": count})
+}

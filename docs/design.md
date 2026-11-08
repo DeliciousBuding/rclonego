@@ -43,6 +43,17 @@ collapsible execution metadata, errors and logs. Paths and errors expose their
 complete text through selection and tooltips. Error banners wrap, stay readable
 and can be dismissed without leaving the page.
 
+Task forms scroll above a fixed action row. Preview, cancel and submission stay
+visible when advanced options or comparison results are expanded. Required-input
+issues appear beside their field after submission is attempted. Sync begins with
+a preview and enables confirmation only with explicit deletion permission and
+complete preview evidence.
+
+Run results open in a dialog with status, completed steps, verification evidence
+and scope before the attempt list. A failed step includes the engine's cause,
+and recovery stays in the fixed action row. Successful copying does not imply
+separate content verification.
+
 These choices follow [Apple's layout guidance](https://developer.apple.com/design/human-interface-guidelines/layout),
 [Fluent productivity guidance](https://learn.microsoft.com/en-us/windows/apps/get-started/line-of-business/design-for-lob),
 and [Mica layering](https://learn.microsoft.com/en-us/windows/apps/design/style/mica).

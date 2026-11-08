@@ -180,9 +180,6 @@ func (s *nativeUI) workflowsPage(c *ui.Context) {
 						OnClick(func() { s.loadWorkflowHistory(w.historyOffset + workflowHistoryPageSize) })
 				})
 			}
-			if w.report != nil {
-				s.workflowReport(c)
-			}
 		})
 	})
 }
@@ -270,60 +267,112 @@ func (s *nativeUI) openWorkflowReport(id string) {
 	})
 }
 
-func workflowVerificationLabel(mode string) string {
+func workflowVerificationLabel(c *ui.Context, mode string) string {
+	var message string
 	switch mode {
-	case "content", "content_compared":
-		return "已下载并比较文件内容"
-	case "size", "size_compared":
-		return "已比较文件大小"
+	case "content_compared":
+		message = "已下载并比较文件内容"
+	case "size_compared":
+		message = "已比较文件大小"
 	case "not_run":
-		return "尚未执行最终校验"
+		message = "尚未执行最终校验"
 	case "backend_check_completed: size and available hashes; hash availability not attested":
-		return "已比较大小和后端可用哈希；哈希可用性未单独验证"
+		message = "已比较大小和后端可用哈希；哈希可用性未单独验证"
 	case "":
-		return "未提供校验结果"
+		message = "未提供校验结果"
 	default:
-		return "校验结果：" + mode
+		return fmt.Sprintf(text(c, "校验结果：%s"), mode)
 	}
+	return text(c, message)
 }
 
 func (s *nativeUI) workflowReport(c *ui.Context) {
+	if s.workflowUI.report == nil {
+		return
+	}
 	t := c.Theme()
 	report := s.workflowUI.report
-	ui.Column(c).Padding(14).Radius(10).Background(t.Surface).Gap(12).MinWidth(0).Children(func() {
-		ui.Row(c).Gap(8).Children(func() {
+	open := true
+	ui.DialogBase(c.Key("workflow-report"), &open, func(backdrop, panel ui.Element) {
+		backdrop.Background(ui.RGBA(25, 30, 40, .16))
+		panel.Width(600).MaxWidthPercent(90).MaxHeightPercent(88).Padding(22).Gap(14).
+			Radius(16).Background(t.Background).Shadow(0, 12, 36, 0, ui.RGBA(0, 0, 0, .12))
+		ui.Row(c).Shrink(0).Gap(8).Children(func() {
 			sectionHeading(c, "执行结果")
 			ui.Spacer(c)
-			iconButton(c.Key("close-run-report"), iconClose, "关闭结果").OnClick(func() { s.workflowUI.report = nil })
+			iconButton(c.Key("close-run-report"), iconClose, "关闭结果").OnClick(func() { open = false })
 		})
-		ui.Text(c, report.Run.Name).FontSize(14).FontWeight(600).MaxLines(2)
-		statusDot(c, statusLabel(report.Status), statusColor(c, report.Status))
-		ui.Text(c, workflowVerificationLabel(report.Verification)).FontSize(12).TextColor(t.TextMuted)
-		ui.Text(c, text(c, "范围：只比较源目录中的文件；目标多余文件不属于复制校验结果。")).FontSize(11).TextColor(t.TextMuted).MaxLines(3)
-		ui.Text(c, text(c, "累计传输 ")+formatBytes(report.WireBytes)+" · "+fmt.Sprint(len(report.Attempts))+text(c, " 次尝试")).
-			FontSize(11).TextColor(t.TextMuted)
-		s.workflowUI.reportList.Key = func(i int) any { return report.Steps[i].ID }
-		s.workflowUI.reportList.Label = func(i int) string { return report.Steps[i].Name }
-		ui.List(c.Key("report-steps"), &s.workflowUI.reportList, len(report.Steps), func(i int) {
-			step := report.Steps[i]
-			ui.Row(c.Key("report-step-" + step.ID)).Gap(8).MinWidth(0).Children(func() {
-				ui.Text(c, fmt.Sprintf("%d", step.WorkflowStep)).Width(24).FontSize(11).TextColor(t.TextMuted)
-				ui.Column(c).Grow(1).MinWidth(0).Gap(3).Children(func() {
-					ui.Text(c, step.Name).FontSize(12).SingleLine().Tooltip(step.Name)
-					ui.Text(c, fmt.Sprintf(text(c, "%d 次尝试 · %s"), step.Attempt, text(c, operationLabel(step.Operation)))).
-						FontSize(11).TextColor(t.TextMuted)
-					if step.Error != "" {
-						ui.Text(c, step.Error).FontSize(11).TextColor(t.Danger).MaxLines(3)
-					}
+		contentScroll(c).MinHeight(0).Shrink(1).Gap(12).Children(func() {
+			ui.Text(c, report.Run.Name).FontSize(17).FontWeight(600).MaxLines(2).Tooltip(report.Run.Name)
+			completed := 0
+			var problem *core.Job
+			for i := range report.Steps {
+				step := &report.Steps[i]
+				if step.Status == "completed" {
+					completed++
+				}
+				if problem == nil && step.Error != "" {
+					problem = step
+				}
+			}
+			ui.Row(c).Gap(12).Wrap().Children(func() {
+				statusDot(c, statusLabel(report.Status), statusColor(c, report.Status))
+				ui.Text(c, fmt.Sprintf(text(c, "%d / %d 步完成"), completed, len(report.Steps))).
+					FontSize(12).TextColor(t.TextMuted)
+			})
+			for _, step := range report.Steps {
+				if step.Operation == "check" {
+					pathSummary(c, step.Source, step.Destination)
+					break
+				}
+			}
+			ui.Text(c, workflowVerificationLabel(c, report.Verification)).FontSize(12).FontWeight(500).MaxLines(3)
+			scope := "范围：只比较源目录中的文件；目标多余文件不属于复制校验结果。"
+			if strings.Contains(report.Scope, "selected top-level") {
+				scope = "范围：所选顶层条目及其内容；目标多余文件不属于校验结果。"
+			}
+			ui.Text(c, text(c, scope)).FontSize(11).TextColor(t.TextMuted).MaxLines(3)
+			if problem != nil {
+				ui.Column(c).Padding(10, 12).Gap(5).Radius(8).Background(t.Danger.Alpha(.05)).Children(func() {
+					ui.Text(c, fmt.Sprintf(text(c, "需要处理：%s"), problem.Name)).FontSize(12).FontWeight(500).SingleLine().Tooltip(problem.Name)
+					ui.Text(c, problem.Error).FontSize(12).TextColor(t.Danger).MaxLines(3).Tooltip(problem.Error).Selectable()
 				})
-				statusDot(c, statusLabel(step.Status), statusColor(c, step.Status))
-			})
-		}).Height(float32(min(len(report.Steps)*48, 288))).Padding(0, 16, 0, 0)
-		if report.Status == "failed" || report.Status == "paused" || report.Status == "interrupted" || report.Status == "cancelled" {
-			ui.Button(c.Key("resume-reported-run"), text(c, "恢复未完成步骤")).Disabled(s.busy).OnClick(func() {
-				id := report.Run.ID
-				s.runAfter(text(c, "恢复执行"), func() error { return s.app.ActOnRun(id, "resume") }, func() { s.workflowUI.report = nil })
-			})
+			}
+			ui.Divider(c)
+			s.workflowUI.reportList.Key = func(i int) any { return report.Steps[i].ID }
+			s.workflowUI.reportList.Label = func(i int) string { return report.Steps[i].Name }
+			ui.List(c.Key("report-steps"), &s.workflowUI.reportList, len(report.Steps), func(i int) {
+				step := report.Steps[i]
+				ui.Row(c.Key("report-step-" + step.ID)).Gap(8).MinWidth(0).Children(func() {
+					ui.Text(c, fmt.Sprintf("%d", step.WorkflowStep)).Width(24).FontSize(11).TextColor(t.TextMuted)
+					ui.Column(c).Grow(1).MinWidth(0).Gap(3).Children(func() {
+						ui.Text(c, step.Name).FontSize(12).SingleLine().Tooltip(step.Name)
+						ui.Text(c, locales.In(c.Locale()).AttemptCount(step.Attempt)+" · "+text(c, operationLabel(step.Operation))).
+							FontSize(11).TextColor(t.TextMuted)
+					})
+					statusDot(c, statusLabel(step.Status), statusColor(c, step.Status))
+				})
+			}).Height(float32(min(len(report.Steps)*48, 192))).Padding(0, 16, 0, 0)
+			ui.Text(c, text(c, "累计传输 ")+formatBytes(report.WireBytes)+" · "+locales.In(c.Locale()).AttemptCount(len(report.Attempts))).
+				FontSize(11).TextColor(t.TextMuted)
+		})
+		if s.isError && s.notice != "" {
+			ui.Text(c, s.notice).Shrink(0).FontSize(12).TextColor(t.Danger).MaxLines(3).Tooltip(s.notice)
 		}
+		ui.Row(c).Shrink(0).Gap(8).Justify(ui.End).Children(func() {
+			ui.Button(c.Key("dismiss-run-report"), text(c, "关闭")).Height(30).OnClick(func() { open = false })
+			if report.Status == "failed" || report.Status == "paused" || report.Status == "interrupted" || report.Status == "cancelled" {
+				ui.PrimaryButton(c.Key("resume-reported-run"), text(c, "恢复未完成步骤")).Height(30).Disabled(s.busy).OnClick(func() {
+					id := report.Run.ID
+					s.runAfter(text(c, "恢复执行"), func() error { return s.app.ActOnRun(id, "resume") }, func() {
+						s.workflowUI.report = nil
+						s.page = "queue"
+					})
+				})
+			}
+		})
 	})
+	if !open {
+		s.workflowUI.report = nil
+	}
 }

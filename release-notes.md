@@ -19,6 +19,8 @@
   More, and use Mica for the Windows main window.
 - Clarify activity phases, use file counts for verification, show mount routes
   and keep empty history and task details concise.
+- Keep task actions visible, explain input issues at their fields and present
+  results with verification evidence and recovery. Retain critical engine errors.
 - Observe owned VFS cache/writeback state and queue persistent offline copies.
 - Extend Agent contracts, event streaming and revocable task permissions.
 
@@ -34,6 +36,7 @@
 - 设置页统一管理主题、语言、登录启动与更新，引擎和新任务默认参数按需展开。
 - 统一页面标题与主操作，工作流低频操作收进“更多”，Windows 主窗口采用 Mica。
 - 区分活动阶段，校验按文件数显示进度；补齐映射路径，精简空历史与任务详情。
+- 固定任务操作区，就地显示输入问题；结果窗口展示校验依据与恢复入口，保留引擎关键错误。
 - 展示本实例挂载的 VFS 缓存与写回状态，支持独立离线副本任务。
 - 完善 Agent 契约、事件流和可撤销的任务权限。
 

@@ -173,6 +173,7 @@ func (s *nativeUI) workflowOverlays(c *ui.Context) {
 			ui.PrimaryButton(c.Key("save-workflow-editor"), text(c, "保存工作流")).Height(30).Disabled(s.busy).OnClick(s.saveWorkflowEditor)
 		})
 	})
+	s.workflowReport(c)
 }
 
 const maxWorkflowImportBytes = 1 << 20

@@ -80,6 +80,10 @@ current process usage and live bandwidth controls.
 3. Create a copy task, or save a directory workflow with final verification.
 4. Observe the queue and read the execution report.
 
+Task forms keep preview and submission actions visible while options scroll.
+Run results show the completed steps, verification method and scope, with a
+recovery action for unfinished work.
+
 Closing a window keeps the service running when a tray is available. Use **Quit**
 to stop the service. Without tray support, closing exits. Restart recovery
 compares source and destination again; file-internal resume depends on the backend.

@@ -6,7 +6,6 @@ import (
 	"github.com/DeliciousBuding/rclonego/internal/core"
 	"github.com/DeliciousBuding/rclonego/locales"
 	"sort"
-	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -120,6 +119,7 @@ type nativeUI struct {
 	jobPreviewKey       string
 	jobMaxDelete        string
 	previewOnly         bool
+	jobAttempted        bool
 	showAbout           bool
 	showLicenses        bool
 	licenseChoice       string
@@ -432,55 +432,17 @@ func (s *nativeUI) beginMountEdit(cfg core.MountConfig) {
 }
 
 func (s *nativeUI) addJob() {
-	transfers, err := strconv.Atoi(s.jobTransfers)
-	if err != nil {
-		s.isError, s.notice = true, locales.Text("transfers 必须是数字")
+	previewOnly := s.previewOnly
+	s.previewOnly, s.jobAttempted = false, true
+	request, issue := s.editedJob()
+	if issue != nil {
+		if issue.field == "parameters" || issue.field == "schedule" {
+			s.showJobAdvanced = true
+		}
 		s.invalidate()
 		return
 	}
-	checkers, err := strconv.Atoi(s.jobCheckers)
-	if err != nil {
-		s.isError, s.notice = true, locales.Text("checkers 必须是数字")
-		s.invalidate()
-		return
-	}
-	request := core.JobCreateRequest{
-		Name: s.jobName, Operation: s.jobOperation, Source: s.jobSource,
-		Destination: s.jobDestination, Transfers: transfers, Checkers: checkers,
-		Bandwidth: s.jobBandwidth, Checksum: s.jobChecksum,
-		CreateDirs: s.jobCreateDirs, AllowDelete: s.jobAllowDelete,
-		ChunkSize: s.jobChunk, BufferSize: s.jobBuffer,
-		PreviewID: s.jobPreview.ID,
-	}
-	if request.Operation == "sync" {
-		maxDelete, err := strconv.Atoi(s.jobMaxDelete)
-		if err != nil || maxDelete < 1 || maxDelete > 10000 {
-			s.setError(fmt.Errorf("%s", locales.Text("单次删除上限必须为 1–10000")))
-			return
-		}
-		request.MaxDelete = maxDelete
-	}
-	cpus, err := strconv.Atoi(s.jobCPU)
-	if err != nil {
-		s.setError(fmt.Errorf("%s", locales.Text("CPU 并行度必须是数字")))
-		return
-	}
-	request.CPUParallelism = &cpus
-	if strings.TrimSpace(s.jobSchedule) != "" {
-		at, err := time.ParseInLocation("2006-01-02 15:04", s.jobSchedule, time.Local)
-		if err != nil {
-			s.setError(fmt.Errorf("%s", locales.Text("计划时间格式为 YYYY-MM-DD HH:MM")))
-			return
-		}
-		request.NotBefore = &at
-	}
-	for _, line := range strings.Split(s.jobIncludes, "\n") {
-		if value := strings.TrimSpace(line); value != "" {
-			request.Includes = append(request.Includes, value)
-		}
-	}
-	if s.previewOnly || request.Operation == "sync" && s.jobPreview.ID == "" {
-		s.previewOnly = false
+	if previewOnly || s.editingJobID == "" && request.Operation == "sync" && s.jobPreview.ID == "" {
 		var preview core.Preview
 		previewKey := s.currentPreviewKey()
 		s.runAfter(locales.Text("预览更改"), func() error {
@@ -495,7 +457,10 @@ func (s *nativeUI) addJob() {
 	editID, workflow, proof := s.editingJobID, s.jobWorkflow, s.jobProof
 	saveDefinition := s.saveDefinition
 	s.runAfter(locales.Text("保存任务"), func() error {
-		settings := core.TransferSettings{Transfers: transfers, Checkers: checkers, ChunkSize: request.ChunkSize, BufferSize: request.BufferSize, CPUParallelism: cpus, Bandwidth: request.Bandwidth}
+		settings := core.TransferSettings{Transfers: request.Transfers, Checkers: request.Checkers, ChunkSize: request.ChunkSize, BufferSize: request.BufferSize, CPUParallelism: *request.CPUParallelism, Bandwidth: request.Bandwidth}
+		if settings.Bandwidth == "off" {
+			settings.Bandwidth = ""
+		}
 		if editID != "" {
 			return s.app.UpdateParameters(editID, core.JobUpdateRequest{Settings: settings, NotBefore: request.NotBefore})
 		}
@@ -524,6 +489,7 @@ func (s *nativeUI) beginJobForm(job *core.Job) {
 	s.jobPreview, s.previewOnly = core.Preview{}, false
 	s.jobMaxDelete, s.jobPreviewKey = "10", ""
 	s.showJobForm, s.showJobAdvanced, s.jobWorkflow = true, false, false
+	s.jobAttempted, s.isError, s.notice = false, false, ""
 	s.saveDefinition = false
 	s.editingJobID, s.jobProof = "", ""
 	if job == nil {

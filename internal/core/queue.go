@@ -597,7 +597,7 @@ func transferError(runErr error, path string) error {
 			Level   string `json:"level"`
 			Message string `json:"msg"`
 		}
-		if json.Unmarshal([]byte(line), &entry) == nil && (entry.Level == "error" || entry.Level == "fatal") {
+		if json.Unmarshal([]byte(line), &entry) == nil && (entry.Level == "error" || entry.Level == "critical" || entry.Level == "fatal") {
 			message = entry.Message
 		}
 	}

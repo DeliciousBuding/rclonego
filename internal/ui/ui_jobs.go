@@ -262,6 +262,21 @@ func (s *nativeUI) jobInspector(c *ui.Context) {
 		contentScroll(c).Grow(1).Gap(14).Children(func() {
 			ui.Text(c, selected.Name).FontSize(15).FontWeight(600).MaxLines(2).Tooltip(selected.Name)
 			statusDot(c, statusLabel(selected.Status), statusColor(c, selected.Status))
+			if selected.Status == "completed" {
+				summary := "复制已完成；未执行独立内容校验。"
+				if selected.Operation == "sync" {
+					summary = "同步已完成；未执行独立内容校验。"
+				} else if selected.Operation == "check" {
+					mode := "backend_check_completed: size and available hashes; hash availability not attested"
+					if selected.VerificationMode == "content" {
+						mode = "content_compared"
+					} else if selected.VerificationMode == "size" {
+						mode = "size_compared"
+					}
+					summary = workflowVerificationLabel(c, mode)
+				}
+				ui.Text(c, text(c, summary)).FontSize(12).TextColor(t.TextMuted).MaxLines(3)
+			}
 			detail := func(label, value string) {
 				ui.Row(c).Gap(10).AlignItems(ui.Start).Children(func() {
 					ui.Text(c, text(c, label)).Width(76).Shrink(0).FontSize(11).TextColor(t.TextMuted).MaxLines(2)
@@ -308,7 +323,7 @@ func (s *nativeUI) jobInspector(c *ui.Context) {
 				if selected.Status == "paused" {
 					label = "恢复"
 				}
-				ui.Button(c.Key("retry-"+selected.ID), text(c, label)).Height(28).OnClick(func() {
+				ui.Button(c.Key("retry-"+selected.ID), text(c, label)).Height(28).Disabled(s.busy).OnClick(func() {
 					id := selected.ID
 					s.run(text(c, "重试任务"), func() error { return s.app.Retry(id) })
 				})
@@ -322,13 +337,13 @@ func (s *nativeUI) jobInspector(c *ui.Context) {
 }
 
 func (s *nativeUI) editOverlays(c *ui.Context) {
-	dialog := func(key string, open *bool, title string, width float32, content func()) {
+	dialog := func(key string, open *bool, title string, width float32, content, footer func()) {
 		ui.DialogBase(c.Key(key), open, func(backdrop, panel ui.Element) {
 			backdrop.Background(ui.RGBA(25, 30, 40, 0.16))
 			panel.Width(width).MaxWidthPercent(90).MaxHeightPercent(88).Padding(22).Gap(16).
 				Radius(16).Background(c.Theme().Background).
 				Shadow(0, 12, 36, 0, ui.RGBA(0, 0, 0, 0.12))
-			ui.Row(c).Children(func() {
+			ui.Row(c).Shrink(0).Children(func() {
 				ui.Text(c, text(c, title)).FontSize(17).FontWeight(600)
 				ui.Spacer(c)
 				iconButton(c.Key("close-"+key), iconClose, fmt.Sprintf(text(c, "关闭%s"), text(c, title))).OnClick(func() {
@@ -340,9 +355,13 @@ func (s *nativeUI) editOverlays(c *ui.Context) {
 					*open = false
 				})
 			})
-			contentScroll(c).Gap(14).Children(content)
+			contentScroll(c).MinHeight(0).Shrink(1).Gap(14).Children(content)
 			if s.isError && s.notice != "" {
-				ui.Text(c, s.notice).FontSize(12).TextColor(c.Theme().Danger).MaxLines(3)
+				ui.Text(c, s.notice).Shrink(0).FontSize(12).TextColor(c.Theme().Danger).MaxLines(3)
+			}
+			if footer != nil {
+				ui.Divider(c).Shrink(0)
+				footer()
 			}
 		})
 	}
@@ -353,11 +372,11 @@ func (s *nativeUI) editOverlays(c *ui.Context) {
 	if s.saveDefinition {
 		title = "新建工作流"
 	}
-	dialog("job-editor", &s.showJobForm, title, 520, func() { s.jobForm(c) })
-	dialog("mount-editor", &s.editingMount, "映射配置", 500, func() { s.mountEditor(c) })
-	dialog("remote-editor", &s.showRemoteForm, "添加云端账户", 460, func() { s.remoteEditor(c) })
-	dialog("about", &s.showAbout, "关于", 440, func() { s.aboutContent(c) })
-	dialog("licenses", &s.showLicenses, "许可文本", 560, func() { s.licensesContent(c) })
+	dialog("job-editor", &s.showJobForm, title, 520, func() { s.jobForm(c) }, func() { s.jobFooter(c) })
+	dialog("mount-editor", &s.editingMount, "映射配置", 500, func() { s.mountEditor(c) }, nil)
+	dialog("remote-editor", &s.showRemoteForm, "添加云端账户", 460, func() { s.remoteEditor(c) }, nil)
+	dialog("about", &s.showAbout, "关于", 440, func() { s.aboutContent(c) }, nil)
+	dialog("licenses", &s.showLicenses, "许可文本", 560, func() { s.licensesContent(c) }, nil)
 }
 
 func (s *nativeUI) jobForm(c *ui.Context) {
@@ -366,9 +385,18 @@ func (s *nativeUI) jobForm(c *ui.Context) {
 	}
 	t := c.Theme()
 	editing := s.editingJobID != ""
+	_, issue := s.editedJob()
+	showIssue := func(field string) {
+		if s.jobAttempted && issue != nil && issue.field == field {
+			ui.Text(c, text(c, issue.message)).FontSize(11).TextColor(t.Danger).MaxLines(2)
+		}
+	}
 	ui.Form(c, func() {
 		ui.Field(c, text(c, "名称"), func() {
-			ui.TextInput(c.Key("job-name"), &s.jobName).Placeholder(text(c, "文档归档")).AutoFocus().Disabled(editing)
+			ui.TextInput(c.Key("job-name"), &s.jobName).Label(text(c, "任务名称")).
+				Placeholder(text(c, "文档归档")).AutoFocus().Disabled(editing).
+				Invalid(s.jobAttempted && issue != nil && issue.field == "name")
+			showIssue("name")
 		})
 		ui.Field(c, text(c, "操作"), func() {
 			if translatedSelect(c.Key("job-operation"), &s.jobOperationChoice, []string{"复制", "同步", "校验"}).Disabled(editing || s.saveDefinition).Changed() {
@@ -377,9 +405,11 @@ func (s *nativeUI) jobForm(c *ui.Context) {
 		})
 		ui.Field(c, text(c, "源目录"), func() {
 			s.storagePathInput(c.Key("job-source"), &s.jobSource, "源目录", editing)
+			showIssue("source")
 		})
 		ui.Field(c, text(c, "目标目录"), func() {
 			s.storagePathInput(c.Key("job-destination"), &s.jobDestination, "目标目录", editing)
+			showIssue("destination")
 		})
 	})
 	if !editing && s.jobOperation == "copy" {
@@ -410,6 +440,7 @@ func (s *nativeUI) jobForm(c *ui.Context) {
 			ui.Field(c, text(c, "CPU 并行度"), func() { ui.TextInput(c.Key("job-cpu"), &s.jobCPU).Placeholder(text(c, "0 表示自动")) })
 			ui.Field(c, text(c, "计划开始"), func() {
 				ui.TextInput(c.Key("job-schedule"), &s.jobSchedule).Placeholder(text(c, "YYYY-MM-DD HH:MM，留空表示接续执行")).Disabled(s.saveDefinition)
+				showIssue("schedule")
 			})
 			ui.Field(c, text(c, "包含规则"), func() {
 				ui.TextArea(c.Key("job-includes"), &s.jobIncludes).Height(60).Placeholder(text(c, "每行一条规则")).Disabled(editing || s.jobWorkflow)
@@ -417,19 +448,32 @@ func (s *nativeUI) jobForm(c *ui.Context) {
 		})
 		ui.Checkbox(c.Key("job-checksum"), &s.jobChecksum, text(c, "按校验和比较")).Disabled(editing || s.jobWorkflow)
 		ui.Checkbox(c.Key("job-create-dirs"), &s.jobCreateDirs, text(c, "创建空目录")).Disabled(editing || s.jobWorkflow)
+		showIssue("parameters")
 	})
 	if s.jobOperation == "sync" {
 		ui.Checkbox(c.Key("job-allow-delete"), &s.jobAllowDelete, text(c, "允许删除目标多余文件"))
-		ui.Field(c, text(c, "单次删除上限"), func() { ui.TextInput(c.Key("max-delete"), &s.jobMaxDelete).Placeholder("10") })
+		ui.Field(c, text(c, "单次删除上限"), func() {
+			ui.TextInput(c.Key("max-delete"), &s.jobMaxDelete).Placeholder("10")
+			showIssue("max-delete")
+		})
 		ui.Text(c, text(c, "先预览，再确认加入队列。执行时继续检查删除上限。")).FontSize(11).TextColor(t.Warning)
 	}
 	if !editing && !s.jobWorkflow && !s.saveDefinition && s.jobOperation != "check" {
-		ui.Button(c.Key("preview-sync"), text(c, "预览更改")).Disabled(s.busy).OnClick(func() { s.previewOnly = true; s.addJob() })
 		if s.jobPreview.ID != "" {
 			s.previewPanel(c)
 		}
 	}
-	ui.Row(c).Gap(8).Justify(ui.End).Children(func() {
+}
+
+func (s *nativeUI) jobFooter(c *ui.Context) {
+	editing := s.editingJobID != ""
+	previewFirst := !editing && s.jobOperation == "sync" && s.jobPreview.ID == ""
+	ui.Row(c).Shrink(0).Gap(8).Children(func() {
+		if !editing && !s.jobWorkflow && !s.saveDefinition && s.jobOperation != "check" && !previewFirst {
+			ui.Button(c.Key("preview-sync"), text(c, "预览更改")).Height(30).Disabled(s.busy).
+				OnClick(func() { s.previewOnly = true; s.addJob() })
+		}
+		ui.Spacer(c)
 		ui.Button(c.Key("hide-job-form"), text(c, "取消")).Height(30).OnClick(func() { s.showJobForm = false })
 		label := "加入队列"
 		if editing {
@@ -438,6 +482,13 @@ func (s *nativeUI) jobForm(c *ui.Context) {
 		if s.saveDefinition {
 			label = "保存工作流"
 		}
-		ui.PrimaryButton(c.Key("add-job"), text(c, label)).Height(30).Disabled(s.busy).OnClick(s.addJob)
+		if previewFirst {
+			label = "预览更改"
+		} else if !editing && s.jobOperation == "sync" {
+			label = "确认同步"
+		}
+		blocked := !editing && s.jobOperation == "sync" && !previewFirst &&
+			(!s.jobAllowDelete || s.jobPreview.ReportIncomplete || s.jobPreview.Summary.Errors > 0)
+		ui.PrimaryButton(c.Key("add-job"), text(c, label)).Height(30).Disabled(s.busy || blocked).OnClick(s.addJob)
 	})
 }

@@ -13,6 +13,18 @@ import (
 	"github.com/DeliciousBuding/rclonego/internal/persistence"
 )
 
+func TestCriticalEngineFailureKeepsTheCauseInTaskResults(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "attempt.log")
+	log := `{"level":"critical","msg":"Failed to create file system: missing configured remote"}` + "\n"
+	if err := os.WriteFile(path, []byte(log), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	message := transferError(errors.New("exit status 1"), path).Error()
+	if !strings.Contains(message, "missing configured remote") {
+		t.Fatalf("A task result lost the engine's actual failure cause: %s", message)
+	}
+}
+
 func TestActiveTransferStopsWhenStateBecomesUnwritable(t *testing.T) {
 	engine := os.Getenv("RCLONEGO_TEST_ENGINE")
 	if engine == "" {
