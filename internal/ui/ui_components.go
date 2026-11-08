@@ -89,6 +89,7 @@ var (
 	iconMounts    = lineIcon(`<path d="m4 5-2 10v4a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-4L20 5a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2Z"/><path d="M2 15h20m-6 3h.01m3 0h.01"/>`)
 	iconQueue     = lineIcon(`<path d="M4 6h16M4 12h12M4 18h8m4-1 3 3 3-3m-3 3v-8"/>`)
 	iconRefresh   = lineIcon(`<path d="M20 8a8 8 0 1 0 .6 6M20 3v5h-5"/>`)
+	iconSearch    = lineIcon(`<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/>`)
 	iconPlus      = lineIcon(`<path d="M12 5v14M5 12h14"/>`)
 	iconClose     = lineIcon(`<path d="m6 6 12 12M18 6 6 18"/>`)
 	iconPause     = lineIcon(`<path d="M8 5v14M16 5v14"/>`)

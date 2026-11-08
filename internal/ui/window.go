@@ -21,15 +21,21 @@ func Open(app *core.App, address string) error {
 	configureUpdates(app)
 	mygo.Theme.SetSource(mygo.ThemeSource(model.appearance))
 	mygo.App.WhenReady(func() {
-		material := mygo.VibrancyGlass
+		// Keep system decorations on Windows/Linux. macOS traffic lights
+		// share an inset toolbar with a reserved native control area.
+		titleBarStyle := mygo.TitleBarDefault
+		material := mygo.Vibrancy("")
+		if runtime.GOOS == "darwin" {
+			titleBarStyle, material = mygo.TitleBarHiddenInset, mygo.VibrancyGlass
+		}
 		if runtime.GOOS == "windows" {
 			material = mygo.VibrancyMica
 		}
 		window := mygo.NewWindow(mygo.WindowOptions{
 			Title: "RcloneGo", Width: 1120, Height: 740, MinWidth: 900, MinHeight: 560,
-			TitleBarStyle: mygo.TitleBarHiddenInset, TitleBarHeight: 56,
-			Vibrancy: material, Content: ui.View(model.view),
-			AutoHideMenuBar: true, BackgroundColor: "light-dark(#eef2f5, #222a32)",
+			TitleBarStyle: titleBarStyle,
+			Vibrancy:      material, Content: ui.View(model.view),
+			AutoHideMenuBar: true, BackgroundColor: "light-dark(#eaf3f8, #354149)",
 			UseContentSize: true, DisableFullScreen: true,
 			Hidden: true,
 		})

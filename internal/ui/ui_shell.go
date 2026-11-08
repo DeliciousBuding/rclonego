@@ -13,40 +13,46 @@ import (
 
 func modernTheme(dark bool, prefs ui.Preferences) *ui.Theme {
 	t := ui.LightTheme()
-	t.Background = ui.Hex("#f7f9fa")
+	if dark {
+		t = ui.DarkTheme()
+	}
+	t.Background = ui.Hex("#f6f9fb")
 	t.Surface = ui.RGBA(255, 255, 255, 0.88)
 	t.SurfaceHover = ui.RGBA(0, 0, 0, 0.04)
-	t.SurfacePressed = ui.RGBA(0, 122, 255, 0.10)
+	t.SurfacePressed = ui.RGBA(73, 148, 177, 0.12)
 	t.Border = ui.RGBA(60, 60, 67, 0.11)
 	t.Text = ui.Hex("#26373d")
 	t.TextMuted = ui.Hex("#6e6e73")
-	t.Accent = ui.Hex("#318b9d")
-	t.AccentHover = ui.Hex("#267789")
-	t.AccentPressed = ui.Hex("#216979")
+	t.Accent = ui.Hex("#2b7b8e")
+	t.AccentHover = ui.Hex("#256c7e")
+	t.AccentPressed = ui.Hex("#1d6173")
 	t.AccentText = ui.Hex("#ffffff")
 	t.Danger = ui.Hex("#c9342c")
 	t.Warning = ui.Hex("#a66b08")
 	t.Success = ui.Hex("#248a3d")
-	t.Focus = ui.RGBA(0, 122, 255, 0.35)
+	t.Selection = t.Accent.Alpha(0.22)
+	t.Focus = t.Accent.Alpha(0.45)
 	t.Radius = 7
 	t.Spacing = 4
 	t.FontSize = 13
 	t.Font = ""
 	if dark {
-		t.Dark = true
-		t.Background = ui.Hex("#1b2025")
-		t.Surface = ui.Hex("#272e35")
-		t.SurfaceHover = ui.RGBA(255, 255, 255, 0.07)
-		t.SurfacePressed = ui.RGBA(10, 132, 255, 0.22)
-		t.Text = ui.Hex("#f5f5f7")
-		t.TextMuted = ui.Hex("#aeaeb2")
-		t.Border = ui.RGBA(255, 255, 255, 0.12)
-		t.Accent = ui.Hex("#55aebe")
-		t.AccentHover = ui.Hex("#73c0ce")
-		t.AccentPressed = ui.Hex("#4197a8")
+		t.Background = ui.Hex("#2d353c")
+		t.Surface = ui.Hex("#3a434b")
+		t.SurfaceHover = ui.RGBA(255, 255, 255, 0.06)
+		t.Text = ui.Hex("#edf3f6")
+		t.TextMuted = ui.Hex("#b6c3cb")
+		t.Border = ui.RGBA(220, 235, 244, 0.13)
+		t.Accent = ui.Hex("#85bed0")
+		t.AccentHover = ui.Hex("#9bcbd9")
+		t.AccentPressed = ui.Hex("#70adbf")
+		t.AccentText = ui.Hex("#18303b")
+		t.SurfacePressed = t.Accent.Alpha(0.14)
+		t.Selection = t.Accent.Alpha(0.24)
+		t.Focus = t.Accent.Alpha(0.55)
 		t.Danger = ui.Hex("#ff6961")
 		t.Warning = ui.Hex("#ffd60a")
-		t.Success = ui.Hex("#6dde86")
+		t.Success = ui.Hex("#74cca4")
 	}
 	if prefs.HighContrast {
 		t.TextMuted = t.TextMuted.Mix(t.Text, 0.4)
@@ -70,22 +76,26 @@ func (s *nativeUI) view(c *ui.Context) {
 	c.Root().Background(ui.Transparent)
 	ui.Themed(c, t).Fill().Background(ui.Transparent).Children(func() {
 		vibrant := c.Vibrancy() && !c.Preferences().ReduceTransparency && !c.Preferences().HighContrast
-		chrome := ui.Hex("#eef2f5")
-		opacity := float32(0.18)
+		chrome, tint := ui.Hex("#eaf3f8"), ui.Hex("#f2f7fa").Alpha(0.14)
 		if t.Dark {
-			chrome, opacity = ui.Hex("#222a32"), 0.36
+			chrome, tint = ui.Hex("#354149"), ui.Hex("#c4dce8").Alpha(0.16)
 		}
 		if vibrant && c.WindowActive() {
 			// Let the native material do the blur. Keep one light tint across
 			// navigation, title bar and the exposed canvas corners.
-			chrome = chrome.Alpha(opacity)
+			chrome = tint
 		}
 		// Windows replaces inactive Acrylic with gray. An opaque themed
 		// fallback keeps inactive and reduced-transparency chrome readable.
-		shell := ui.Row(c).Fill().AlignItems(ui.Stretch).Background(chrome)
+		shell := ui.Column(c).Fill().Background(chrome)
 		shell.Children(func() {
-			s.sidebar(c)
-			s.main(c)
+			if c.TitleBar().Height > 0 {
+				s.titleBar(c)
+			}
+			ui.Row(c).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
+				s.sidebar(c)
+				s.main(c)
+			})
 		})
 		s.editOverlays(c)
 		s.workflowOverlays(c)
@@ -94,6 +104,39 @@ func (s *nativeUI) view(c *ui.Context) {
 		s.commandPalette(c)
 		s.browserOverlay(c)
 	})
+}
+
+func (s *nativeUI) titleBar(c *ui.Context) {
+	bar := c.TitleBar()
+	ui.Row(c).Height(max(52, bar.Height)).Shrink(0).
+		Padding(0, bar.Right+16, 0, max(20, bar.Left+12)).Gap(8).
+		DragWindow().Children(func() {
+		ui.Icon(c, appMark).FontSize(17).TextColor(c.Theme().Accent)
+		ui.Text(c, "RcloneGo").FontSize(14).FontWeight(600)
+		ui.Spacer(c)
+		s.navigationCommands(c)
+	})
+}
+
+func (s *nativeUI) navigationCommands(c *ui.Context) {
+	command := ui.ButtonBase(c.Key("commands")).Height(30).Padding(0, 8).Gap(7).
+		Radius(7).Role(ui.RoleButton).Label(text(c, "搜索命令")).Tooltip(text(c, "搜索命令")).
+		KeyShortcuts(ui.Cmd, ui.KeyK).
+		OnClick(func() { s.commandOpen, s.commandQuery, s.commandIndex = true, "", 0 })
+	if command.Hovered() {
+		command.Background(c.Theme().SurfaceHover)
+	}
+	if command.Pressed() {
+		command.Background(c.Theme().SurfacePressed)
+	}
+	command.Children(func() {
+		ui.Icon(c, iconSearch).FontSize(15).TextColor(c.Theme().TextMuted)
+		ui.Text(c, text(c, "搜索命令")).FontSize(12).TextColor(c.Theme().TextMuted).SingleLine()
+	})
+	iconButton(c.Key("refresh"), iconRefresh, "刷新状态").OnClick(func() {
+		s.app.RefreshRuntime()
+		go s.refresh(context.Background(), true)
+	}).Disabled(s.busy)
 }
 
 func (s *nativeUI) sidebar(c *ui.Context) {
@@ -107,14 +150,11 @@ func (s *nativeUI) sidebar(c *ui.Context) {
 	side := ui.Column(c).Width(208).Shrink(0).FillHeight()
 	side.Background(ui.Transparent)
 	side.Children(func() {
-		ui.Row(c).Height(56).Shrink(0).Padding(0, 20, 0, max(20, c.TitleBar().Left)).
-			DragWindow().Children(func() {
-			if c.TitleBar().Left == 0 {
-				ui.Icon(c, appMark).FontSize(19).TextColor(t.Accent)
-				ui.Box(c).Width(8)
-				ui.Text(c, "RcloneGo").FontSize(15).FontWeight(600)
-			}
-		})
+		if c.TitleBar().Height == 0 {
+			ui.Row(c).Height(48).Shrink(0).Padding(0, 12).Gap(4).Children(func() {
+				s.navigationCommands(c)
+			})
+		}
 		ui.Sidebar(c.Key("navigation"), &s.page, func() {
 			for _, item := range []struct {
 				id, label string
@@ -166,21 +206,12 @@ func (s *nativeUI) main(c *ui.Context) {
 	t := c.Theme()
 	pane := ui.Column(c).Grow(1).MinWidth(0).FillHeight()
 	pane.Children(func() {
-		ui.Row(c).Height(56).Shrink(0).Padding(0, c.TitleBar().Right+16, 0, 28).Gap(12).AlignItems(ui.Center).
-			Background(ui.Transparent).
-			DragWindow().Children(func() {
-			ui.Spacer(c)
-			ui.Row(c).Gap(4).Children(func() {
-				iconButton(c.Key("commands"), iconOverview, "搜索命令").KeyShortcuts(ui.Cmd, ui.KeyK).
-					OnClick(func() { s.commandOpen, s.commandQuery, s.commandIndex = true, "", 0 })
-				iconButton(c.Key("refresh"), iconRefresh, "刷新状态").OnClick(func() {
-					s.app.RefreshRuntime()
-					go s.refresh(context.Background(), true)
-				}).Disabled(s.busy)
-			})
-		})
+		top := float32(0)
+		if c.TitleBar().Height == 0 {
+			top = 12
+		}
 		body := ui.Column(c).Grow(1).MinHeight(0).Padding(24, 28, 24, 28).Gap(16).
-			Radius(12).Margin(0, 12, 12, 0).Background(t.Background).
+			Radius(12).Margin(top, 12, 12, 0).Background(t.Background).
 			Border(0.5, t.Border.Alpha(0.45))
 		body.Children(func() {
 			if s.notice != "" && s.isError {

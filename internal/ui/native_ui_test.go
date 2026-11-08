@@ -3,6 +3,7 @@ package desktop
 import (
 	"github.com/DeliciousBuding/rclonego/internal/core"
 	"github.com/DeliciousBuding/rclonego/internal/version"
+	"math"
 	"strings"
 	"testing"
 
@@ -203,6 +204,88 @@ func TestWindowMaterialAndCaptionClearance(t *testing.T) {
 		tester.SetWindowActive(true)
 		if pixel := tester.Image().RGBAAt(100, 300); pixel.A >= 128 {
 			t.Fatalf("%s active tint obscures the native material: %v", theme, pixel)
+		}
+	}
+	for _, preferences := range []ui.Preferences{
+		{ReduceTransparency: true}, {HighContrast: true},
+	} {
+		tester.SetPreferences(preferences)
+		if pixel := tester.Image().RGBAAt(100, 300); pixel.A != 255 {
+			t.Fatalf("accessibility preference leaves chrome transparent: preferences=%+v pixel=%v", preferences, pixel)
+		}
+	}
+}
+
+func TestThemeTextContrastAcrossAppearance(t *testing.T) {
+	luminance := func(c ui.Color) float64 {
+		linear := func(value uint8) float64 {
+			v := float64(value) / 255
+			if v <= 0.04045 {
+				return v / 12.92
+			}
+			return math.Pow((v+0.055)/1.055, 2.4)
+		}
+		return 0.2126*linear(c.R) + 0.7152*linear(c.G) + 0.0722*linear(c.B)
+	}
+	for _, dark := range []bool{false, true} {
+		theme := modernTheme(dark, ui.Preferences{})
+		for _, pair := range []struct {
+			name       string
+			text, fill ui.Color
+		}{
+			{"body", theme.Text, theme.Background},
+			{"secondary", theme.TextMuted, theme.Background},
+			{"primary", theme.AccentText, theme.Accent},
+			{"primary hover", theme.AccentText, theme.AccentHover},
+			{"primary pressed", theme.AccentText, theme.AccentPressed},
+		} {
+			text, fill := luminance(pair.text), luminance(pair.fill)
+			ratio := (max(text, fill) + 0.05) / (min(text, fill) + 0.05)
+			if ratio < 4.5 {
+				t.Fatalf("dark=%v %s: text contrast %.2f is below 4.5", dark, pair.name, ratio)
+			}
+		}
+	}
+}
+
+func TestNavigationAdaptsToNativeAndInsetTitleBars(t *testing.T) {
+	for _, bar := range []ui.TitleBar{
+		{},                                 // System decorations outside content.
+		{Height: 28, Left: 80},             // macOS traffic lights.
+		{Height: 68, Left: 100},            // Larger system control area.
+		{Height: 56, Left: 80, Right: 138}, // Reserve both sides if requested.
+	} {
+		model := New(testApp(t), "127.0.0.1:8797")
+		tester := ui.NewTester(model.view, 900, 560)
+		tester.SetLocale("zh-Hans")
+		tester.SetTitleBar(bar)
+		search, foundSearch := tester.Find("搜索命令")
+		refresh, foundRefresh := tester.Find("刷新状态")
+		navigation, foundNavigation := tester.Find("总览")
+		if !foundSearch || !foundRefresh || !foundNavigation {
+			t.Fatalf("bar=%+v: missing navigation commands", bar)
+		}
+		if search.X+search.W > refresh.X || refresh.X+refresh.W > 900-bar.Right {
+			t.Fatalf("bar=%+v: commands overlap each other or window controls: %v / %v", bar, search, refresh)
+		}
+		if bar.Height == 0 {
+			if refresh.X+refresh.W > 208 || navigation.Y < search.Y+search.H {
+				t.Fatalf("native frame: commands did not stay above sidebar navigation: %v / %v", search, navigation)
+			}
+		} else {
+			if search.X < bar.Left || navigation.Y < max(52, bar.Height) {
+				t.Fatalf("bar=%+v: navigation enters the native title bar: %v / %v", bar, search, navigation)
+			}
+		}
+		if err := tester.Click("搜索命令"); err != nil {
+			t.Fatal(err)
+		}
+		if !model.commandOpen {
+			t.Fatal("navigation command button did not open the palette")
+		}
+		tester.Key(0, ui.KeyEscape)
+		if model.commandOpen {
+			t.Fatal("command palette did not dismiss")
 		}
 	}
 }

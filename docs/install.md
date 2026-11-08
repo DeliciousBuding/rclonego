@@ -104,6 +104,11 @@ because the system startup entry must open the same default profile.
 Opening the same profile again activates its existing window through MyGo;
 independent profiles keep their own state and window.
 
+Windows and Linux use the desktop's native title bar and window buttons.
+macOS keeps its native traffic lights in the unified top toolbar. Search and
+refresh live at the top of the sidebar when the system supplies a separate title
+bar. Window controls remain outside application dialogs and page navigation.
+
 Install the recommended rclone engine from **Settings → rclone engine**, select
 an existing engine, or import its verified ZIP offline. The engine is kept
 separate from the client and does not replace a system/package-manager rclone.
