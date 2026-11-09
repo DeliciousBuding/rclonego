@@ -14,7 +14,8 @@ import (
 )
 
 type fileWorkspaceState struct {
-	browserUIState
+	directoryUIState
+	open               bool
 	history            []string
 	historyIndex       int
 	breadcrumbIndex    int
@@ -27,7 +28,6 @@ type fileWorkspaceState struct {
 	transferEntries    []core.DirectoryEntry
 	previewOpen        bool
 	previewBusy        bool
-	previewError       string
 	preview            core.FilePreview
 	previewImage       *ui.Bitmap
 	previewCancel      context.CancelFunc
@@ -36,11 +36,14 @@ type fileWorkspaceState struct {
 	operation          *fileOperationState
 	editPath           bool
 	pathDraft          string
-	readIssue          error
 	readDetailsOpen    bool
 	previewIssue       error
 	previewDetailsOpen bool
 	previewEntry       core.DirectoryEntry
+	usage              core.DirectoryUsage
+	usageBusy          bool
+	usageErr           string
+	usageCancel        context.CancelFunc
 }
 
 func (s *nativeUI) openFiles(value string) {
@@ -87,9 +90,9 @@ func (s *nativeUI) loadFiles(value string, offset int) {
 	f.selected = -1
 	f.generation++
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	f.cancel, f.path, f.offset, f.loading, f.err = cancel, value, offset, true, ""
+	f.cancel, f.path, f.offset, f.loading, f.err = cancel, value, offset, true, nil
 	f.refreshedAt = time.Now()
-	f.readIssue, f.readDetailsOpen = nil, false
+	f.readDetailsOpen = false
 	generation := f.generation
 	if s.win == nil {
 		cancel()
@@ -105,7 +108,7 @@ func (s *nativeUI) loadFiles(value string, offset int) {
 			}
 			f.loading = false
 			if err != nil {
-				f.err, f.readIssue = err.Error(), err
+				f.err = err
 				return
 			}
 			f.result, f.path = result, result.Path
@@ -122,7 +125,7 @@ func (s *nativeUI) filesPage(c *ui.Context) {
 		ui.Row(c).Shrink(0).Gap(8).Children(func() {
 			ui.Text(c, text(c, "文件")).FontSize(18).FontWeight(600)
 			ui.Spacer(c)
-			actionButton(c.Key("upload"), iconUp, "上传文件…", true).Disabled(f.loading || f.err != "" || f.result.Path == "").
+			actionButton(c.Key("upload"), iconUp, "上传文件…", true).Disabled(f.loading || f.err != nil || f.result.Path == "").
 				OnClick(s.chooseUploads)
 		})
 		ui.Row(c).Shrink(0).Gap(4).Children(func() {
@@ -195,7 +198,7 @@ func (s *nativeUI) filesPage(c *ui.Context) {
 			translatedSelect(c.Key("sort"), &f.order, []string{"名称 A–Z", "名称 Z–A", "大小由大到小", "修改时间由新到旧"}).
 				Width(150).Label(text(c, "排序")).OnChange(func() { f.selected = -1; f.selection.Clear() })
 			iconButton(c.Key("refresh-directory"), iconRefresh, "刷新目录").Disabled(f.loading).OnClick(func() { s.loadFiles(f.path, f.offset) })
-			iconButton(c.Key("new-folder"), iconPlus, "新建文件夹").Disabled(f.loading || f.err != "" || f.result.Path == "").
+			iconButton(c.Key("new-folder"), iconPlus, "新建文件夹").Disabled(f.loading || f.err != nil || f.result.Path == "").
 				OnClick(func() { s.beginFileAction("mkdir", core.DirectoryEntry{Path: f.result.Path, IsDir: true}) })
 			iconButton(c.Key("folder-info"), iconInfo, "统计目录大小").Disabled(f.loading || f.usageBusy || f.result.Path == "").OnClick(s.fileDirectoryUsage)
 		})
@@ -205,8 +208,8 @@ func (s *nativeUI) filesPage(c *ui.Context) {
 				ui.Text(c, text(c, "正在读取目录…")).FontSize(12).TextColor(t.TextMuted)
 			})
 		}
-		if f.err != "" {
-			s.fileErrorFeedback(c.Key("directory-issue"), f.readIssue, &f.readDetailsOpen,
+		if f.err != nil {
+			s.fileErrorFeedback(c.Key("directory-issue"), f.err, &f.readDetailsOpen,
 				func() { s.loadFiles(f.path, f.offset) }, nil)
 		}
 		s.fileOperationFeedback(c)
@@ -244,11 +247,11 @@ func (s *nativeUI) filesPage(c *ui.Context) {
 				}
 				ui.Text(c, modified).Width(145).FontSize(11).SingleLine().TextColor(color).Tooltip(modified)
 			})
-		}).Grow(1).MinHeight(32).MinWidth(0).Disabled(f.loading || f.err != "").Label(text(c, "文件列表"))
+		}).Grow(1).MinHeight(32).MinWidth(0).Disabled(f.loading || f.err != nil).Label(text(c, "文件列表"))
 		if list.FileDragOver() {
 			list.Border(1, t.Accent)
 		}
-		if paths := list.DroppedFiles(); len(paths) > 0 && !f.loading && f.err == "" {
+		if paths := list.DroppedFiles(); len(paths) > 0 && !f.loading && f.err == nil {
 			s.queueUploads(paths, f.result.Path)
 		}
 		if entry := selectedBrowserEntry(entries, f.selected); entry != nil {
@@ -275,7 +278,7 @@ func (s *nativeUI) filesPage(c *ui.Context) {
 		if list.Shortcut(0, ui.KeyBackspace) && f.result.Parent != "" {
 			s.navigateFiles(f.result.Parent, true)
 		}
-		if len(entries) == 0 && !f.loading && f.err == "" {
+		if len(entries) == 0 && !f.loading && f.err == nil {
 			ui.Text(c, text(c, "此目录为空或当前页没有匹配项")).Shrink(0).FontSize(12).TextColor(t.TextMuted)
 		}
 		s.fileSelectionActions(c, entries)
@@ -433,11 +436,13 @@ func fileBreadcrumbs(value string) (labels, paths []string) {
 
 func (s *nativeUI) refreshCompletedFiles(jobs []core.Job) {
 	f := &s.filesUI
-	if s.page != "files" || f.loading || f.result.Path == "" {
+	if s.page != "files" || f.loading || f.err != nil || f.result.Path == "" || f.path != f.result.Path {
 		return
 	}
 	for _, job := range jobs {
-		if job.FinishedAt != nil && job.FinishedAt.After(f.refreshedAt) && (job.Status == "completed" || job.Status == "failed") {
+		if job.FinishedAt != nil && job.FinishedAt.After(f.refreshedAt) &&
+			(job.Status == "completed" || job.Status == "failed" || job.Status == "cancelled") &&
+			core.JobChangesPath(job, f.result.Path, s.mounts) {
 			s.loadFiles(f.result.Path, f.offset)
 			return
 		}

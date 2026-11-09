@@ -14,6 +14,38 @@ import (
 	"time"
 )
 
+func TestJobChangesPathUsesWriteScopeAndMappedDrives(t *testing.T) {
+	mounted := filepath.Join(t.TempDir(), "mounted")
+	mounts := []MountView{{MountConfig: MountConfig{Drive: mounted, Remote: "fixture:archive"}, DriveAvailable: true}}
+	for _, test := range []struct {
+		name     string
+		job      Job
+		location string
+		changes  bool
+	}{
+		{"read-only source", Job{Operation: "copy", Source: "fixture:archive", Destination: "other:"}, "fixture:archive", false},
+		{"verification", Job{Operation: "check", Destination: "fixture:archive"}, "fixture:archive", false},
+		{"preview", Job{Operation: "sync", Destination: "fixture:archive", DryRun: true}, "fixture:archive", false},
+		{"remote sibling", Job{Operation: "copy", Destination: "fixture:archives"}, "fixture:archive", false},
+		{"different remote", Job{Operation: "copy", Destination: "other:archive"}, "fixture:archive", false},
+		{"absolute remote root", Job{Operation: "copyto", Destination: "fixture:/archive/a.txt"}, "fixture:/archive", true},
+		{"relative remote root", Job{Operation: "copyto", Destination: "fixture:archive/a.txt"}, "fixture:archive", true},
+		{"rename", Job{Operation: "moveto", Source: "fixture:archive/a.txt", Destination: "fixture:archive/b.txt"}, "fixture:archive", true},
+		{"remove empty folder", Job{Operation: "rmdir", Source: "fixture:archive/empty"}, "fixture:archive", true},
+		{"create folder", Job{Operation: "mkdir", Source: "fixture:archive/new"}, "fixture:archive", true},
+		{"remote write observed through mount", Job{Operation: "copyto", Destination: "fixture:archive/a.txt"}, mounted, true},
+		{"mount write observed through remote", Job{Operation: "copyto", Destination: filepath.Join(mounted, "a.txt")}, "fixture:archive", true},
+		{"local sibling", Job{Operation: "copy", Destination: mounted + "-other"}, mounted, false},
+		{"local root write", Job{Operation: "copy", Destination: filepath.Dir(mounted)}, mounted, true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if got := JobChangesPath(test.job, test.location, mounts); got != test.changes {
+				t.Fatalf("JobChangesPath(%q, %q)=%v, want %v", test.job.Operation, test.location, got, test.changes)
+			}
+		})
+	}
+}
+
 func fileTestApp(t *testing.T) (*App, string) {
 	t.Helper()
 	engine := os.Getenv("RCLONEGO_TEST_ENGINE")

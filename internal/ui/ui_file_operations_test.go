@@ -125,8 +125,7 @@ func TestFileOperationLinksItsTasksAndPreservesFilePosition(t *testing.T) {
 func TestFileReadErrorsGiveActionsWithoutExposingDetailsByDefault(t *testing.T) {
 	for _, language := range []string{"en", "zh-Hans"} {
 		model := fileModel(t)
-		model.filesUI.err = context.DeadlineExceeded.Error()
-		model.filesUI.readIssue = context.DeadlineExceeded
+		model.filesUI.err = context.DeadlineExceeded
 		tester := ui.NewTester(model.view, 900, 560)
 		tester.SetLocale(language)
 		if !tester.HasText(locales.TextIn(language, "读取超时")) || tester.HasText(context.DeadlineExceeded.Error()) {
@@ -138,7 +137,7 @@ func TestFileReadErrorsGiveActionsWithoutExposingDetailsByDefault(t *testing.T) 
 		if !tester.HasText(context.DeadlineExceeded.Error()) {
 			t.Fatal("technical details are unavailable")
 		}
-		model.filesUI.readIssue = errors.New("directory listing failed; check the path and account authorization")
+		model.filesUI.err = errors.New("directory listing failed; check the path and account authorization")
 		tester.Frame()
 		if err := tester.Click(locales.TextIn(language, "检查账户")); err != nil || model.page != "remotes" {
 			t.Fatalf("account action: %v", err)
@@ -192,7 +191,6 @@ func TestUnavailablePreviewOffersDownloadWithoutCreatingATask(t *testing.T) {
 	model.filesUI.preview = core.FilePreview{Path: "fixture:archive.zip"}
 	model.filesUI.previewEntry = core.DirectoryEntry{Name: "archive.zip", Path: "fixture:archive.zip", Size: 100}
 	model.filesUI.previewIssue = errors.New("this file has no text or image preview; download it to open in another app")
-	model.filesUI.previewError = model.filesUI.previewIssue.Error()
 	tester := ui.NewTester(model.view, 900, 560)
 	tester.SetLocale("en")
 	assertNoChineseInterfaceText(t, "file task table", tester.Texts())
