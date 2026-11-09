@@ -1,6 +1,7 @@
 package desktop
 
 import (
+	"fmt"
 	"slices"
 	"strings"
 	"testing"
@@ -36,59 +37,70 @@ func TestBrowserSearchSortKeepsFoldersFirstAndUnknownSizesLast(t *testing.T) {
 	}
 }
 
-func TestBrowserNativeSelectionKeyboardAndPathCopy(t *testing.T) {
+func TestDirectoryPickerKeyboardSelectionCopiesPathWithoutStartingATask(t *testing.T) {
 	model := New(testApp(t), "")
-	model.browserUI = browserUIState{open: true, path: "storage:", selected: -1,
+	target := "storage:"
+	model.browserUI = browserUIState{open: true, target: &target, directoryUIState: directoryUIState{path: "storage:", selected: -1,
 		result: core.BrowseResult{Path: "storage:", Entries: []core.DirectoryEntry{
-			{Name: "Alpha.txt", Path: "storage:Alpha.txt", Size: 12},
-			{Name: "Beta.txt", Path: "storage:Beta.txt", Size: -1},
-		}}}
+			{Name: "Alpha", Path: "storage:Alpha", IsDir: true},
+			{Name: "Beta", Path: "storage:Beta", IsDir: true},
+		}}}}
 	tester := ui.NewTester(model.view, 900, 560)
 	tester.SetLocale("zh-Hans")
-	if err := tester.Click("Alpha.txt"); err != nil {
+	if err := tester.Click("Alpha"); err != nil {
 		t.Fatal(err)
 	}
 	tester.Key(0, ui.KeyDown)
-	if model.browserUI.selected != 1 || !tester.HasText("storage:Beta.txt") {
-		t.Fatal("native Down selection did not update the file details")
+	if model.browserUI.selected != 1 {
+		t.Fatal("native Down selection did not select the next directory")
 	}
 	tester.Key(ui.Cmd, ui.KeyC)
-	if tester.Clipboard() != "storage:Beta.txt" {
+	if tester.Clipboard() != "storage:Beta" {
 		t.Fatalf("keyboard path copy: %q", tester.Clipboard())
 	}
-	tester.Key(0, ui.KeyEnter)
-	if model.browserUI.loading || model.showJobForm {
-		t.Fatal("Enter on a file unexpectedly started browsing or a transfer")
-	}
-	if err := tester.Click("复制路径"); err != nil {
+	if err := tester.Click("选择此目录"); err != nil {
 		t.Fatal(err)
 	}
-	if tester.Clipboard() != "storage:Beta.txt" {
-		t.Fatal("path button did not copy the selected item")
+	if target != "storage:" || model.browserUI.open || len(model.app.Snapshot().Jobs) != 0 {
+		t.Fatal("choosing the current directory used its highlighted child or submitted a task")
 	}
 }
 
-func TestBrowserControlsFitMinimumWindowWithSelectedFile(t *testing.T) {
+func TestDirectoryPickerControlsFitMinimumWindowWithLongNames(t *testing.T) {
 	for _, language := range []string{"en", "zh-Hans"} {
 		model := New(testApp(t), "")
-		long := strings.Repeat("long-name-", 12) + ".txt"
-		model.browserUI = browserUIState{open: true, path: "storage:", selected: 0,
+		long := "a-" + strings.Repeat("long-name-", 12)
+		target := "storage:"
+		model.browserUI = browserUIState{open: true, target: &target, directoryUIState: directoryUIState{path: "storage:", selected: 0,
 			result: core.BrowseResult{Path: "storage:", Entries: []core.DirectoryEntry{
-				{Name: long, Path: "storage:" + long, Size: 123},
-			}},
-			usage: core.DirectoryUsage{Path: "storage:", Count: 1, Bytes: 123, UpdatedAt: time.Now()},
+				{Name: long, Path: "storage:" + long, IsDir: true},
+			}, HasMore: true},
+		}}
+		for i := range 20 {
+			name := fmt.Sprintf("folder-%02d", i)
+			model.browserUI.result.Entries = append(model.browserUI.result.Entries, core.DirectoryEntry{Name: name, Path: "storage:" + name, IsDir: true})
 		}
 		tester := ui.NewTester(model.view, 900, 560)
 		tester.SetLocale(language)
 		if language == "en" {
 			assertNoChineseInterfaceText(t, "file browser", tester.Texts())
 		}
-		for _, source := range []string{"新建传输…", "复制路径", "统计目录大小"} {
+		for _, source := range []string{"选择此目录", "关闭目录选择", "上一页", "下一页"} {
 			label := locales.TextIn(language, source)
 			bounds, ok := tester.Find(label)
 			if !ok || bounds.X < 0 || bounds.Y < 0 || bounds.X+bounds.W > 900 || bounds.Y+bounds.H > 560 {
 				t.Fatalf("%s %q is outside minimum viewport: %+v", language, label, bounds)
 			}
+		}
+		footer, _ := tester.Find(locales.TextIn(language, "选择此目录"))
+		visible := 0
+		for i := range 20 {
+			if bounds, ok := tester.Find(fmt.Sprintf("folder-%02d", i)); ok && bounds.H > 0 && bounds.Y+bounds.H <= footer.Y {
+				visible++
+			}
+		}
+		if visible < 7 {
+			t.Fatalf("%s directory picker shows only %d complete folder rows", language, visible)
 		}
 	}
 }

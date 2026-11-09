@@ -37,16 +37,20 @@ func TestStorageDetailsKeepUnknownCapacityAndActionsVisible(t *testing.T) {
 	}
 }
 
-func TestDirectoryBrowserStartsAnUnsubmittedTransfer(t *testing.T) {
+func TestDirectoryPickerUpdatesTheFormWithoutSubmittingATransfer(t *testing.T) {
 	model := New(testApp(t), "")
-	model.browserUI = browserUIState{open: true, path: "storage:folder", result: core.BrowseResult{Path: "storage:folder"}}
+	model.beginJobForm(nil)
+	model.jobSource = "storage:"
+	model.browserUI = browserUIState{open: true, target: &model.jobSource, directoryUIState: directoryUIState{
+		path: "storage:folder", result: core.BrowseResult{Path: "storage:folder"},
+	}}
 	tester := ui.NewTester(model.view, 900, 740)
 	tester.SetLocale("en")
-	if err := tester.Click("New transfer…"); err != nil {
+	if err := tester.Click("Select this directory"); err != nil {
 		t.Fatal(err)
 	}
 	if !model.showJobForm || model.jobSource != "storage:folder" || model.jobDestination != "" || model.browserUI.open {
-		t.Fatal("directory browser did not prepare the existing task form")
+		t.Fatal("directory picker did not update the existing task form")
 	}
 	if len(model.app.Snapshot().Jobs) != 0 {
 		t.Fatal("browsing started a transfer without task submission")

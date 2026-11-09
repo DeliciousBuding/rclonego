@@ -94,8 +94,10 @@ Account rows show the provider mark, name and provider, with Browse as the
 labelled primary action. Details groups capacity, shared hash algorithms and
 backend capabilities; reconnect sits in More. Unknown space stays unknown.
 Account quota and directory size are separate measurements. Directory statistics
-are requested inside the file browser and can be canceled. The browser shows
-file sizes and prepares a transfer through the existing task form.
+are requested inside Files and can be canceled. Task and mount forms use a
+directory-only picker with search, name sorting and one footer for the count,
+available pagination and selection. Parent, path entry and refresh share one
+navigation row; folder rows use 30 DIPs. File actions and statistics stay in Files.
 
 Resources starts with the official rclone symbol, selected version and engine
 shortcut. The client's process totals and other rclone processes are separate.

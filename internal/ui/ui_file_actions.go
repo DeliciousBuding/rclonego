@@ -119,7 +119,7 @@ func (s *nativeUI) previewFile(entry core.DirectoryEntry) {
 		f.previewCancel()
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	f.previewCancel, f.previewOpen, f.previewBusy, f.previewError = cancel, true, true, ""
+	f.previewCancel, f.previewOpen, f.previewBusy = cancel, true, true
 	f.previewIssue, f.previewDetailsOpen = nil, false
 	f.previewEntry = entry
 	f.previewGeneration++
@@ -141,7 +141,7 @@ func (s *nativeUI) previewFile(entry core.DirectoryEntry) {
 			}
 			f.previewBusy = false
 			if err != nil {
-				f.previewError, f.previewIssue = err.Error(), err
+				f.previewIssue = err
 				return
 			}
 			result.Data = nil
@@ -207,7 +207,7 @@ func (s *nativeUI) fileOverlays(c *ui.Context) {
 		if f.previewBusy {
 			ui.Text(c, text(c, "正在读取文件…")).TextColor(t.TextMuted)
 		}
-		if f.previewError != "" {
+		if f.previewIssue != nil {
 			s.fileErrorFeedback(c.Key("preview-issue"), f.previewIssue, &f.previewDetailsOpen,
 				func() { s.previewFile(f.previewEntry) }, func() { s.downloadEntries([]core.DirectoryEntry{f.previewEntry}); f.previewOpen = false })
 		}

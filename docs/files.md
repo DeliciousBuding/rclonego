@@ -3,7 +3,8 @@
 The **Files** workspace browses configured rclone accounts, absolute local
 directories and mounted drives. Opening **Browse files** from an account or
 mount takes you to this workspace. The smaller directory picker remains
-available in task and mount forms.
+available in task and mount forms. It lists folders only and fills the current
+form's path; selecting a folder does not submit a task.
 
 ## Navigation and selection
 
@@ -63,9 +64,11 @@ not move data to the recycle bin. Nonempty folders are rejected. No recursive
 purge or arbitrary rclone command is exposed. Changes sharing a path with the
 armed legacy handoff wait through the existing queue rules.
 
-The visible folder refreshes after a task finishes. Interrupted file changes
-remain available for inspection and explicit retry after restart; they are not
-automatically replayed against a possibly changed path.
+The visible folder refreshes when completed, failed or cancelled work could
+have changed it, including writes through a mapped drive. Unrelated tasks,
+verification and dry runs leave the current selection and listing in place.
+Interrupted file changes remain available for inspection and explicit retry
+after restart; they are not automatically replayed against a possibly changed path.
 
 ## API and CLI
 

@@ -49,6 +49,27 @@ type FileVersion struct {
 	ModTime *time.Time `json:"mod_time,omitempty"`
 }
 
+// JobChangesPath reports a job's possible writes using the queue's path and
+// mounted-drive boundaries. Failed or cancelled work can still have written.
+func JobChangesPath(job Job, location string, mounts []MountView) bool {
+	if job.DryRun {
+		return false
+	}
+	mapped := mountedTransferPath(location, mounts)
+	overlaps := func(value string) bool {
+		return transferPathsOverlap(location, value) ||
+			transferPathsOverlap(mapped, mountedTransferPath(value, mounts))
+	}
+	switch job.Operation {
+	case "copy", "copyto", "sync":
+		return overlaps(job.Destination)
+	case "mkdir", "moveto", "deletefile", "rmdir":
+		return overlaps(job.Source) || overlaps(job.Destination)
+	default:
+		return false
+	}
+}
+
 // File changes use the same durable queue and attempt history as transfers.
 // Delete removes one file or one empty directory; it never expands to purge.
 func (a *App) AddFileAction(request FileActionRequest) (Job, error) {

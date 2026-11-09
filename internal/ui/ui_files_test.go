@@ -3,6 +3,7 @@ package desktop
 import (
 	"slices"
 	"testing"
+	"time"
 
 	"github.com/DeliciousBuding/rclonego/internal/core"
 	"github.com/DeliciousBuding/rclonego/locales"
@@ -12,7 +13,7 @@ import (
 func fileModel(t *testing.T) *nativeUI {
 	model := New(testApp(t), "")
 	model.page = "files"
-	model.filesUI = fileWorkspaceState{browserUIState: browserUIState{open: true, path: "fixture:", selected: -1,
+	model.filesUI = fileWorkspaceState{open: true, directoryUIState: directoryUIState{path: "fixture:", selected: -1,
 		result: core.BrowseResult{Path: "fixture:", Entries: []core.DirectoryEntry{
 			{Name: "Documents", Path: "fixture:Documents", IsDir: true},
 			{Name: "a.txt", Path: "fixture:a.txt", Size: 12},
@@ -112,5 +113,84 @@ func TestFileBreadcrumbsPreserveRemoteRootAndSelection(t *testing.T) {
 	}
 	if model.filesUI.path != "fixture:Documents" {
 		t.Fatal("breadcrumb did not navigate to parent")
+	}
+}
+
+func TestDeepFileBreadcrumbsKeepEarlierAncestorsReachable(t *testing.T) {
+	for _, value := range []string{"fixture:one/two/three/four", "fixture:/one/two/three/four"} {
+		model := fileModel(t)
+		model.filesUI.path, model.filesUI.result.Path = value, value
+		tester := ui.NewTester(model.view, 900, 560)
+		tester.SetLocale("zh-Hans")
+		if err := tester.Click("上级目录"); err != nil {
+			t.Fatal(err)
+		}
+		_, paths := fileBreadcrumbs(value)
+		if !slices.Equal(tester.Menu(), paths[:len(paths)-3]) {
+			t.Fatalf("deep path %q lost ancestors: %v", value, tester.Menu())
+		}
+		if err := tester.ChooseMenuItem(paths[1]); err != nil {
+			t.Fatal(err)
+		}
+		if model.filesUI.path != paths[1] {
+			t.Fatal("ancestor menu navigated to a different directory")
+		}
+	}
+}
+
+func TestUnrelatedCompletedJobsPreserveFileSelectionAndLocation(t *testing.T) {
+	model := fileModel(t)
+	f := &model.filesUI
+	f.refreshedAt = time.Now()
+	f.selected, f.offset, f.query = 1, 100, "a"
+	f.selection.Add("fixture:a.txt")
+	finished := f.refreshedAt.Add(time.Second)
+	model.refreshCompletedFiles([]core.Job{{
+		Operation: "copy", Destination: "other:archive", Status: "completed", FinishedAt: &finished,
+	}})
+	if f.generation != 0 || f.selected != 1 || !f.selection.Has("fixture:a.txt") ||
+		f.path != "fixture:" || f.query != "a" || f.offset != 100 {
+		t.Fatal("unrelated task refreshed the folder and discarded its selection")
+	}
+}
+
+func TestFileRefreshTracksWritesAndKeepsAFailedNavigation(t *testing.T) {
+	for _, test := range []struct {
+		name      string
+		job       core.Job
+		draftPath string
+		refresh   bool
+	}{
+		{name: "copy reads source", job: core.Job{Operation: "copy", Source: "fixture:", Destination: "other:", Status: "completed"}},
+		{name: "check", job: core.Job{Operation: "check", Destination: "fixture:", Status: "completed"}},
+		{name: "dry run", job: core.Job{Operation: "sync", Destination: "fixture:", Status: "completed", DryRun: true}},
+		{name: "completed upload", job: core.Job{Operation: "copyto", Destination: "fixture:a.txt", Status: "completed"}, refresh: true},
+		{name: "partly failed copy", job: core.Job{Operation: "copy", Destination: "fixture:Documents", Status: "failed"}, refresh: true},
+		{name: "cancelled copy", job: core.Job{Operation: "copy", Destination: "fixture:", Status: "cancelled"}, refresh: true},
+		{name: "delete", job: core.Job{Operation: "deletefile", Source: "fixture:a.txt", Status: "completed"}, refresh: true},
+		{name: "failed navigation", job: core.Job{Operation: "copyto", Destination: "fixture:a.txt", Status: "completed"}, draftPath: "other:missing"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			model := fileModel(t)
+			f := &model.filesUI
+			f.refreshedAt = time.Now()
+			finished := f.refreshedAt.Add(time.Second)
+			test.job.FinishedAt = &finished
+			if test.draftPath != "" {
+				f.path = test.draftPath
+			}
+			model.refreshCompletedFiles([]core.Job{test.job})
+			if (f.generation > 0) != test.refresh {
+				t.Fatalf("refresh=%v, want %v", f.generation > 0, test.refresh)
+			}
+			if test.draftPath != "" && f.path != test.draftPath {
+				t.Fatal("background completion replaced a failed location with an older directory")
+			}
+			generation := f.generation
+			model.refreshCompletedFiles([]core.Job{{Operation: "copy", Destination: "fixture:", Status: "completed", FinishedAt: &f.refreshedAt}})
+			if f.generation != generation {
+				t.Fatal("a result already covered by the directory read triggered another refresh")
+			}
+		})
 	}
 }
