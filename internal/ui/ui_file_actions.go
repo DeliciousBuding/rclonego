@@ -2,13 +2,10 @@ package desktop
 
 import (
 	"context"
-	"fmt"
 	"github.com/DeliciousBuding/rclonego/internal/core"
 	"github.com/DeliciousBuding/rclonego/locales"
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
-	"os"
-	"path/filepath"
 	"time"
 )
 
@@ -43,30 +40,11 @@ func (s *nativeUI) chooseUploads() {
 }
 
 func (s *nativeUI) queueUploads(paths []string, destination string) {
-	s.runAfter(localesText("加入队列"), func() error {
-		for _, source := range paths {
-			info, err := os.Stat(source)
-			if err != nil {
-				return err
-			}
-			if !info.IsDir() && !info.Mode().IsRegular() {
-				return fmt.Errorf("unsupported upload file: %s", filepath.Base(source))
-			}
-			dest, err := core.ChildPath(destination, filepath.Base(source))
-			if err != nil {
-				return err
-			}
-			operation := "copyto"
-			if info.IsDir() {
-				operation = "copy"
-			}
-			if _, err = s.app.AddJob(core.JobCreateRequest{Name: filepath.Base(source), Operation: operation, Source: source, Destination: dest, CreateDirs: info.IsDir()}); err != nil {
-				return err
-			}
-		}
-		return nil
-	}, func() { s.notice = localesText("已加入任务队列") })
+	if len(paths) > 0 {
+		s.queueFileOperation(fileOperationState{destination: destination, items: uploadEntries(paths)})
+	}
 }
+
 func (s *nativeUI) downloadEntries(entries []core.DirectoryEntry) {
 	if len(entries) == 0 {
 		return
@@ -81,24 +59,7 @@ func (s *nativeUI) downloadEntries(entries []core.DirectoryEntry) {
 			if len(paths) == 0 {
 				return
 			}
-			destination := paths[0]
-			s.runAfter(localesText("加入队列"), func() error {
-				for _, entry := range entries {
-					operation := "copyto"
-					if entry.IsDir {
-						operation = "copy"
-					}
-					target, err := core.ChildPath(destination, entry.Name)
-					if err != nil {
-						return err
-					}
-					if _, err := s.app.AddJob(core.JobCreateRequest{Name: entry.Name, Operation: operation, Source: entry.Path,
-						Destination: target, CreateDirs: entry.IsDir}); err != nil {
-						return err
-					}
-				}
-				return nil
-			}, func() { s.notice = localesText("已加入任务队列") })
+			s.queueFileEntries(entries, paths[0])
 		})
 	}()
 }
@@ -129,32 +90,27 @@ func (s *nativeUI) submitFileAction() {
 			f.actionError = localesText("请选择目标目录")
 			return
 		}
-		s.runAfter(localesText("加入队列"), func() error {
-			for _, entry := range entries {
-				target, err := core.ChildPath(destination, entry.Name)
-				if err != nil {
-					return err
-				}
-				operation := "copyto"
-				if entry.IsDir {
-					operation = "copy"
-				}
-				if _, err = s.app.AddJob(core.JobCreateRequest{Name: entry.Name, Operation: operation, Source: entry.Path, Destination: target, CreateDirs: entry.IsDir}); err != nil {
-					return err
-				}
-			}
-			return nil
-		}, func() { f.actionOpen = false; s.notice = localesText("已加入任务队列") })
+		s.queueFileEntries(entries, destination)
 		return
 	}
 	request := core.FileActionRequest{Operation: f.action, Path: f.actionEntry.Path, Name: f.actionName, IsDir: f.actionEntry.IsDir, ConfirmDelete: f.action == "delete"}
 	if request.Operation != "delete" {
 		if _, err := core.ChildPath(f.result.Path, request.Name); err != nil {
-			f.actionError = err.Error()
+			f.actionError = localesText(explainFileError(err).message)
 			return
 		}
 	}
-	s.runAfter(localesText("加入队列"), func() error { _, err := s.app.AddFileAction(request); return err }, func() { f.actionOpen = false; s.notice = localesText("已加入任务队列") })
+	var job core.Job
+	entry := f.actionEntry
+	s.runAfter(localesText("加入队列"), func() error {
+		var err error
+		job, err = s.app.AddFileAction(request)
+		return err
+	}, func() {
+		f.actionOpen, s.notice = false, ""
+		f.operation = &fileOperationState{items: []fileOperationItem{{entry: entry, jobID: job.ID}}}
+		s.jobs = s.app.Snapshot().Jobs
+	})
 }
 
 func (s *nativeUI) previewFile(entry core.DirectoryEntry) {
@@ -164,6 +120,8 @@ func (s *nativeUI) previewFile(entry core.DirectoryEntry) {
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	f.previewCancel, f.previewOpen, f.previewBusy, f.previewError = cancel, true, true, ""
+	f.previewIssue, f.previewDetailsOpen = nil, false
+	f.previewEntry = entry
 	f.previewGeneration++
 	generation := f.previewGeneration
 	f.preview, f.previewImage = core.FilePreview{Path: entry.Path}, nil
@@ -183,7 +141,7 @@ func (s *nativeUI) previewFile(entry core.DirectoryEntry) {
 			}
 			f.previewBusy = false
 			if err != nil {
-				f.previewError = err.Error()
+				f.previewError, f.previewIssue = err.Error(), err
 				return
 			}
 			result.Data = nil
@@ -194,6 +152,7 @@ func (s *nativeUI) previewFile(entry core.DirectoryEntry) {
 
 func (s *nativeUI) fileOverlays(c *ui.Context) {
 	f, t := &s.filesUI, c.Theme()
+	s.fileOperationDetails(c)
 	ui.DialogBase(c.Key("file-action"), &f.actionOpen, func(backdrop, panel ui.Element) {
 		backdrop.Background(t.Text.Alpha(0.12))
 		panel.Width(420).MaxWidthPercent(90).Padding(20).Gap(12).Radius(14).Background(t.Background)
@@ -249,7 +208,8 @@ func (s *nativeUI) fileOverlays(c *ui.Context) {
 			ui.Text(c, text(c, "正在读取文件…")).TextColor(t.TextMuted)
 		}
 		if f.previewError != "" {
-			ui.Text(c, f.previewError).FontSize(12).MaxLines(3).TextColor(t.Warning)
+			s.fileErrorFeedback(c.Key("preview-issue"), f.previewIssue, &f.previewDetailsOpen,
+				func() { s.previewFile(f.previewEntry) }, func() { s.downloadEntries([]core.DirectoryEntry{f.previewEntry}); f.previewOpen = false })
 		}
 		if f.previewImage != nil {
 			ui.Image(c, f.previewImage).WidthPercent(100).Height(280).Shrink(1).MinHeight(80).Fit(ui.Contain)

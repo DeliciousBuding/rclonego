@@ -17,7 +17,7 @@ func fileModel(t *testing.T) *nativeUI {
 			{Name: "Documents", Path: "fixture:Documents", IsDir: true},
 			{Name: "a.txt", Path: "fixture:a.txt", Size: 12},
 			{Name: "b.txt", Path: "fixture:b.txt", Size: 24},
-		}}}}
+		}, HasMore: true}}}
 	return model
 }
 

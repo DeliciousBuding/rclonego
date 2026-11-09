@@ -7050,3 +7050,383 @@ func FileWorkspace43() string { return In(i18n.Locale()).FileWorkspace43() }
 func (msgs Messages) FileWorkspace43() string {
 	return Catalog.Format(msgs.locale, "fileWorkspace43", nil)
 }
+
+// FileQueuedCount says "Added %d tasks to the queue"
+// in the language the app shows.
+func FileQueuedCount() string { return In(i18n.Locale()).FileQueuedCount() }
+
+// FileQueuedCount says "Added %d tasks to the queue"
+// in the language of msgs.
+func (msgs Messages) FileQueuedCount() string {
+	return Catalog.Format(msgs.locale, "fileQueuedCount", nil)
+}
+
+// FilePartialCount says "Added %d items; %d were not added"
+// in the language the app shows.
+func FilePartialCount() string { return In(i18n.Locale()).FilePartialCount() }
+
+// FilePartialCount says "Added %d items; %d were not added"
+// in the language of msgs.
+func (msgs Messages) FilePartialCount() string {
+	return Catalog.Format(msgs.locale, "filePartialCount", nil)
+}
+
+// ViewFileTasks says "View these tasks"
+// in the language the app shows.
+func ViewFileTasks() string { return In(i18n.Locale()).ViewFileTasks() }
+
+// ViewFileTasks says "View these tasks"
+// in the language of msgs.
+func (msgs Messages) ViewFileTasks() string {
+	return Catalog.Format(msgs.locale, "viewFileTasks", nil)
+}
+
+// RetryFileItems says "Retry items not added"
+// in the language the app shows.
+func RetryFileItems() string { return In(i18n.Locale()).RetryFileItems() }
+
+// RetryFileItems says "Retry items not added"
+// in the language of msgs.
+func (msgs Messages) RetryFileItems() string {
+	return Catalog.Format(msgs.locale, "retryFileItems", nil)
+}
+
+// DismissFileResult says "Dismiss operation result"
+// in the language the app shows.
+func DismissFileResult() string { return In(i18n.Locale()).DismissFileResult() }
+
+// DismissFileResult says "Dismiss operation result"
+// in the language of msgs.
+func (msgs Messages) DismissFileResult() string {
+	return Catalog.Format(msgs.locale, "dismissFileResult", nil)
+}
+
+// FileFailedItems says "Items not added"
+// in the language the app shows.
+func FileFailedItems() string { return In(i18n.Locale()).FileFailedItems() }
+
+// FileFailedItems says "Items not added"
+// in the language of msgs.
+func (msgs Messages) FileFailedItems() string {
+	return Catalog.Format(msgs.locale, "fileFailedItems", nil)
+}
+
+// FileRetryHint says "Check the failed items and retry. Tasks already added will not be submitted again."
+// in the language the app shows.
+func FileRetryHint() string { return In(i18n.Locale()).FileRetryHint() }
+
+// FileRetryHint says "Check the failed items and retry. Tasks already added will not be submitted again."
+// in the language of msgs.
+func (msgs Messages) FileRetryHint() string {
+	return Catalog.Format(msgs.locale, "fileRetryHint", nil)
+}
+
+// CurrentFileOperation says "This file operation"
+// in the language the app shows.
+func CurrentFileOperation() string { return In(i18n.Locale()).CurrentFileOperation() }
+
+// CurrentFileOperation says "This file operation"
+// in the language of msgs.
+func (msgs Messages) CurrentFileOperation() string {
+	return Catalog.Format(msgs.locale, "currentFileOperation", nil)
+}
+
+// ReturnToFiles says "Return to Files"
+// in the language the app shows.
+func ReturnToFiles() string { return In(i18n.Locale()).ReturnToFiles() }
+
+// ReturnToFiles says "Return to Files"
+// in the language of msgs.
+func (msgs Messages) ReturnToFiles() string {
+	return Catalog.Format(msgs.locale, "returnToFiles", nil)
+}
+
+// ShowAllTasks says "Show all tasks"
+// in the language the app shows.
+func ShowAllTasks() string { return In(i18n.Locale()).ShowAllTasks() }
+
+// ShowAllTasks says "Show all tasks"
+// in the language of msgs.
+func (msgs Messages) ShowAllTasks() string {
+	return Catalog.Format(msgs.locale, "showAllTasks", nil)
+}
+
+// FileOperationCompleted says "File operation completed. Return to the folder to view the result."
+// in the language the app shows.
+func FileOperationCompleted() string { return In(i18n.Locale()).FileOperationCompleted() }
+
+// FileOperationCompleted says "File operation completed. Return to the folder to view the result."
+// in the language of msgs.
+func (msgs Messages) FileOperationCompleted() string {
+	return Catalog.Format(msgs.locale, "fileOperationCompleted", nil)
+}
+
+// FileEngineUnavailable says "Could not start the rclone engine"
+// in the language the app shows.
+func FileEngineUnavailable() string { return In(i18n.Locale()).FileEngineUnavailable() }
+
+// FileEngineUnavailable says "Could not start the rclone engine"
+// in the language of msgs.
+func (msgs Messages) FileEngineUnavailable() string {
+	return Catalog.Format(msgs.locale, "fileEngineUnavailable", nil)
+}
+
+// FileEngineHint says "Install or select the engine in Settings."
+// in the language the app shows.
+func FileEngineHint() string { return In(i18n.Locale()).FileEngineHint() }
+
+// FileEngineHint says "Install or select the engine in Settings."
+// in the language of msgs.
+func (msgs Messages) FileEngineHint() string {
+	return Catalog.Format(msgs.locale, "fileEngineHint", nil)
+}
+
+// FileReadTimeout says "Reading timed out"
+// in the language the app shows.
+func FileReadTimeout() string { return In(i18n.Locale()).FileReadTimeout() }
+
+// FileReadTimeout says "Reading timed out"
+// in the language of msgs.
+func (msgs Messages) FileReadTimeout() string {
+	return Catalog.Format(msgs.locale, "fileReadTimeout", nil)
+}
+
+// FileNetworkHint says "Check the network connection and retry."
+// in the language the app shows.
+func FileNetworkHint() string { return In(i18n.Locale()).FileNetworkHint() }
+
+// FileNetworkHint says "Check the network connection and retry."
+// in the language of msgs.
+func (msgs Messages) FileNetworkHint() string {
+	return Catalog.Format(msgs.locale, "fileNetworkHint", nil)
+}
+
+// FileReadCancelled says "Reading was cancelled"
+// in the language the app shows.
+func FileReadCancelled() string { return In(i18n.Locale()).FileReadCancelled() }
+
+// FileReadCancelled says "Reading was cancelled"
+// in the language of msgs.
+func (msgs Messages) FileReadCancelled() string {
+	return Catalog.Format(msgs.locale, "fileReadCancelled", nil)
+}
+
+// FileReadAgainHint says "Read it again when needed."
+// in the language the app shows.
+func FileReadAgainHint() string { return In(i18n.Locale()).FileReadAgainHint() }
+
+// FileReadAgainHint says "Read it again when needed."
+// in the language of msgs.
+func (msgs Messages) FileReadAgainHint() string {
+	return Catalog.Format(msgs.locale, "fileReadAgainHint", nil)
+}
+
+// FileLocationMissing says "The selected location does not exist"
+// in the language the app shows.
+func FileLocationMissing() string { return In(i18n.Locale()).FileLocationMissing() }
+
+// FileLocationMissing says "The selected location does not exist"
+// in the language of msgs.
+func (msgs Messages) FileLocationMissing() string {
+	return Catalog.Format(msgs.locale, "fileLocationMissing", nil)
+}
+
+// FileLocationHint says "Check whether the file was moved or deleted, then select it again."
+// in the language the app shows.
+func FileLocationHint() string { return In(i18n.Locale()).FileLocationHint() }
+
+// FileLocationHint says "Check whether the file was moved or deleted, then select it again."
+// in the language of msgs.
+func (msgs Messages) FileLocationHint() string {
+	return Catalog.Format(msgs.locale, "fileLocationHint", nil)
+}
+
+// FilePermissionDenied says "Could not access the selected location"
+// in the language the app shows.
+func FilePermissionDenied() string { return In(i18n.Locale()).FilePermissionDenied() }
+
+// FilePermissionDenied says "Could not access the selected location"
+// in the language of msgs.
+func (msgs Messages) FilePermissionDenied() string {
+	return Catalog.Format(msgs.locale, "filePermissionDenied", nil)
+}
+
+// FilePermissionHint says "Check read permissions for this location and retry."
+// in the language the app shows.
+func FilePermissionHint() string { return In(i18n.Locale()).FilePermissionHint() }
+
+// FilePermissionHint says "Check read permissions for this location and retry."
+// in the language of msgs.
+func (msgs Messages) FilePermissionHint() string {
+	return Catalog.Format(msgs.locale, "filePermissionHint", nil)
+}
+
+// FileAuthorizationIssue says "Account authorization needs attention"
+// in the language the app shows.
+func FileAuthorizationIssue() string { return In(i18n.Locale()).FileAuthorizationIssue() }
+
+// FileAuthorizationIssue says "Account authorization needs attention"
+// in the language of msgs.
+func (msgs Messages) FileAuthorizationIssue() string {
+	return Catalog.Format(msgs.locale, "fileAuthorizationIssue", nil)
+}
+
+// FileAuthorizationHint says "Reconnect the account in Cloud accounts, then retry."
+// in the language the app shows.
+func FileAuthorizationHint() string { return In(i18n.Locale()).FileAuthorizationHint() }
+
+// FileAuthorizationHint says "Reconnect the account in Cloud accounts, then retry."
+// in the language of msgs.
+func (msgs Messages) FileAuthorizationHint() string {
+	return Catalog.Format(msgs.locale, "fileAuthorizationHint", nil)
+}
+
+// FileCloudReadFailed says "Could not read the cloud folder"
+// in the language the app shows.
+func FileCloudReadFailed() string { return In(i18n.Locale()).FileCloudReadFailed() }
+
+// FileCloudReadFailed says "Could not read the cloud folder"
+// in the language of msgs.
+func (msgs Messages) FileCloudReadFailed() string {
+	return Catalog.Format(msgs.locale, "fileCloudReadFailed", nil)
+}
+
+// FileCloudReadHint says "Check the path, network and account permissions, then retry."
+// in the language the app shows.
+func FileCloudReadHint() string { return In(i18n.Locale()).FileCloudReadHint() }
+
+// FileCloudReadHint says "Check the path, network and account permissions, then retry."
+// in the language of msgs.
+func (msgs Messages) FileCloudReadHint() string {
+	return Catalog.Format(msgs.locale, "fileCloudReadHint", nil)
+}
+
+// FilePreviewUnavailable says "This file cannot be previewed in the app"
+// in the language the app shows.
+func FilePreviewUnavailable() string { return In(i18n.Locale()).FilePreviewUnavailable() }
+
+// FilePreviewUnavailable says "This file cannot be previewed in the app"
+// in the language of msgs.
+func (msgs Messages) FilePreviewUnavailable() string {
+	return Catalog.Format(msgs.locale, "filePreviewUnavailable", nil)
+}
+
+// FilePreviewDownloadHint says "Download it and open it in another app."
+// in the language the app shows.
+func FilePreviewDownloadHint() string { return In(i18n.Locale()).FilePreviewDownloadHint() }
+
+// FilePreviewDownloadHint says "Download it and open it in another app."
+// in the language of msgs.
+func (msgs Messages) FilePreviewDownloadHint() string {
+	return Catalog.Format(msgs.locale, "filePreviewDownloadHint", nil)
+}
+
+// FileTypeUnsupported says "This file type is not supported"
+// in the language the app shows.
+func FileTypeUnsupported() string { return In(i18n.Locale()).FileTypeUnsupported() }
+
+// FileTypeUnsupported says "This file type is not supported"
+// in the language of msgs.
+func (msgs Messages) FileTypeUnsupported() string {
+	return Catalog.Format(msgs.locale, "fileTypeUnsupported", nil)
+}
+
+// FileTypeHint says "Select a regular file or folder, then upload it again."
+// in the language the app shows.
+func FileTypeHint() string { return In(i18n.Locale()).FileTypeHint() }
+
+// FileTypeHint says "Select a regular file or folder, then upload it again."
+// in the language of msgs.
+func (msgs Messages) FileTypeHint() string {
+	return Catalog.Format(msgs.locale, "fileTypeHint", nil)
+}
+
+// FileNameInvalid says "The file name is invalid"
+// in the language the app shows.
+func FileNameInvalid() string { return In(i18n.Locale()).FileNameInvalid() }
+
+// FileNameInvalid says "The file name is invalid"
+// in the language of msgs.
+func (msgs Messages) FileNameInvalid() string {
+	return Catalog.Format(msgs.locale, "fileNameInvalid", nil)
+}
+
+// FileNameHint says "Names cannot contain path separators or control characters."
+// in the language the app shows.
+func FileNameHint() string { return In(i18n.Locale()).FileNameHint() }
+
+// FileNameHint says "Names cannot contain path separators or control characters."
+// in the language of msgs.
+func (msgs Messages) FileNameHint() string {
+	return Catalog.Format(msgs.locale, "fileNameHint", nil)
+}
+
+// FilePathInvalid says "The folder path is invalid"
+// in the language the app shows.
+func FilePathInvalid() string { return In(i18n.Locale()).FilePathInvalid() }
+
+// FilePathInvalid says "The folder path is invalid"
+// in the language of msgs.
+func (msgs Messages) FilePathInvalid() string {
+	return Catalog.Format(msgs.locale, "filePathInvalid", nil)
+}
+
+// FilePathHint says "Select an absolute local path or cloud folder."
+// in the language the app shows.
+func FilePathHint() string { return In(i18n.Locale()).FilePathHint() }
+
+// FilePathHint says "Select an absolute local path or cloud folder."
+// in the language of msgs.
+func (msgs Messages) FilePathHint() string {
+	return Catalog.Format(msgs.locale, "filePathHint", nil)
+}
+
+// FileOperationFailed says "The operation did not complete"
+// in the language the app shows.
+func FileOperationFailed() string { return In(i18n.Locale()).FileOperationFailed() }
+
+// FileOperationFailed says "The operation did not complete"
+// in the language of msgs.
+func (msgs Messages) FileOperationFailed() string {
+	return Catalog.Format(msgs.locale, "fileOperationFailed", nil)
+}
+
+// FileOperationFailedHint says "View the details, check the selected location and retry."
+// in the language the app shows.
+func FileOperationFailedHint() string { return In(i18n.Locale()).FileOperationFailedHint() }
+
+// FileOperationFailedHint says "View the details, check the selected location and retry."
+// in the language of msgs.
+func (msgs Messages) FileOperationFailedHint() string {
+	return Catalog.Format(msgs.locale, "fileOperationFailedHint", nil)
+}
+
+// CheckFileAccount says "Check account"
+// in the language the app shows.
+func CheckFileAccount() string { return In(i18n.Locale()).CheckFileAccount() }
+
+// CheckFileAccount says "Check account"
+// in the language of msgs.
+func (msgs Messages) CheckFileAccount() string {
+	return Catalog.Format(msgs.locale, "checkFileAccount", nil)
+}
+
+// FileErrorDetails says "Error details"
+// in the language the app shows.
+func FileErrorDetails() string { return In(i18n.Locale()).FileErrorDetails() }
+
+// FileErrorDetails says "Error details"
+// in the language of msgs.
+func (msgs Messages) FileErrorDetails() string {
+	return Catalog.Format(msgs.locale, "fileErrorDetails", nil)
+}
+
+// EditFilePath says "Edit path"
+// in the language the app shows.
+func EditFilePath() string { return In(i18n.Locale()).EditFilePath() }
+
+// EditFilePath says "Edit path"
+// in the language of msgs.
+func (msgs Messages) EditFilePath() string {
+	return Catalog.Format(msgs.locale, "editFilePath", nil)
+}

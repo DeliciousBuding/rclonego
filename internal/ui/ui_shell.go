@@ -193,6 +193,7 @@ func (s *nativeUI) sidebar(c *ui.Context) {
 			} {
 				entry := ui.SidebarItem(c, item.id, item.icon, text(c, item.label)).
 					Height(36).Padding(0, 10).Radius(8).FontWeight(500)
+				entry.OnClick(func() { s.fileOperationFocus = false })
 				if s.page == item.id {
 					entry.Background(t.Accent.Alpha(0.24))
 				}

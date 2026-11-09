@@ -41,7 +41,7 @@ func (s *nativeUI) commands() []desktopCommand {
 		{"settings", "设置", iconSettings},
 	} {
 		id := page.id
-		result = append(result, desktopCommand{page.label, page.icon, func() { s.page = id }})
+		result = append(result, desktopCommand{page.label, page.icon, func() { s.page, s.fileOperationFocus = id, false }})
 	}
 	return result
 }

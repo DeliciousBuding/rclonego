@@ -2,6 +2,9 @@
 
 ### English
 
+- Compact file browsing, clear partial batch results and retry without duplicate
+  submissions. Open the corresponding queue tasks and keep reading error details
+  available on demand.
 - Browse files in a native workspace with breadcrumbs, previews and context
   actions; queue upload/download/copy, rename and confirmed scoped deletion.
 - Improve mapping setup and expose external Windows rclone drives as observed
@@ -47,6 +50,8 @@
 
 ### 简体中文
 
+- 文件浏览更紧凑，批量操作明确部分成功，重试不重复提交；可查看对应队列任务，
+  读取错误的技术详情按需展开。
 - 原生文件工作页支持目录导航、预览和右键操作；上传下载、复制、重命名与确认删除
   共用任务队列。
 - 优化映射配置，展示外部 Windows rclone 盘符归属，可直接进入文件浏览或系统文件管理器。
