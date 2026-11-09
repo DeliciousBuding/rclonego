@@ -24,7 +24,12 @@ The latest published preview is [v0.1.0-alpha.2](https://github.com/DeliciousBud
 Changes introduced in alpha.3 require a source build or a later published preview.
 No stable release is available yet.
 
-<p align="center"><img src="assets/screenshots/files-dark.png" width="900" alt="RcloneGo native file workspace"></p>
+<p align="center"><img src="assets/screenshots/overview-dark.png" width="900" alt="RcloneGo transfer overview with storage provider marks"></p>
+
+Native component previews use sample accounts and transfers:
+[Files](assets/screenshots/files-dark.png) ·
+[Cloud accounts](assets/screenshots/accounts-light.png) ·
+[Settings](assets/screenshots/settings-light.png).
 
 ## What it does
 

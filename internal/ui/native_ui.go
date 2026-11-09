@@ -243,6 +243,7 @@ func (s *nativeUI) refresh(ctx context.Context, includeRemoteState bool) {
 			s.appearance = state.Appearance
 			s.appearanceChoice = appearanceLabel(state.Appearance)
 			mygo.Theme.SetSource(mygo.ThemeSource(s.appearance))
+			updateNativeFrame(s.win)
 		}
 		s.remotes, s.mounts, s.version = runtime.Remotes, runtime.Mounts, runtime.Version
 		for name := range s.storageUI {
@@ -375,7 +376,10 @@ func (s *nativeUI) mountRow(c *ui.Context, mount core.MountView) {
 			ui.Text(c, label).FontSize(14).Bold().TextColor(t.Accent).Tooltip(mount.Drive)
 		})
 		ui.Column(c).Grow(1).MinWidth(0).Gap(2).Children(func() {
-			ui.Text(c, mount.Name).Bold().SingleLine().Tooltip(mount.Name)
+			ui.Row(c).Gap(7).MinWidth(0).Children(func() {
+				s.storageIcon(c, mount.Remote, iconRemotes, 18)
+				ui.Text(c, mount.Name).Grow(1).MinWidth(0).Bold().SingleLine().Tooltip(mount.Name)
+			})
 			pathSummary(c, mount.Remote, mount.Drive)
 			if mount.External {
 				ui.Text(c, text(c, "由其他程序管理")).FontSize(11).TextColor(t.TextMuted)

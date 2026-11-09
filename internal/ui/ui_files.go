@@ -146,9 +146,12 @@ func (s *nativeUI) filesPage(c *ui.Context) {
 		})
 	})
 	if labels, paths := fileBreadcrumbs(f.result.Path); len(labels) > 0 {
-		if ui.Breadcrumbs(c.Key("breadcrumbs"), labels, &f.breadcrumbIndex).Shrink(0).Label(text(c, "目录导航")).Changed() {
-			s.navigateFiles(paths[f.breadcrumbIndex], true)
-		}
+		ui.Row(c).Shrink(0).Gap(8).Children(func() {
+			s.storageIcon(c, f.result.Path, iconFolder, 18)
+			if ui.Breadcrumbs(c.Key("breadcrumbs"), labels, &f.breadcrumbIndex).Shrink(0).Label(text(c, "目录导航")).Changed() {
+				s.navigateFiles(paths[f.breadcrumbIndex], true)
+			}
+		})
 	}
 	ui.Row(c).Shrink(0).Gap(8).Children(func() {
 		ui.SearchField(c.Key("filter"), &f.query).Grow(1).MinWidth(0).Placeholder(text(c, "搜索当前页…")).

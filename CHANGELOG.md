@@ -4,6 +4,9 @@
 
 ### English
 
+- Unify Windows caption, sidebar and frame backgrounds through light/dark
+  changes while retaining native window controls. Use provider marks beside
+  mappings, recent transfers and file locations; refresh the product previews.
 - Add a native Files workspace with breadcrumbs, multi-selection, context menus,
   text/image previews, queued uploads/downloads/copy and scoped file changes.
 - Offer available Windows mount letters and cache defaults; browse observed
@@ -39,8 +42,8 @@
 - Add safe per-user Windows installation, owned-startup cleanup and data retention.
 - Run release checks and native packaging only on manual Actions dispatch, pinned
   to one commit and producing an unpublished draft.
-- Align page headings and primary actions, move secondary workflow actions to
-  More, and use Mica for the Windows main window.
+- Align page headings and primary actions and move secondary workflow actions
+  to More.
 - Clarify activity phases, use file counts for verification, show mount routes
   and keep empty history and task details concise.
 - Keep task actions visible, explain input issues at their fields and present
@@ -50,6 +53,8 @@
 
 ### 简体中文
 
+- Windows 标题栏、侧栏与外框使用一致的明暗背景，保留系统窗口按钮；映射、
+  最近任务和文件位置使用对应服务标识，更新产品示例预览。
 - 新增原生文件工作页，支持目录导航、多选、右键菜单、文本/图片预览，以及队列中的
   上传下载、复制和范围明确的文件更改。
 - 映射提供可用盘符与缓存默认值，展示外部 Windows rclone 挂载而不接管，表单操作固定。
@@ -72,7 +77,7 @@
 - GUI/CLI 使用统一配置目录，独立配置不误登记默认配置的登录启动。
 - Windows 按当前用户安全安装，清理所属启动项并保留用户数据。
 - 只有手动 Actions 发行才运行完整检查与原生打包，固定同一提交，生成未公开草稿。
-- 统一页面标题与主操作，工作流低频操作收进“更多”，Windows 主窗口采用 Mica。
+- 统一页面标题与主操作，工作流低频操作收进“更多”。
 - 区分活动阶段，校验按文件数显示进度；补齐映射路径，精简空历史与任务详情。
 - 固定任务操作区，就地显示输入问题；结果窗口展示校验依据与恢复入口，保留引擎关键错误。
 - 展示本实例挂载的 VFS 缓存与写回状态，支持独立离线副本任务。

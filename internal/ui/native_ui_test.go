@@ -4,6 +4,7 @@ import (
 	"github.com/DeliciousBuding/rclonego/internal/core"
 	"github.com/DeliciousBuding/rclonego/internal/version"
 	"math"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -174,11 +175,11 @@ func TestWindowMaterialAndCaptionClearance(t *testing.T) {
 	tester.SetVibrancy(true)
 	tester.SetWindowActive(true)
 	tester.SetTitleBar(ui.TitleBar{Height: 56, Right: 138})
-	// The sidebar must let the native material through. The content must
-	// remain opaque for legibility, including above a busy desktop.
+	// Windows matches its native caption with solid chrome. Inset title
+	// bars can share the native material. Content always remains opaque.
 	image := tester.Image()
-	if pixel := image.RGBAAt(100, 300); pixel.A == 255 {
-		t.Fatalf("native material is covered: sidebar pixel=%v", pixel)
+	if pixel := image.RGBAAt(100, 300); (pixel.A == 255) != (runtime.GOOS == "windows") {
+		t.Fatalf("platform chrome opacity does not match its native frame: sidebar pixel=%v", pixel)
 	}
 	if pixel := image.RGBAAt(500, 500); pixel.A != 255 {
 		t.Fatalf("content is not opaque: content pixel=%v", pixel)
@@ -202,7 +203,12 @@ func TestWindowMaterialAndCaptionClearance(t *testing.T) {
 			t.Fatalf("%s inactive chrome exposes the system gray or different tints: sidebar=%v header=%v", theme, sidebar, header)
 		}
 		tester.SetWindowActive(true)
-		if pixel := tester.Image().RGBAAt(100, 300); pixel.A >= 128 {
+		pixel := tester.Image().RGBAAt(100, 300)
+		if runtime.GOOS == "windows" {
+			if pixel != sidebar {
+				t.Fatalf("%s Windows chrome changes color with focus: %v / %v", theme, pixel, sidebar)
+			}
+		} else if pixel.A >= 128 {
 			t.Fatalf("%s active tint obscures the native material: %v", theme, pixel)
 		}
 	}
