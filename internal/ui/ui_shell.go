@@ -16,16 +16,16 @@ func modernTheme(dark bool, prefs ui.Preferences) *ui.Theme {
 	if dark {
 		t = ui.DarkTheme()
 	}
-	t.Background = ui.Hex("#f7f7f8")
+	t.Background = ui.Hex("#fbfbfd")
 	t.Surface = ui.Hex("#ffffff")
 	t.SurfaceHover = ui.RGBA(0, 0, 0, 0.04)
-	t.SurfacePressed = ui.RGBA(0, 0, 0, 0.07)
+	t.SurfacePressed = ui.RGBA(0, 114, 223, 0.10)
 	t.Border = ui.RGBA(60, 60, 67, 0.11)
-	t.Text = ui.Hex("#262629")
+	t.Text = ui.Hex("#1d1d1f")
 	t.TextMuted = ui.Hex("#6e6e73")
-	t.Accent = ui.Hex("#4364b3")
-	t.AccentHover = ui.Hex("#38569f")
-	t.AccentPressed = ui.Hex("#2e498a")
+	t.Accent = ui.Hex("#0072df")
+	t.AccentHover = ui.Hex("#0067c9")
+	t.AccentPressed = ui.Hex("#005eb8")
 	t.AccentText = ui.Hex("#ffffff")
 	t.Danger = ui.Hex("#c9342c")
 	t.Warning = ui.Hex("#90610c")
@@ -37,22 +37,22 @@ func modernTheme(dark bool, prefs ui.Preferences) *ui.Theme {
 	t.FontSize = 13
 	t.Font = ""
 	if dark {
-		t.Background = ui.Hex("#2b2b2e")
-		t.Surface = ui.Hex("#353538")
+		t.Background = ui.Hex("#1f1f21")
+		t.Surface = ui.Hex("#303033")
 		t.SurfaceHover = ui.RGBA(255, 255, 255, 0.06)
-		t.Text = ui.Hex("#f1f1f3")
-		t.TextMuted = ui.Hex("#adaeb5")
-		t.Border = ui.RGBA(255, 255, 255, 0.10)
-		t.Accent = ui.Hex("#9eb8f0")
-		t.AccentHover = ui.Hex("#b3c8f5")
-		t.AccentPressed = ui.Hex("#8eaae5")
-		t.AccentText = ui.Hex("#202430")
-		t.SurfacePressed = ui.RGBA(255, 255, 255, 0.10)
+		t.Text = ui.Hex("#f5f5f7")
+		t.TextMuted = ui.Hex("#aeaeb2")
+		t.Border = ui.RGBA(255, 255, 255, 0.12)
+		t.Accent = ui.Hex("#0a84ff")
+		t.AccentHover = ui.Hex("#2692ff")
+		t.AccentPressed = ui.Hex("#0b7eef")
+		t.AccentText = ui.Hex("#091522")
+		t.SurfacePressed = t.Accent.Alpha(0.20)
 		t.Selection = t.Accent.Alpha(0.18)
 		t.Focus = t.Accent.Alpha(0.55)
-		t.Danger = ui.Hex("#eb968e")
-		t.Warning = ui.Hex("#dfb96b")
-		t.Success = ui.Hex("#8fc3a5")
+		t.Danger = ui.Hex("#ff6961")
+		t.Warning = ui.Hex("#e4bc4f")
+		t.Success = ui.Hex("#6acb80")
 	}
 	if prefs.HighContrast {
 		t.TextMuted = t.TextMuted.Mix(t.Text, 0.4)
@@ -76,9 +76,9 @@ func (s *nativeUI) view(c *ui.Context) {
 	c.Root().Background(ui.Transparent)
 	ui.Themed(c, t).Fill().Background(ui.Transparent).Children(func() {
 		vibrant := c.Vibrancy() && !c.Preferences().ReduceTransparency && !c.Preferences().HighContrast
-		chrome, tint := ui.Hex("#efeff1"), ui.Hex("#efeff1").Alpha(0.32)
+		chrome, tint := ui.Hex("#f1f3f7"), ui.Hex("#fbfbfd").Alpha(0.46)
 		if t.Dark {
-			chrome, tint = ui.Hex("#38383b"), ui.Hex("#707073").Alpha(0.32)
+			chrome, tint = ui.Hex("#29292c"), ui.Hex("#424246").Alpha(0.46)
 		}
 		if vibrant && c.WindowActive() {
 			// Let the native material do the blur. One neutral tint tempers
@@ -142,13 +142,17 @@ func (s *nativeUI) navigationCommands(c *ui.Context) {
 
 func (s *nativeUI) sidebar(c *ui.Context) {
 	t := c.Theme()
+	navigationTheme := *t
+	// Navigation uses translucent selection with the normal text color;
+	// primary buttons elsewhere keep the theme's contrasting foreground.
+	navigationTheme.AccentText = t.Text
 	queued := 0
 	for _, job := range s.jobs {
 		if job.Status == "pending" || job.Status == "running" || job.Status == "handoff" {
 			queued++
 		}
 	}
-	side := ui.Column(c).Width(208).Shrink(0).FillHeight()
+	side := ui.Themed(c, &navigationTheme).Width(208).Shrink(0).FillHeight()
 	side.Background(ui.Transparent)
 	side.Children(func() {
 		if c.TitleBar().Height == 0 {
@@ -172,6 +176,9 @@ func (s *nativeUI) sidebar(c *ui.Context) {
 			} {
 				entry := ui.SidebarItem(c, item.id, item.icon, text(c, item.label)).
 					Height(36).Padding(0, 10).Radius(8).FontWeight(500)
+				if s.page == item.id {
+					entry.Background(t.Accent.Alpha(0.24))
+				}
 				if item.id == "queue" && queued > 0 {
 					entry.Children(func() {
 						ui.Text(c, fmt.Sprint(queued)).FontSize(11).TextColor(t.TextMuted)
@@ -180,8 +187,11 @@ func (s *nativeUI) sidebar(c *ui.Context) {
 			}
 		}).Grow(1).Padding(8, 12).Gap(4).Background(ui.Transparent).Label(text(c, "主导航"))
 		ui.Sidebar(c.Key("preferences-navigation"), &s.page, func() {
-			ui.SidebarItem(c, "settings", iconSettings, text(c, "设置")).
+			entry := ui.SidebarItem(c, "settings", iconSettings, text(c, "设置")).
 				Height(36).Padding(0, 10).Radius(8).FontWeight(500)
+			if s.page == "settings" {
+				entry.Background(t.Accent.Alpha(0.24))
+			}
 		}).Padding(8, 12).Background(ui.Transparent)
 		ui.Column(c).Padding(8, 20, 20, 20).Children(func() {
 			ui.Row(c).Gap(6).Children(func() {

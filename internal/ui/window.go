@@ -32,10 +32,10 @@ func Open(app *core.App, address string) error {
 			material = mygo.VibrancyMica
 		}
 		window := mygo.NewWindow(mygo.WindowOptions{
-			Title: "RcloneGo", Width: 1120, Height: 740, MinWidth: 900, MinHeight: 560,
+			Title: "RcloneGo", Width: 1280, Height: 760, MinWidth: 900, MinHeight: 560,
 			TitleBarStyle: titleBarStyle,
 			Vibrancy:      material, Content: ui.View(model.view),
-			AutoHideMenuBar: true, BackgroundColor: "light-dark(#efeff1, #38383b)",
+			AutoHideMenuBar: true, BackgroundColor: "light-dark(#f1f3f7, #29292c)",
 			UseContentSize: true, DisableFullScreen: true,
 			Hidden: true,
 		})

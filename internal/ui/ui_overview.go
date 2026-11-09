@@ -39,7 +39,11 @@ func (s *nativeUI) activityCard(c *ui.Context) {
 		ui.Row(c).Gap(12).Children(func() {
 			ui.Box(c).Size(40, 40).Radius(11).Background(t.Accent.Alpha(0.08)).
 				Center().Children(func() {
-				ui.Icon(c, appMark).FontSize(26).TextColor(t.Accent)
+				if kind := s.activityProvider(active); kind != "" {
+					remoteLogo(c, kind, 26)
+				} else {
+					ui.Icon(c, appMark).FontSize(26).TextColor(t.Accent)
+				}
 			})
 			ui.Column(c).Gap(3).Grow(1).MinWidth(0).Children(func() {
 				title := text(c, "传输总览")
@@ -57,7 +61,16 @@ func (s *nativeUI) activityCard(c *ui.Context) {
 				}
 				ui.Text(c, title).FontSize(22).FontWeight(600).SingleLine().Tooltip(title)
 				phase := s.activityPhase(c.Locale())
-				ui.Text(c, phase).FontSize(12).TextColor(t.TextMuted).SingleLine()
+				ui.Row(c).Gap(10).MinWidth(0).Children(func() {
+					ui.Text(c, phase).Grow(1).MinWidth(0).FontSize(12).TextColor(t.TextMuted).SingleLine().Tooltip(phase)
+					if active != nil && active.Status == "handoff" {
+						ui.Text(c, text(c, "旧客户端执行中")).Shrink(0).FontSize(10).TextColor(t.TextMuted).
+							Tooltip(text(c, "旧客户端执行中 · 完成当前步骤后接管"))
+					} else if active == nil && s.activity.Available {
+						ui.Text(c, text(c, "外部观察")).Shrink(0).FontSize(10).TextColor(t.TextMuted).
+							Tooltip(text(c, "外部观察 · 操作与最终结果由原客户端负责"))
+					}
+				})
 			})
 			label, color := "正在连接", t.TextMuted
 			if s.activity.Available && s.activity.Stats != nil {
@@ -83,15 +96,6 @@ func (s *nativeUI) activityCard(c *ui.Context) {
 			}
 			statusDot(c, label, color)
 		})
-		if active != nil {
-			label := "本客户端管理"
-			if active.Status == "handoff" {
-				label = "旧客户端执行中 · 完成当前步骤后接管"
-			}
-			ui.Text(c, text(c, label)).FontSize(12).TextColor(t.TextMuted)
-		} else if s.activity.Available {
-			ui.Text(c, text(c, "外部观察 · 操作与最终结果由原客户端负责")).FontSize(12).TextColor(t.TextMuted)
-		}
 		if !s.activity.Available || s.activity.Stats == nil {
 			emptyState(c, iconQueue, "暂无活动传输", "任务开始后，这里会显示真实进度和速度。")
 			return
@@ -177,6 +181,24 @@ func (s *nativeUI) activityCard(c *ui.Context) {
 	})
 }
 
+func (s *nativeUI) activityProvider(active *core.Job) string {
+	var paths []string
+	if active != nil {
+		paths = []string{active.Destination, active.Source}
+	} else if s.activity.Stats != nil && len(s.activity.Stats.Transferring) > 0 {
+		transfer := s.activity.Stats.Transferring[0]
+		paths = []string{transfer.DstFs, transfer.SrcFs}
+	}
+	for _, path := range paths {
+		for _, remote := range s.remotes {
+			if strings.HasPrefix(path, remote.Name+":") || strings.HasPrefix(path, remote.Name+"{") {
+				return remote.Type
+			}
+		}
+	}
+	return ""
+}
+
 func (s *nativeUI) activityPhase(language ...string) string {
 	translate := func(source string) string {
 		if len(language) > 0 {
@@ -251,7 +273,11 @@ func (s *nativeUI) activeMountCard(c *ui.Context) ui.Element {
 				BorderColor(c.Theme().Border).Children(func() {
 				ui.Icon(c, iconMounts).FontSize(18).TextColor(c.Theme().TextMuted)
 				ui.Text(c, mount.Drive).Width(28).FontWeight(500)
-				ui.Text(c, mount.Name).Grow(1).MinWidth(0).SingleLine().Tooltip(mount.Name)
+				name := mount.Name
+				if name == mount.Drive && mount.Remote != "" {
+					name = mount.Remote
+				}
+				ui.Text(c, name).Grow(1).MinWidth(0).SingleLine().Tooltip(name)
 				label, color := "未挂载", c.Theme().TextMuted
 				if mount.Running {
 					label, color = "已挂载", c.Theme().Success

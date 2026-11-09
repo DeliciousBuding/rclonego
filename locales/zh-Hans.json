@@ -660,6 +660,7 @@
   "legacyRunning": "旧客户端执行中",
   "managedHere": "本客户端管理",
   "externalObservation": "外部观察 · 操作与最终结果由原客户端负责",
+  "externalObservationLabel": "外部观察",
   "workflowTotalProgress": "整批进度",
   "browserSearchCurrentPage": "搜索当前页",
   "browserSearchCurrentPagePlaceholder": "搜索当前页…",
