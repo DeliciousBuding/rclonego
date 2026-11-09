@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/egoist/mygo"
@@ -76,6 +77,25 @@ func remoteLogo(c *ui.Context, kind string, size float32) {
 		return
 	}
 	ui.Icon(c, iconRemotes).FontSize(size).TextColor(c.Theme().Accent)
+}
+
+func (s *nativeUI) providerForPaths(paths ...string) string {
+	for _, path := range paths {
+		for _, remote := range s.remotes {
+			if strings.HasPrefix(path, remote.Name+":") || strings.HasPrefix(path, remote.Name+"{") {
+				return remote.Type
+			}
+		}
+	}
+	return ""
+}
+
+func (s *nativeUI) storageIcon(c *ui.Context, path string, fallback *ui.SVG, size float32) {
+	if kind := s.providerForPaths(path); kind != "" {
+		remoteLogo(c, kind, size)
+		return
+	}
+	ui.Icon(c, fallback).FontSize(size).TextColor(c.Theme().TextMuted)
 }
 
 // The same 24-unit grid, stroke weight and rounded ends are used everywhere.

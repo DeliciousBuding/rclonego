@@ -28,18 +28,16 @@ func Open(app *core.App, address string) error {
 		if runtime.GOOS == "darwin" {
 			titleBarStyle, material = mygo.TitleBarHiddenInset, mygo.VibrancyGlass
 		}
-		if runtime.GOOS == "windows" {
-			material = mygo.VibrancyMica
-		}
 		window := mygo.NewWindow(mygo.WindowOptions{
 			Title: "RcloneGo", Width: 1280, Height: 760, MinWidth: 900, MinHeight: 560,
 			TitleBarStyle: titleBarStyle,
 			Vibrancy:      material, Content: ui.View(model.view),
-			AutoHideMenuBar: true, BackgroundColor: "light-dark(#f1f3f7, #29292c)",
+			AutoHideMenuBar: true, BackgroundColor: "light-dark(" + lightWindowChrome + ", " + darkWindowChrome + ")",
 			UseContentSize: true, DisableFullScreen: true,
 			Hidden: true,
 		})
 		model.Attach(window)
+		configureNativeFrame(window)
 		removeLanguagePreferenceListener := mygo.App.OnLocaleChanged(func(string) {
 			model.languageOverride = savedLanguagePreference(app.DataDirectory())
 			if !model.isError {

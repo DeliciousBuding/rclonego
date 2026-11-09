@@ -8,8 +8,21 @@ import (
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/plugins/glass"
 	"github.com/egoist/mygo/ui"
+	"runtime"
 	"time"
 )
+
+const (
+	lightWindowChrome = "#f1f3f7"
+	darkWindowChrome  = "#29292c"
+)
+
+func windowChrome(dark bool) ui.Color {
+	if dark {
+		return ui.Hex(darkWindowChrome)
+	}
+	return ui.Hex(lightWindowChrome)
+}
 
 func modernTheme(dark bool, prefs ui.Preferences) *ui.Theme {
 	t := ui.LightTheme()
@@ -75,10 +88,14 @@ func (s *nativeUI) view(c *ui.Context) {
 	t := modernTheme(dark, c.Preferences())
 	c.Root().Background(ui.Transparent)
 	ui.Themed(c, t).Fill().Background(ui.Transparent).Children(func() {
-		vibrant := c.Vibrancy() && !c.Preferences().ReduceTransparency && !c.Preferences().HighContrast
-		chrome, tint := ui.Hex("#f1f3f7"), ui.Hex("#fbfbfd").Alpha(0.46)
+		// Windows' native caption cannot share a translucent content tint.
+		// Use the same solid chrome there so focus and wallpaper do not
+		// introduce a seam between the caption and sidebar.
+		vibrant := runtime.GOOS != "windows" && c.Vibrancy() &&
+			!c.Preferences().ReduceTransparency && !c.Preferences().HighContrast
+		chrome, tint := windowChrome(t.Dark), ui.Hex("#fbfbfd").Alpha(0.46)
 		if t.Dark {
-			chrome, tint = ui.Hex("#29292c"), ui.Hex("#424246").Alpha(0.46)
+			tint = ui.Hex("#424246").Alpha(0.46)
 		}
 		if vibrant && c.WindowActive() {
 			// Let the native material do the blur. One neutral tint tempers
@@ -209,6 +226,7 @@ func (s *nativeUI) setAppearance(mode string) {
 	s.appearance = mode
 	s.appearanceChoice = appearanceLabel(mode)
 	mygo.Theme.SetSource(mygo.ThemeSource(mode))
+	updateNativeFrame(s.win)
 	s.run(locales.Text("保存外观"), func() error {
 		return s.app.SaveSettings(core.SettingsRequest{Appearance: &mode})
 	})

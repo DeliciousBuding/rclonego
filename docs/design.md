@@ -11,16 +11,19 @@ opaque for readable paths, progress and error messages. Light, dark and system
 appearance use the same hierarchy. MyGo's native active/inactive button treatment
 is preserved; icon/text children inherit the button's color.
 
-Active navigation and title-bar chrome use one thin tint over the system material.
-Inactive windows, high contrast and reduced transparency use a consistent opaque
-theme color. Windows uses Mica for the persistent main window; macOS uses MyGo's
-system Glass material. Toolbar buttons sit directly on that material; transient messages
-use MyGo Glass over the content. A fine canvas border separates content without
-adding another full-window blur.
+Windows uses the same solid background for the native caption, sidebar and
+exposed frame, keeping their color consistent through focus and wallpaper changes.
+Windows 11's caption/text color attributes style the system title bar; its
+buttons and behavior remain native. High contrast and older Windows retain
+system caption colors.
+macOS shares one thin tint over MyGo's system Glass material across the inset
+title bar and navigation. Inactive windows, high contrast and reduced transparency
+use a consistent opaque theme color. Transient messages use MyGo Glass over the
+content. A fine canvas border separates content.
 
 Light appearance uses a white canvas and white control surfaces. Dark
 appearance uses a near-black neutral canvas with charcoal control surfaces.
-A dark tint keeps the native material from becoming a bright gray frame.
+Dark chrome stays charcoal instead of becoming a bright gray frame.
 Clear blue identifies interactions and progress; sidebar selection uses a
 translucent blue fill with readable text in both focused and unfocused states.
 Provider marks keep their official colors. Primary controls use white text in
@@ -66,6 +69,10 @@ font sizes. Current task details replace the list at narrow widths.
 The transfer header identifies its storage provider and keeps the ownership
 hint beside the path; the full handoff explanation is available on hover.
 Observed mappings show their remote when their recorded name repeats the drive.
+Provider marks recur beside mappings, recent transfers and the current file
+location. Their meaning follows the configured remote, including a download's
+source; local or unknown locations use the existing neutral line icons.
+Action buttons remain monochrome so provider identity and actions stay distinct.
 
 Account rows show the provider mark, name and provider, with Browse as the
 labelled primary action. Details groups capacity, shared hash algorithms and
@@ -197,7 +204,11 @@ The [motion study](../assets/motion.gif) is an optional presentation asset.
 The application stays static at idle. Service marks identify the provider or
 engine and remain separate from the product mark.
 
-The [account screenshot](../assets/screenshots/accounts-light.png) uses an empty
-synthetic profile with no account credentials.
+The [overview](../assets/screenshots/overview-dark.png),
+[Files](../assets/screenshots/files-dark.png),
+[accounts](../assets/screenshots/accounts-light.png) and
+[settings](../assets/screenshots/settings-light.png) previews render the native
+components with sample accounts, tasks and files. They contain no credentials
+or live measurements; real window inspection is a separate verification step.
 
 The [active queue preview](../assets/screenshots/queue-light.png) uses synthetic remote aliases and files.

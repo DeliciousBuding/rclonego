@@ -189,14 +189,7 @@ func (s *nativeUI) activityProvider(active *core.Job) string {
 		transfer := s.activity.Stats.Transferring[0]
 		paths = []string{transfer.DstFs, transfer.SrcFs}
 	}
-	for _, path := range paths {
-		for _, remote := range s.remotes {
-			if strings.HasPrefix(path, remote.Name+":") || strings.HasPrefix(path, remote.Name+"{") {
-				return remote.Type
-			}
-		}
-	}
-	return ""
+	return s.providerForPaths(paths...)
 }
 
 func (s *nativeUI) activityPhase(language ...string) string {
@@ -271,7 +264,7 @@ func (s *nativeUI) activeMountCard(c *ui.Context) ui.Element {
 		for _, mount := range s.mounts {
 			ui.Row(c).Padding(10, 0).Gap(10).BorderWidth(0, 0, 0.5, 0).
 				BorderColor(c.Theme().Border).Children(func() {
-				ui.Icon(c, iconMounts).FontSize(18).TextColor(c.Theme().TextMuted)
+				s.storageIcon(c, mount.Remote, iconMounts, 18)
 				ui.Text(c, mount.Drive).Width(28).FontWeight(500)
 				name := mount.Name
 				if name == mount.Drive && mount.Remote != "" {
@@ -305,7 +298,11 @@ func (s *nativeUI) recentJobCard(c *ui.Context) ui.Element {
 			}
 			ui.Row(c).Padding(10, 0).Gap(10).BorderWidth(0, 0, 0.5, 0).
 				BorderColor(c.Theme().Border).Children(func() {
-				ui.Icon(c, iconFile).FontSize(18).TextColor(c.Theme().TextMuted)
+				if kind := s.providerForPaths(job.Destination, job.Source); kind != "" {
+					remoteLogo(c, kind, 18)
+				} else {
+					ui.Icon(c, iconFile).FontSize(18).TextColor(c.Theme().TextMuted)
+				}
 				ui.Column(c).Grow(1).MinWidth(0).Gap(2).Children(func() {
 					ui.Text(c, job.Name).SingleLine()
 					ui.Text(c, text(c, operationLabel(job.Operation))).FontSize(11).TextColor(c.Theme().TextMuted)
