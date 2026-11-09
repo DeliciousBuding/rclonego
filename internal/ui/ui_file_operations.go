@@ -109,7 +109,8 @@ func (s *nativeUI) queueFileEntries(entries []core.DirectoryEntry, destination s
 
 func (s *nativeUI) showFileOperationTasks() {
 	s.page, s.fileOperationFocus = "queue", true
-	s.logJobID = ""
+	s.logJobID, s.jobSelected = "", -1
+	s.jobTable = ui.ListState{}
 }
 
 func (s *nativeUI) fileOperationFeedback(c *ui.Context) {
@@ -154,39 +155,10 @@ func (s *nativeUI) fileOperationTasks(c *ui.Context) {
 		})
 		ui.Button(c.Key("show-all-jobs"), text(c, "显示全部任务")).OnClick(func() {
 			s.fileOperationFocus = false
+			s.jobSelected, s.jobTable = -1, ui.ListState{}
 		})
 	})
-	ui.Row(c).Shrink(0).Gap(10).Padding(0, 6).Children(func() {
-		ui.Text(c, text(c, "名称")).Width(180).FontSize(11).TextColor(c.Theme().TextMuted)
-		ui.Text(c, text(c, "目标目录")).Grow(1).MinWidth(0).FontSize(11).TextColor(c.Theme().TextMuted)
-		ui.Text(c, text(c, "状态")).Width(72).FontSize(11).TextColor(c.Theme().TextMuted)
-		ui.Text(c, text(c, "进度")).Width(54).FontSize(11).TextColor(c.Theme().TextMuted)
-		ui.Spacer(c).Width(28)
-	})
-	contentScroll(c).Grow(1).Gap(0).Children(func() {
-		for _, item := range operation.items {
-			if item.jobID == "" {
-				continue
-			}
-			for _, job := range s.jobs {
-				if job.ID != item.jobID {
-					continue
-				}
-				ui.Row(c.Key(job.ID)).Height(32).Padding(0, 6).Gap(10).
-					BorderWidth(0, 0, 0.5, 0).BorderColor(c.Theme().Border).Children(func() {
-					ui.Text(c, job.Name).Width(180).FontSize(12).SingleLine().Tooltip(job.Name)
-					ui.Text(c, job.Destination).Grow(1).MinWidth(0).FontSize(11).TextColor(c.Theme().TextMuted).SingleLine().Tooltip(job.Destination)
-					ui.Text(c, text(c, statusLabel(job.Status))).Width(72).FontSize(11).TextColor(statusColor(c, job.Status)).SingleLine()
-					progress := "—"
-					if value := jobProgress(job); value >= 0 {
-						progress = fmt.Sprintf("%.0f%%", value*100)
-					}
-					ui.Text(c, progress).Width(54).FontSize(11)
-					iconButton(c.Key("file-task-"+job.ID), iconArrow, "查看任务详情").Height(26).Width(28).OnClick(func() { s.loadLog(job.ID) })
-				})
-			}
-		}
-	})
+	s.taskTable(c, fileOperationJobs(s.jobs, operation.items), true).Grow(1)
 }
 
 func uploadEntries(paths []string) []fileOperationItem {
@@ -234,4 +206,21 @@ func (s *nativeUI) fileOperationDetails(c *ui.Context) {
 			})
 		})
 	})
+}
+
+// Filtering preserves queue order and never mutates job data.
+func fileOperationJobs(jobs []core.Job, items []fileOperationItem) []*core.Job {
+	ids := make(map[string]struct{}, len(items))
+	for _, item := range items {
+		if item.jobID != "" {
+			ids[item.jobID] = struct{}{}
+		}
+	}
+	result := make([]*core.Job, 0, min(len(items), len(jobs)))
+	for i := range jobs {
+		if _, ok := ids[jobs[i].ID]; ok {
+			result = append(result, &jobs[i])
+		}
+	}
+	return result
 }

@@ -38,7 +38,7 @@ func (s *nativeUI) statusBar(c *ui.Context) {
 		}
 		ui.Spacer(c)
 		if failed > 0 {
-			ui.ButtonBase(c.Key("attention")).Label(text(c, "查看需要处理的任务")).Gap(5).OnClick(func() { s.page = "queue" }).Children(func() {
+			ui.ButtonBase(c.Key("attention")).Label(text(c, "查看需要处理的任务")).Gap(5).OnClick(func() { s.page, s.fileOperationFocus = "queue", false }).Children(func() {
 				ui.Icon(c, iconWarning).FontSize(12).TextColor(t.Warning)
 				ui.Text(c, fmt.Sprintf(text(c, "%d 项需要处理"), failed)).FontSize(10).TextColor(t.Warning)
 			})
@@ -47,7 +47,7 @@ func (s *nativeUI) statusBar(c *ui.Context) {
 		if s.paused {
 			label = text(c, "队列已暂停 · ") + label
 		}
-		ui.ButtonBase(c.Key("queue-status")).Label(text(c, "查看队列")).Tooltip(text(c, "打开任务队列")).OnClick(func() { s.page = "queue" }).Children(func() {
+		ui.ButtonBase(c.Key("queue-status")).Label(text(c, "查看队列")).Tooltip(text(c, "打开任务队列")).OnClick(func() { s.page, s.fileOperationFocus = "queue", false }).Children(func() {
 			ui.Text(c, label).FontSize(10).TextColor(t.TextMuted)
 		})
 	})
