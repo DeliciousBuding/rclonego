@@ -4,6 +4,19 @@ RcloneGo uses MyGo native components. Navigation, task information and controls
 share a restrained palette and spacing system; service marks retain their own
 colors and are separate from the product mark.
 
+## Product intent
+
+RcloneGo makes local and cloud transfers understandable, recoverable and
+verifiable. Browsing helps choose locations, inspect content and perform scoped
+file actions through the same queue. Saved workflows reuse these operations.
+
+A capability earns its place by resolving an observed task or removing repeated
+work. Prefer a useful default and an existing command surface before adding a
+preference or page. Keep essential actions visible; show occasional metadata
+and technical details on demand. Review duplicated controls, stale states and
+unused options when the affected flow changes. `docs/architecture.md` owns
+execution boundaries; this document owns presentation decisions.
+
 ## Hierarchy and material
 
 The sidebar and title bar carry the window material. The content canvas remains
@@ -53,8 +66,9 @@ title bars report no inset area, so no extra caption row is reserved.
 
 ## Page structure and density
 
-Each management page starts with a 22px title, one short description or count,
-and its primary action aligned at the trailing side. Repeated rows align names,
+Management pages start with a title, one useful description or count,
+and the primary action at the trailing side. Files uses a smaller heading to
+reserve room for entries. Repeated rows align names,
 secondary paths, status and actions. Workflow rows show Run and Edit; clone,
 export and deletion use a More menu. Mount rows show their remote-to-drive route,
 state and mount/unmount action; editing, cache and offline-copy actions use More.
@@ -62,9 +76,11 @@ Running mount configuration cannot be removed. Resource counters have labelled c
 and live bandwidth controls appear when a transfer can use them.
 
 Related preferences share a row when space permits and wrap at smaller widths.
-Advanced settings remain collapsed. Keep default text and control sizes; increase
-useful density through grouping and disclosure before reducing click targets or
-font sizes. Current task details replace the list at narrow widths.
+Advanced settings remain collapsed. Density comes from aligned rows, removal of
+repeated explanations and a compact action surface. Keep body text readable and
+icon targets about 28–30 DIPs; enlarge where interaction requires it. One default
+layout follows the available space, without a density preference. Current task
+details replace the list at narrow widths.
 
 The transfer header identifies its storage provider and keeps the ownership
 hint beside the path; the full handoff explanation is available on hover.
@@ -93,26 +109,21 @@ remain visible. Passive external observations do not imply ownership of their
 controls or final result. Global commands stay with navigation while the page
 heading carries its title and primary action, avoiding repeated headings.
 
-File browsing offers current-page search, name/size sorting and native list
-selection. Enter opens a selected directory, Backspace returns to its parent,
-and Ctrl/Cmd+C copies the selected path. Selection details and bottom actions
-remain visible at the minimum window size. Search never silently scans remote
-trees or other pages. A [current native browser](../assets/screenshots/files-dark.png)
-uses a synthetic account and sample documents.
+The Files workspace uses native multi-selection and context menus, with aligned
+name, size and modification columns. Enter/double-click opens, Backspace returns
+to the parent, Space previews, F2 renames and Ctrl/Cmd+C copies the selected path.
+Search/sort apply to the current page; they never silently scan remote trees.
 
-The Files workspace extends browsing into a full page. It uses MyGo breadcrumbs,
-native list multi-selection and context menus, with a fixed selection/action
-footer. Name, size and modification columns align across rows. Enter/double-click
-opens, Space previews and F2 renames. Preview and file-action dialogs use short
-140 ms transitions; button colors settle over 120 ms. MyGo respects reduced
-motion. Nothing continuously animates while idle.
-
-Files uses a compact heading, a single navigation row and 28-DIP file rows.
-The path editor replaces the breadcrumbs on demand. Selection actions and
-usable pagination share one footer. Latest-operation feedback occupies one row;
-failed item details open separately so the result does not displace the list.
-The queue can focus that operation's tasks with aligned destination, status and
-progress columns, using the same stored jobs and inspector.
+A compact heading, single navigation row and 28-DIP file rows reserve room for
+entries. The path editor replaces breadcrumbs on demand. Selection actions and
+usable pagination share one fixed footer. Latest-operation feedback occupies
+one row; failed-item details open separately and their count remains visible.
+The queue focuses those jobs through the shared native task table, with
+destination, status and progress columns and the existing inspector. Large task
+sets build visible rows only. Essential commands have labels, secondary icons
+have accessible names and tooltips. Preview/file-action dialogs use 140 ms
+transitions and button colors settle over 120 ms, respecting reduced motion;
+nothing continuously animates while idle.
 
 Mount configuration keeps Save outside its scrolling fields. Available Windows
 drive letters and a profile cache location reduce manual setup. Browse connects
@@ -139,15 +150,16 @@ and scope before the attempt list. A failed step includes the engine's cause,
 and recovery stays in the fixed action row. Successful copying does not imply
 separate content verification.
 
-These choices follow [Apple's layout guidance](https://developer.apple.com/design/human-interface-guidelines/layout),
-[Apple's material guidance](https://developer.apple.com/design/human-interface-guidelines/materials),
-[Fluent productivity guidance](https://learn.microsoft.com/en-us/windows/apps/get-started/line-of-business/design-for-lob),
-and [Mica layering](https://learn.microsoft.com/en-us/windows/apps/design/style/mica).
-Operation forms also follow [Rclone UI's path-first and collapsible-options pattern](https://rcloneui.com/docs/ui/operations)
-using the supported [MyGo components](https://mygo.egoist.dev/docs/ui).
+These choices follow [MyGo's list and table behavior](https://mygo.egoist.dev/docs/ui/table),
+[Microsoft's command placement and feedback](https://learn.microsoft.com/en-us/windows/apps/design/basics/commanding-basics)
+and [contextual commanding](https://learn.microsoft.com/en-us/windows/apps/develop/ui/controls/collection-commanding).
+[Godiff](https://github.com/egoist/godiff) and
+[Universal S3 UI](https://github.com/pteich/us3ui) provide native implementation
+references for keyed lists, task-focused commands and asynchronous loading.
+Examples are references for interactions; their feature sets do not define scope.
 
 The default scale uses a 13px body, 11–12px supporting text, 15px section headings
-and 22px page headings. Action icons use a 24-unit grid with 1.65-unit rounded
+and 18–22px page headings. Action icons use a 24-unit grid with 1.65-unit rounded
 strokes and appear at 15–18px. Important state uses text and icons or dots together,
 so color alone does not communicate outcome.
 
@@ -176,6 +188,24 @@ until needed. The engine status shortcut opens Settings with its engine section
 expanded. Resources keeps process observations and live transfer controls.
 The application menu and Ctrl+, / Cmd+, open the same Settings page.
 Ctrl+Q / Cmd+Q and the tray Quit action stop the application explicitly.
+
+## Performance and ownership
+
+Views use existing application snapshots. Keep filesystem, process and network
+work outside view construction. Reads run asynchronously, are cancellable and discard results
+from older navigation generations. Slow account or directory queries remain
+on demand. Lists and task tables use MyGo virtualization with stable item IDs.
+Transient operation feedback retains one batch; stored jobs own execution state.
+Task filtering references current jobs instead of copying their full structures.
+
+Hidden windows stop UI polling; idle windows refresh less often. History, logs,
+preview bytes and resource samples retain the existing bounded core contracts.
+Measure a suspected cost before adding a cache or background service. Compare
+allocations and visible-row work in reproducible fixtures, then inspect actual
+startup, idle CPU/memory and interaction on the target platform. Framework
+[performance measurements](https://mygo.egoist.dev/docs/ui/performance) are not
+measurements of this application. MyGo's [view lifetime rules](https://mygo.egoist.dev/docs/ui/views)
+apply to background callbacks and persistent widget state.
 
 ## Layout boundaries
 

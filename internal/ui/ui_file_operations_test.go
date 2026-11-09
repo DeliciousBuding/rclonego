@@ -195,6 +195,7 @@ func TestUnavailablePreviewOffersDownloadWithoutCreatingATask(t *testing.T) {
 	model.filesUI.previewError = model.filesUI.previewIssue.Error()
 	tester := ui.NewTester(model.view, 900, 560)
 	tester.SetLocale("en")
+	assertNoChineseInterfaceText(t, "file task table", tester.Texts())
 	if !tester.HasText("This file cannot be previewed in the app") {
 		t.Fatal("unsupported preview has no explanation")
 	}
@@ -204,5 +205,48 @@ func TestUnavailablePreviewOffersDownloadWithoutCreatingATask(t *testing.T) {
 	tester.Key(0, ui.KeyEscape)
 	if len(model.app.Snapshot().Jobs) != 0 {
 		t.Fatal("preview or dismissal submitted a transfer")
+	}
+}
+
+func TestFileTaskTableUsesCurrentQueueDataAndVirtualizesRows(t *testing.T) {
+	model := fileModel(t)
+	operation := &fileOperationState{}
+	for i := range 500 {
+		id := fmt.Sprintf("file-%03d", i)
+		model.jobs = append(model.jobs, core.Job{
+			ID: id, Name: id, Destination: "sample:archive/" + id,
+			Status: "completed", Bytes: 12, TotalBytes: 12,
+		})
+		operation.items = append(operation.items, fileOperationItem{jobID: id})
+	}
+	model.jobs = append(model.jobs, core.Job{ID: "other", Name: "Unrelated task"})
+	model.filesUI.operation = operation
+	model.showFileOperationTasks()
+	selected := fileOperationJobs(model.jobs, operation.items)
+	if len(selected) != 500 || selected[0].ID != "file-000" || selected[499].ID != "file-499" {
+		t.Fatal("file task filter lost queue data or included an unrelated task")
+	}
+	tester := ui.NewTester(model.view, 900, 560)
+	tester.SetLocale("en")
+	if !tester.HasText("file-000") || tester.HasText("file-499") || tester.HasText("Unrelated task") {
+		t.Fatal("file tasks are not limited to visible table rows")
+	}
+	if !tester.HasText("sample:archive/file-000") || !tester.HasText("100%") {
+		t.Fatal("file task table lost destination or progress")
+	}
+}
+
+func BenchmarkFileOperationJobs(b *testing.B) {
+	jobs := make([]core.Job, 500)
+	items := make([]fileOperationItem, 100)
+	for i := range jobs {
+		jobs[i].ID = fmt.Sprintf("job-%d", i)
+	}
+	for i := range items {
+		items[i].jobID = jobs[i*5].ID
+	}
+	b.ReportAllocs()
+	for b.Loop() {
+		_ = fileOperationJobs(jobs, items)
 	}
 }

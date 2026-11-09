@@ -46,11 +46,11 @@ func (s *nativeUI) queuePage(c *ui.Context) {
 		layout.Children(func() {
 			if !narrow {
 				ui.Column(c).Grow(1).MinWidth(0).MinHeight(0).Gap(8).Children(func() {
+					if s.fileOperationFocus && s.filesUI.operation != nil {
+						s.fileOperationTasks(c)
+						return
+					}
 					contentScroll(c).Grow(1).Gap(16).Children(func() {
-						if s.fileOperationFocus && s.filesUI.operation != nil {
-							s.fileOperationTasks(c)
-							return
-						}
 						if len(s.jobs) == 0 && len(s.external) == 0 {
 							emptyState(c, iconQueue, "队列里还没有任务", "新建任务，复制或校验本机与云端文件")
 						}
@@ -205,12 +205,30 @@ func (s *nativeUI) activeJobCard(c *ui.Context) {
 }
 
 func (s *nativeUI) jobsTable(c *ui.Context) ui.Element {
-	jobs := historyJobs(s.jobs)
+	rows := make([]*core.Job, 0, len(s.jobs))
+	for i := range s.jobs {
+		if status := s.jobs[i].Status; status != "pending" && status != "running" && status != "handoff" {
+			rows = append(rows, &s.jobs[i])
+		}
+	}
+	return s.taskTable(c, rows, false)
+}
+
+func (s *nativeUI) taskTable(c *ui.Context, jobs []*core.Job, fileOperation bool) ui.Element {
 	columns := []ui.TableColumn{
-		{Title: "任务", MinWidth: 140},
-		{Title: "状态", Width: 82},
-		{Title: "进度", Width: 96},
-		{Title: "操作", Width: 60},
+		{ID: "task", Title: text(c, "任务"), MinWidth: 140},
+		{ID: "status", Title: text(c, "状态"), Width: 82},
+		{ID: "progress", Title: text(c, "进度"), Width: 96},
+		{ID: "action", Title: text(c, "操作"), Width: 60},
+	}
+	if fileOperation {
+		columns = []ui.TableColumn{
+			{ID: "task", Title: text(c, "任务"), Width: 160},
+			{ID: "destination", Title: text(c, "目标目录"), MinWidth: 100},
+			{ID: "status", Title: text(c, "状态"), Width: 82},
+			{ID: "progress", Title: text(c, "进度"), Width: 88},
+			{ID: "action", Width: 48},
+		}
 	}
 	s.jobTable.Selected = &s.jobSelected
 	s.jobTable.Key = func(row int) any { return jobs[row].ID }
@@ -220,8 +238,19 @@ func (s *nativeUI) jobsTable(c *ui.Context) ui.Element {
 			return
 		}
 		job := jobs[row]
+		if fileOperation && column == 1 {
+			ui.Text(c, job.Destination).FontSize(11).TextColor(c.Theme().TextMuted).SingleLine().Tooltip(job.Destination)
+			return
+		}
+		if fileOperation && column > 1 {
+			column--
+		}
 		switch column {
 		case 0:
+			if fileOperation {
+				ui.Text(c, job.Name).FontSize(12).SingleLine().Tooltip(job.Name)
+				return
+			}
 			ui.Column(c).Gap(3).Children(func() {
 				ui.Text(c, job.Name).FontSize(13).FontWeight(500).SingleLine()
 				ui.Text(c, text(c, operationLabel(job.Operation))).FontSize(11).TextColor(c.Theme().TextMuted)
@@ -229,14 +258,17 @@ func (s *nativeUI) jobsTable(c *ui.Context) ui.Element {
 		case 1:
 			ui.Text(c, text(c, statusLabel(job.Status))).FontSize(12).TextColor(statusColor(c, job.Status)).SingleLine()
 		case 2:
-			value := jobProgress(job)
+			value := jobProgress(*job)
 			if value >= 0 {
 				ui.Text(c, fmt.Sprintf("%.0f%%", value*100)).FontSize(12)
 			} else {
 				ui.Text(c, "—").TextColor(c.Theme().TextMuted)
 			}
 		case 3:
-			iconButton(c.Key("log-"+job.ID), iconArrow, "查看任务详情").OnClick(func() { s.loadLog(job.ID) })
+			button := iconButton(c.Key("log-"+job.ID), iconArrow, "查看任务详情").OnClick(func() { s.loadLog(job.ID) })
+			if fileOperation {
+				button.Height(24).Width(28)
+			}
 		}
 	}).Grow(1).Label(text(c, "任务记录"))
 	if table.Changed() && s.jobSelected >= 0 && s.jobSelected < len(jobs) {

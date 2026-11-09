@@ -121,3 +121,10 @@ success/warning/error colors.
 Scroll content reserves a gutter for overlay scrollbars. Long row labels
 truncate with full-value tooltips. At narrow widths, task details occupy the
 content pane so the queue and inspector do not compete for horizontal space.
+
+The latest file operation is a transient UI result, holding item IDs and enqueue
+failures only. Batch submission calls the existing application `AddJob` method
+with per-item idempotency keys. Retrying items not added cannot resubmit recorded
+successes. The task table reads current queue jobs and uses the existing inspector;
+there is no second execution state or batch scheduler. Restart clears the result,
+while jobs and attempts remain in SQLite.
