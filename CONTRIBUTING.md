@@ -34,6 +34,11 @@ logs and release artifacts must contain no credentials or private environment
 information. Security reports belong in the private
 [advisory form](https://github.com/DeliciousBuding/rclonego/security/advisories/new).
 
+Keep personal plans and runtime evidence in the ignored `.local/` directory,
+outside public docs and PR descriptions. Use a separate sample profile for
+public screenshots; inspect image pixels and metadata before committing.
+The source check covers text and filenames, not images or Git history.
+
 Keep a PR focused on one result. Describe the before/after behavior and relevant
 verification. Note AI or automation assistance when used. Contributions are
 licensed under Apache-2.0; preserve imported assets' original notices and
@@ -62,6 +67,10 @@ push、PR 和版本 tag 都不触发 Actions。维护者针对已有 tag 手动�
 测试使用临时目录与隔离配置，不操作私人账户、活动传输和已有挂载。
 源码、示例、截图、日志和发行产物不得包含凭据或私人环境信息。安全问题通过
 [私密报告入口](https://github.com/DeliciousBuding/rclonego/security/advisories/new)反馈。
+
+个人计划和现役验收记录放在已忽略的 `.local/`，不写入公开文档或 PR 描述。
+公开截图使用独立合成配置，提交前检查画面和元数据。
+源码检查覆盖文本与文件名，不代替图片审阅或 Git 历史检查。
 
 每个 PR 围绕一个结果，写明修改前后行为和相关验证。使用 AI 或自动化时说明参与部分。
 贡献采用 Apache-2.0，保留引入资产的许可与商标说明。

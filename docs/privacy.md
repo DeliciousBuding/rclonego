@@ -26,4 +26,10 @@ Cancelled sessions preserve the original configuration.
 
 Repository examples and verification fixtures use synthetic data. Build output,
 runtime databases, configurations, private notes and credentials are ignored.
-Source privacy checks complement this ignore list.
+Private plans and real transfer evidence stay in the ignored `.local/` directory;
+public documentation and PR descriptions explain product behavior with sample
+data. Never copy an installed profile into an example or build directory.
+Source privacy checks complement the ignore list by checking text and filenames.
+They do not inspect image pixels, metadata, previous commits or public comments.
+Screenshots need visual review; removing a file from the current tree does not
+remove earlier public versions.
