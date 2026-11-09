@@ -206,8 +206,9 @@ engine and remain separate from the product mark.
 
 The [overview](../assets/screenshots/overview-dark.png),
 [Files](../assets/screenshots/files-dark.png),
-[accounts](../assets/screenshots/accounts-light.png) and
-[settings](../assets/screenshots/settings-light.png) previews render the native
+[accounts](../assets/screenshots/accounts-light.png),
+[settings](../assets/screenshots/settings-light.png) and
+[resources](../assets/screenshots/resources-light.png) previews render the native
 components with sample accounts, tasks and files. They contain no credentials
 or live measurements; real window inspection is a separate verification step.
 
