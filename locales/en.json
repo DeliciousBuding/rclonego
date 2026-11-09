@@ -660,6 +660,7 @@
   "legacyRunning": "Previous client is running",
   "managedHere": "Managed by this client",
   "externalObservation": "Observed externally · controls and final result belong to the original client",
+  "externalObservationLabel": "External observer",
   "workflowTotalProgress": "Overall progress",
   "browserSearchCurrentPage": "Search this page",
   "browserSearchCurrentPagePlaceholder": "Search this page…",

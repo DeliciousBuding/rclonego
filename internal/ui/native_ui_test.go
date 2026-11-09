@@ -324,3 +324,65 @@ func TestWorkflowProgressUsesStableAggregate(t *testing.T) {
 		t.Fatalf("aggregate exceeded total: %d", done)
 	}
 }
+
+func TestActivityHeaderFitsAndIdentifiesTheTransferProvider(t *testing.T) {
+	for _, width := range []int{900, 1280} {
+		for _, language := range []string{"en", "zh-Hans"} {
+			model := New(testApp(t), "")
+			model.appearance = "dark"
+			model.remotes = []core.RemoteInfo{{Name: "drive", Type: "drive"}, {Name: "dropbox", Type: "dropbox"}}
+			model.jobs = []core.Job{{Name: "Archive transfer", Status: "handoff",
+				Source: "/synthetic/source", Destination: "drive:archive"}}
+			model.activity = core.ActivityStatus{Available: true, Stats: &core.RCStats{Bytes: 50, TotalBytes: 100,
+				Speed: 1024, Transferring: []core.RCTransfer{{Name: "sample.txt"}}}}
+			tester := ui.NewTester(model.view, width, 560)
+			tester.SetLocale(language)
+			if language == "en" {
+				assertNoChineseInterfaceText(t, "activity header", tester.Texts())
+			}
+			if _, found := tester.AccessByRole(ui.RoleImage, "Google Drive"); !found {
+				t.Fatal("the transfer destination's official logo is missing")
+			}
+			if rect, found := tester.Find("Archive transfer"); !found || rect.X+rect.W > float32(width-40) {
+				t.Fatalf("%d/%s: activity title exceeds its column: %+v", width, language, rect)
+			}
+			model.jobs[0].Source, model.jobs[0].Destination = "dropbox:archive", "/synthetic/local"
+			tester.Frame()
+			if _, found := tester.AccessByRole(ui.RoleImage, "Dropbox"); !found {
+				t.Fatal("a download kept showing the previous destination provider")
+			}
+			model.jobs = nil
+			model.activity.Stats.Transferring[0].DstFs = "drive{synthetic}:archive"
+			tester.Frame()
+			if _, found := tester.AccessByRole(ui.RoleImage, "Google Drive"); !found {
+				t.Fatal("external transfer provider identity is missing")
+			}
+			if language == "en" {
+				assertNoChineseInterfaceText(t, "external activity header", tester.Texts())
+			}
+		}
+	}
+}
+
+func TestNavigationSelectionKeepsItsTintWhenFocusMoves(t *testing.T) {
+	for _, appearance := range []string{"light", "dark"} {
+		model := New(testApp(t), "")
+		model.appearance = appearance
+		tester := ui.NewTester(model.view, 900, 560)
+		tester.SetLocale("zh-Hans")
+		tester.SetWindowActive(true)
+		if err := tester.Click("任务队列"); err != nil {
+			t.Fatal(err)
+		}
+		bounds, found := tester.Find("任务队列")
+		if !found {
+			t.Fatal("navigation selection is missing")
+		}
+		x, y := int(bounds.X+4), int(bounds.Y+bounds.H/2)
+		focused := tester.Image().RGBAAt(x, y)
+		tester.Key(0, ui.KeyTab)
+		if unfocused := tester.Image().RGBAAt(x, y); focused != unfocused {
+			t.Fatalf("%s selection changed fill with focus: %v / %v", appearance, focused, unfocused)
+		}
+	}
+}

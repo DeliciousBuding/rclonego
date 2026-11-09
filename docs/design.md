@@ -18,12 +18,13 @@ system Glass material. Toolbar buttons sit directly on that material; transient 
 use MyGo Glass over the content. A fine canvas border separates content without
 adding another full-window blur.
 
-Light appearance uses a soft gray-white canvas and white control surfaces. Dark
-appearance uses neutral graphite with slightly lighter control surfaces. Text,
-borders, hover states and the thin material tint stay neutral; a muted blue
-identifies primary actions, focus and selection. Status colors are subdued and
-provider marks keep their official colors. Primary controls use white text in
-light appearance and dark text on the pale accent in dark appearance.
+Light appearance uses a white canvas and white control surfaces. Dark
+appearance uses a near-black neutral canvas with charcoal control surfaces.
+A dark tint keeps the native material from becoming a bright gray frame.
+Clear blue identifies interactions and progress; sidebar selection uses a
+translucent blue fill with readable text in both focused and unfocused states.
+Provider marks keep their official colors. Primary controls use white text in
+light appearance and dark text on the brighter blue in dark appearance.
 The base is MyGo's matching light/dark theme, preserving its native scrollbar
 and inactive-control behavior. Text-heavy content stays opaque; transparency
 is concentrated in navigation and window chrome.
@@ -36,6 +37,10 @@ caption buttons or cover the system title bar. Search and refresh share the top
 of the sidebar; the content canvas starts close to the frame without a second,
 empty title row. Linux leaves button placement and decoration to GTK and the
 desktop instead of imposing the Windows arrangement.
+
+The initial window is 1280 × 760 DIPs with a 208-DIP sidebar. This gives
+transfer metrics and paired lists room without reducing text size. Smaller
+windows remain supported down to 900 × 560 DIPs.
 
 macOS uses a native inset title bar. One full-width draggable toolbar reserves
 the control area reported by MyGo before placing the product mark and commands.
@@ -57,6 +62,10 @@ Related preferences share a row when space permits and wrap at smaller widths.
 Advanced settings remain collapsed. Keep default text and control sizes; increase
 useful density through grouping and disclosure before reducing click targets or
 font sizes. Current task details replace the list at narrow widths.
+
+The transfer header identifies its storage provider and keeps the ownership
+hint beside the path; the full handoff explanation is available on hover.
+Observed mappings show their remote when their recorded name repeats the drive.
 
 Account rows show the provider mark, name and provider, with Browse as the
 labelled primary action. Details groups capacity, shared hash algorithms and

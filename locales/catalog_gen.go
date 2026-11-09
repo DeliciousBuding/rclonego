@@ -6389,6 +6389,16 @@ func (msgs Messages) ExternalObservation() string {
 	return Catalog.Format(msgs.locale, "externalObservation", nil)
 }
 
+// ExternalObservationLabel says "External observer"
+// in the language the app shows.
+func ExternalObservationLabel() string { return In(i18n.Locale()).ExternalObservationLabel() }
+
+// ExternalObservationLabel says "External observer"
+// in the language of msgs.
+func (msgs Messages) ExternalObservationLabel() string {
+	return Catalog.Format(msgs.locale, "externalObservationLabel", nil)
+}
+
 // WorkflowTotalProgress says "Overall progress"
 // in the language the app shows.
 func WorkflowTotalProgress() string { return In(i18n.Locale()).WorkflowTotalProgress() }
