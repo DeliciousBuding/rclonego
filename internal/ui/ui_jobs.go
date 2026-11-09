@@ -47,6 +47,10 @@ func (s *nativeUI) queuePage(c *ui.Context) {
 			if !narrow {
 				ui.Column(c).Grow(1).MinWidth(0).MinHeight(0).Gap(8).Children(func() {
 					contentScroll(c).Grow(1).Gap(16).Children(func() {
+						if s.fileOperationFocus && s.filesUI.operation != nil {
+							s.fileOperationTasks(c)
+							return
+						}
 						if len(s.jobs) == 0 && len(s.external) == 0 {
 							emptyState(c, iconQueue, "队列里还没有任务", "新建任务，复制或校验本机与云端文件")
 						}
@@ -266,12 +270,19 @@ func (s *nativeUI) jobInspector(c *ui.Context) {
 			iconButton(c.Key("close-log"), iconClose, "关闭任务详情").OnClick(func() { s.logJobID, s.logText = "", "" })
 		})
 		contentScroll(c).Grow(1).Gap(14).Children(func() {
+			if s.fileOperationFocus {
+				ui.Button(c.Key("return-to-file-position"), text(c, "返回文件")).OnClick(func() {
+					s.page, s.fileOperationFocus = "files", false
+				})
+			}
 			ui.Text(c, selected.Name).FontSize(15).FontWeight(600).MaxLines(2).Tooltip(selected.Name)
 			statusDot(c, statusLabel(selected.Status), statusColor(c, selected.Status))
 			if selected.Status == "completed" {
 				summary := "复制已完成；未执行独立内容校验。"
 				if selected.Operation == "sync" {
 					summary = "同步已完成；未执行独立内容校验。"
+				} else if selected.Operation == "mkdir" || selected.Operation == "moveto" || selected.Operation == "deletefile" || selected.Operation == "rmdir" {
+					summary = "文件操作已完成，返回目录查看结果。"
 				} else if selected.Operation == "check" {
 					mode := "backend_check_completed: size and available hashes; hash availability not attested"
 					if selected.VerificationMode == "content" {

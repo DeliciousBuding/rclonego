@@ -49,6 +49,8 @@ Native component previews use sample accounts and transfers:
 - **Manage files.** Use the native [Files workspace](docs/files.md) for breadcrumbs,
   multi-selection, text/image previews, upload/download, copy, rename and confirmed
   single-file or empty-folder deletion. Observe existing Windows rclone drives.
+  Batch feedback identifies queued and failed items, retries only items not added,
+  and links to their tasks in the queue.
 - **Understand storage.** Read provider quota, hash algorithms and backend
   capabilities. Browse files with sizes and request cancellable directory
   statistics. See other rclone processes separately from this client's usage.

@@ -4,6 +4,9 @@
 
 ### English
 
+- Make Files more compact with on-demand path editing and one action footer.
+  Show partial batch results, retry only items not added, link to their queue
+  tasks and explain reading failures with applicable next actions.
 - Unify Windows caption, sidebar and frame backgrounds through light/dark
   changes while retaining native window controls. Use provider marks beside
   mappings, recent transfers and file locations; refresh the product previews.
@@ -53,6 +56,8 @@
 
 ### 简体中文
 
+- 文件页合并路径展示与底部操作，提高列表密度；批量操作交代部分成功，只重试
+  未加入项，并链接到对应队列任务。读取失败提供简短说明与适用的下一步。
 - Windows 标题栏、侧栏与外框使用一致的明暗背景，保留系统窗口按钮；映射、
   最近任务和文件位置使用对应服务标识，更新产品示例预览。
 - 新增原生文件工作页，支持目录导航、多选、右键菜单、文本/图片预览，以及队列中的

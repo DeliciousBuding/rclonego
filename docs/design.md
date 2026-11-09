@@ -107,6 +107,13 @@ opens, Space previews and F2 renames. Preview and file-action dialogs use short
 140 ms transitions; button colors settle over 120 ms. MyGo respects reduced
 motion. Nothing continuously animates while idle.
 
+Files uses a compact heading, a single navigation row and 28-DIP file rows.
+The path editor replaces the breadcrumbs on demand. Selection actions and
+usable pagination share one footer. Latest-operation feedback occupies one row;
+failed item details open separately so the result does not displace the list.
+The queue can focus that operation's tasks with aligned destination, status and
+progress columns, using the same stored jobs and inspector.
+
 Mount configuration keeps Save outside its scrolling fields. Available Windows
 drive letters and a profile cache location reduce manual setup. Browse connects
 mapping rows to Files; existing external drives expose their ownership clearly.

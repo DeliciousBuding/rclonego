@@ -7,7 +7,9 @@ available in task and mount forms.
 
 ## Navigation and selection
 
-Use the path field, breadcrumbs, Back/Forward, or the location menu. Double-click
+Use breadcrumbs, Back/Forward, or the location menu. Edit the path with its
+edit button or Ctrl/Cmd+L, then press Enter. Deep paths keep the nearest three
+levels visible; the ancestor menu provides earlier levels. Double-click
 or Enter opens a folder; Backspace goes to its parent. Lists keep folders first
 and show names, known sizes and modification times returned by the backend.
 Search and sorting apply to the current page. They do not recursively search
@@ -23,11 +25,21 @@ Text preview reads at most the first 256 KiB and requires UTF-8 text. PNG, JPEG,
 GIF and WebP previews are limited to 8 MiB and 16 megapixels. Images show the
 first frame. Unsupported files can be downloaded and opened in another app.
 Preview fetches only on request and cancels when dismissed or replaced.
+Reading failures show a short explanation and applicable actions such as retry,
+account settings or download. Original error details remain available on demand.
 
 **Upload files** opens the platform file picker. Files and folders dropped from
 the system file manager are also accepted. **Download** saves selected entries
 to a chosen local directory. **Copy to** selects a local or cloud destination.
 Folders retain their own names at the destination.
+
+The latest file operation shows how many items entered the queue. A failed item
+does not stop later items from being submitted; inspect the failed items and
+retry only those not added. Already queued items retain their task IDs and are
+not submitted again. **View these tasks** opens their statuses and details in
+the existing queue; **Return to Files** preserves the folder, search and page.
+This temporary result is replaced by the next file operation or cleared on
+restart. Tasks and attempts remain in durable history.
 
 All transfers enter the same durable task queue, with its progress, cancellation,
 retry and attempt history. Enqueuing is separate from completion. Copy retains

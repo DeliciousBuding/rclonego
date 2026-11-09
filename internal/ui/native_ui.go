@@ -133,6 +133,7 @@ type nativeUI struct {
 	automations         []core.Automation
 	browserUI           browserUIState
 	filesUI             fileWorkspaceState
+	fileOperationFocus  bool
 	health              core.ServiceHealth
 	cacheUI             cacheUIState
 	storageUI           map[string]*storageUIState
@@ -545,6 +546,9 @@ func (s *nativeUI) loadLog(id string) {
 	s.showJobDetails = false
 	s.logText = locales.Loading()
 	s.invalidate()
+	if s.win == nil {
+		return
+	}
 	go func() {
 		text, err := s.app.JobLog(id, 128*1024)
 		s.win.Update(func() {
