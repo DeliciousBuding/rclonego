@@ -21,7 +21,7 @@ RcloneGo 是管理传输、挂载与校验的原生桌面客户端，由
 [v0.1.0-alpha.2](https://github.com/DeliciousBuding/rclonego/releases/tag/v0.1.0-alpha.2)。
 alpha.3 新增能力需要从源码构建，或使用后续公开预览版；目前尚无稳定版。
 
-<p align="center"><img src="assets/screenshots/resources-light.png" width="900" alt="RcloneGo 原生资源监控"></p>
+<p align="center"><img src="assets/screenshots/files-dark.png" width="900" alt="RcloneGo 原生文件工作页"></p>
 
 ## 主要能力
 
