@@ -18,12 +18,15 @@ system Glass material. Toolbar buttons sit directly on that material; transient 
 use MyGo Glass over the content. A fine canvas border separates content without
 adding another full-window blur.
 
-Dark appearance uses a lighter cool-gray canvas, pale blue accents and a faint
-blue-white tint over the native material. Selection uses the same muted accent
-instead of a separate saturated blue. Primary controls use dark text on the pale
-accent for contrast. The base is MyGo's matching light/dark theme, preserving its
-native scrollbar, selection and inactive-control behavior. Text-heavy content
-stays opaque; transparency is concentrated in navigation and window chrome.
+Light appearance uses a soft gray-white canvas and white control surfaces. Dark
+appearance uses neutral graphite with slightly lighter control surfaces. Text,
+borders, hover states and the thin material tint stay neutral; a muted blue
+identifies primary actions, focus and selection. Status colors are subdued and
+provider marks keep their official colors. Primary controls use white text in
+light appearance and dark text on the pale accent in dark appearance.
+The base is MyGo's matching light/dark theme, preserving its native scrollbar
+and inactive-control behavior. Text-heavy content stays opaque; transparency
+is concentrated in navigation and window chrome.
 
 ## Window frame and navigation
 

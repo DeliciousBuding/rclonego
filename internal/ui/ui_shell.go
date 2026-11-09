@@ -16,43 +16,43 @@ func modernTheme(dark bool, prefs ui.Preferences) *ui.Theme {
 	if dark {
 		t = ui.DarkTheme()
 	}
-	t.Background = ui.Hex("#f6f9fb")
-	t.Surface = ui.RGBA(255, 255, 255, 0.88)
+	t.Background = ui.Hex("#f7f7f8")
+	t.Surface = ui.Hex("#ffffff")
 	t.SurfaceHover = ui.RGBA(0, 0, 0, 0.04)
-	t.SurfacePressed = ui.RGBA(73, 148, 177, 0.12)
+	t.SurfacePressed = ui.RGBA(0, 0, 0, 0.07)
 	t.Border = ui.RGBA(60, 60, 67, 0.11)
-	t.Text = ui.Hex("#26373d")
+	t.Text = ui.Hex("#262629")
 	t.TextMuted = ui.Hex("#6e6e73")
-	t.Accent = ui.Hex("#2b7b8e")
-	t.AccentHover = ui.Hex("#256c7e")
-	t.AccentPressed = ui.Hex("#1d6173")
+	t.Accent = ui.Hex("#4364b3")
+	t.AccentHover = ui.Hex("#38569f")
+	t.AccentPressed = ui.Hex("#2e498a")
 	t.AccentText = ui.Hex("#ffffff")
 	t.Danger = ui.Hex("#c9342c")
-	t.Warning = ui.Hex("#a66b08")
-	t.Success = ui.Hex("#248a3d")
-	t.Selection = t.Accent.Alpha(0.22)
+	t.Warning = ui.Hex("#90610c")
+	t.Success = ui.Hex("#28734c")
+	t.Selection = t.Accent.Alpha(0.14)
 	t.Focus = t.Accent.Alpha(0.45)
 	t.Radius = 7
 	t.Spacing = 4
 	t.FontSize = 13
 	t.Font = ""
 	if dark {
-		t.Background = ui.Hex("#2d353c")
-		t.Surface = ui.Hex("#3a434b")
+		t.Background = ui.Hex("#2b2b2e")
+		t.Surface = ui.Hex("#353538")
 		t.SurfaceHover = ui.RGBA(255, 255, 255, 0.06)
-		t.Text = ui.Hex("#edf3f6")
-		t.TextMuted = ui.Hex("#b6c3cb")
-		t.Border = ui.RGBA(220, 235, 244, 0.13)
-		t.Accent = ui.Hex("#85bed0")
-		t.AccentHover = ui.Hex("#9bcbd9")
-		t.AccentPressed = ui.Hex("#70adbf")
-		t.AccentText = ui.Hex("#18303b")
-		t.SurfacePressed = t.Accent.Alpha(0.14)
-		t.Selection = t.Accent.Alpha(0.24)
+		t.Text = ui.Hex("#f1f1f3")
+		t.TextMuted = ui.Hex("#adaeb5")
+		t.Border = ui.RGBA(255, 255, 255, 0.10)
+		t.Accent = ui.Hex("#9eb8f0")
+		t.AccentHover = ui.Hex("#b3c8f5")
+		t.AccentPressed = ui.Hex("#8eaae5")
+		t.AccentText = ui.Hex("#202430")
+		t.SurfacePressed = ui.RGBA(255, 255, 255, 0.10)
+		t.Selection = t.Accent.Alpha(0.18)
 		t.Focus = t.Accent.Alpha(0.55)
-		t.Danger = ui.Hex("#ff6961")
-		t.Warning = ui.Hex("#ffd60a")
-		t.Success = ui.Hex("#74cca4")
+		t.Danger = ui.Hex("#eb968e")
+		t.Warning = ui.Hex("#dfb96b")
+		t.Success = ui.Hex("#8fc3a5")
 	}
 	if prefs.HighContrast {
 		t.TextMuted = t.TextMuted.Mix(t.Text, 0.4)
@@ -76,13 +76,13 @@ func (s *nativeUI) view(c *ui.Context) {
 	c.Root().Background(ui.Transparent)
 	ui.Themed(c, t).Fill().Background(ui.Transparent).Children(func() {
 		vibrant := c.Vibrancy() && !c.Preferences().ReduceTransparency && !c.Preferences().HighContrast
-		chrome, tint := ui.Hex("#eaf3f8"), ui.Hex("#f2f7fa").Alpha(0.14)
+		chrome, tint := ui.Hex("#efeff1"), ui.Hex("#efeff1").Alpha(0.32)
 		if t.Dark {
-			chrome, tint = ui.Hex("#354149"), ui.Hex("#c4dce8").Alpha(0.16)
+			chrome, tint = ui.Hex("#38383b"), ui.Hex("#707073").Alpha(0.32)
 		}
 		if vibrant && c.WindowActive() {
-			// Let the native material do the blur. Keep one light tint across
-			// navigation, title bar and the exposed canvas corners.
+			// Let the native material do the blur. One neutral tint tempers
+			// wallpaper color across navigation and the canvas corners.
 			chrome = tint
 		}
 		// Windows replaces inactive Acrylic with gray. An opaque themed
