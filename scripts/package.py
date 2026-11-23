@@ -64,7 +64,7 @@ inventory = {"bomFormat": "CycloneDX", "specVersion": "1.5", "version": 1,
              "metadata": {"component": {"type": "application", "name": "RcloneGo", "version": version}},
              "components": modules}
 module_dir=json.loads(subprocess.check_output(["go","mod","download","-json","github.com/egoist/mygo"],cwd=root))["Dir"]
-native=json.loads((Path(module_dir)/"plugins/sqlite/mygo-plugin.json").read_text())["libraries"][0]
+native=json.loads((Path(module_dir)/"plugins/sqlite/internal/sqlitecore/mygo-plugin.json").read_text())["libraries"][0]
 library=native["files"][f"{operating_system}-{architecture}"]
 modules.append({"type":"library","name":"MyGo SQLite runtime","version":"3.53.4",
                 "hashes":[{"alg":"SHA-256","content":library["sha256"]}],

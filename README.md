@@ -144,7 +144,7 @@ Renamed standalone Windows executables use manual updates.
 
 ## Develop and contribute
 
-Requires Go 1.27.3+ and Python 3.12+. Native UI needs no JavaScript toolchain.
+Requires Go 1.27.4+ and Python 3.12+. Native UI needs no JavaScript toolchain.
 
 ```sh
 go run ./cmd/rclonego
@@ -156,7 +156,9 @@ python scripts/build.py --platform windows/amd64
 Use the affected packages in place of `internal/ui` for other changes.
 `scripts/test.py` downloads a verified temporary integration engine. Add
 `--installer` to the Windows build to create an installer. `-data`, `-rclone`
-and `-config` select explicit private state, engine and config paths.
+and `-config` select explicit private state, engine and config paths. The MyGo
+build CLI is pinned by the `tool` directive in `go.mod`; run it with
+`go tool mygo`.
 The default app configuration starts empty and does not take over existing uploads.
 Routine changes use focused local checks. Pushes, pull requests and tags do not
 start Actions; a maintainer explicitly dispatches the Release workflow for an

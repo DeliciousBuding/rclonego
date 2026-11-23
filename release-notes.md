@@ -2,6 +2,7 @@
 
 ### English
 
+- Use MyGo 0.10 with its native SQLite module and the current Go toolchain.
 - Compact file browsing, clear partial batch results and retry without duplicate
   submissions. Open the corresponding queue tasks and keep reading error details
   available on demand.
@@ -50,6 +51,7 @@
 
 ### 简体中文
 
+- 升级 MyGo 0.10 及其原生 SQLite 模块与当前 Go 工具链。
 - 文件浏览更紧凑，批量操作明确部分成功，重试不重复提交；可查看对应队列任务，
   读取错误的技术详情按需展开。
 - 原生文件工作页支持目录导航、预览和右键操作；上传下载、复制、重命名与确认删除

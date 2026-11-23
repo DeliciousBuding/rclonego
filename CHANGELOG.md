@@ -1,9 +1,10 @@
 # Changelog
 
-## 0.1.0-alpha.3 - 2026-11-08
+## 0.1.0-alpha.3 - 2026-11-23
 
 ### English
 
+- Use MyGo 0.10 with its native SQLite module and the current Go toolchain; pin the build tool with a Go tool directive.
 - Make Files more compact with on-demand path editing and one action footer.
   Show partial batch results, retry only items not added, link to their queue
   tasks and explain reading failures with applicable next actions.
@@ -56,6 +57,7 @@
 
 ### 简体中文
 
+- 升级 MyGo 0.10 及其原生 SQLite 模块与当前 Go 工具链；构建工具通过 Go tool 指令固定版本。
 - 文件页合并路径展示与底部操作，提高列表密度；批量操作交代部分成功，只重试
   未加入项，并链接到对应队列任务。读取失败提供简短说明与适用的下一步。
 - Windows 标题栏、侧栏与外框使用一致的明暗背景，保留系统窗口按钮；映射、

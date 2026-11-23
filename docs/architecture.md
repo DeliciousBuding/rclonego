@@ -37,6 +37,12 @@ SQLite WAL stores settings, workflows, runs, steps, attempts and state-change
 events. A workflow is inserted transactionally. Persistence failures restore the
 in-memory snapshot.
 
+The driver is MyGo's `plugins/sqlite`, backed by MyGo's native `sqlitecore`
+module. Packaged builds load the copy MyGo ships beside the executable or in
+the macOS bundle. The release executable embeds the same module and extracts it
+to a verified private cache, so a standalone Windows executable needs no
+companion file.
+
 Only changed rows are written in a transaction. Events retain the newest 10000
 records. Memory retains active work, the newest 200 runs and 500 standalone jobs;
 older history remains in SQLite and can be read through paginated run queries

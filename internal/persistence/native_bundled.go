@@ -14,10 +14,14 @@ import (
 var nativeOnce sync.Once
 var nativeError error
 
-// The build tool embeds the platform library. Extract it to a private,
-// content-addressed cache before SQLite opens; portable users need only the exe.
+// The build tool embeds the platform library so a standalone executable works
+// alone. Packaged builds carry MyGo's signed copy beside the executable or in
+// the macOS bundle; prefer that copy and extract only when it is absent.
 func prepareNative() error {
 	nativeOnce.Do(func() {
+		if packagedNativeLibrary() {
+			return
+		}
 		hash := sha256.Sum256(bundledLibrary)
 		digest := hex.EncodeToString(hash[:])
 		cache, err := os.UserCacheDir()
@@ -32,7 +36,7 @@ func prepareNative() error {
 		}
 		path := filepath.Join(dir, bundledLibraryName)
 		if existing, err := os.ReadFile(path); err == nil && sha256.Sum256(existing) == hash {
-			nativeError = os.Setenv("MYGO_SQLITE_LIBRARY", path)
+			nativeError = os.Setenv("MYGO_NATIVE_SQLITECORE", path)
 			return
 		}
 		file, err := os.CreateTemp(dir, ".library-*")
@@ -58,7 +62,28 @@ func prepareNative() error {
 			nativeError = errors.New("could not prepare embedded SQLite library")
 			return
 		}
-		nativeError = os.Setenv("MYGO_SQLITE_LIBRARY", path)
+		nativeError = os.Setenv("MYGO_NATIVE_SQLITECORE", path)
 	})
 	return nativeError
+}
+
+// packagedNativeLibrary reports whether MyGo's own library lookup can find a
+// copy shipped with the application instead of the executable's embedded copy.
+func packagedNativeLibrary() bool {
+	executable, err := os.Executable()
+	if err != nil {
+		return false
+	}
+	dir := filepath.Dir(executable)
+	candidates := []string{
+		filepath.Join(dir, bundledLibraryName),
+		filepath.Join(dir, "..", "Resources", bundledLibraryName),
+		filepath.Join(dir, "..", "Frameworks", bundledLibraryName),
+	}
+	for _, path := range candidates {
+		if info, err := os.Stat(path); err == nil && info.Mode().IsRegular() {
+			return true
+		}
+	}
+	return false
 }

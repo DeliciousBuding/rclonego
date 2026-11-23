@@ -111,7 +111,7 @@ back to stable waits for a newer stable version and does not downgrade the app.
 
 Signing setup is per project:
 
-1. Run the pinned official `go run github.com/egoist/mygo/cmd/mygo keygen -o <private-directory>`.
+1. Run the pinned official `go tool mygo keygen -o <private-directory>`.
    Keep the private directory outside the repository and retain the signing key.
 2. Copy only the public key into `mygo.json`:
 

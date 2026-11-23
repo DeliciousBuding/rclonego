@@ -47,8 +47,8 @@ string before formatting it, and pass dynamic names or paths as arguments.
 After changing catalogs, validate and regenerate with MyGo:
 
 ```sh
-go run github.com/egoist/mygo/cmd/mygo i18n check
-go run github.com/egoist/mygo/cmd/mygo generate
+go tool mygo i18n check
+go tool mygo generate
 go test ./locales
 ```
 

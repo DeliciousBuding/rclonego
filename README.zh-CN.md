@@ -124,7 +124,7 @@ MyGo 官方原生更新器支持签名发行包及稳定版/预览版通道，�
 
 ## 开发与贡献
 
-需要 Go 1.27.3+ 与 Python 3.12+。原生 UI 不需要 JavaScript 工具链。
+需要 Go 1.27.4+ 与 Python 3.12+。原生 UI 不需要 JavaScript 工具链。
 
 ```sh
 go run ./cmd/rclonego
@@ -137,6 +137,7 @@ python scripts/build.py --platform windows/amd64
 `scripts/test.py` 提供经过校验的临时集成测试引擎。
 Windows 构建添加 `--installer` 生成安装器。
 `-data`、`-rclone` 和 `-config` 分别指定私人状态、引擎与配置；
+MyGo 构建 CLI 由 `go.mod` 的 `tool` 指令固定，使用 `go tool mygo` 运行。
 默认使用空白应用配置，不自动接管已有上传。
 日常改动使用针对受影响部分的本地检查。push、PR 和 tag 都不触发 Actions；
 需要完整平台发行包时，由维护者针对已有版本 tag 手动运行 Release。
