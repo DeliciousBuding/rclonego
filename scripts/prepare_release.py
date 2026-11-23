@@ -5,7 +5,6 @@ import os
 from pathlib import Path
 import re
 import subprocess
-from urllib.parse import quote
 
 
 def release_tag():
@@ -27,17 +26,27 @@ def release_state(tag):
     repository = os.environ.get("GITHUB_REPOSITORY", "")
     if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository):
         raise SystemExit("GITHUB_REPOSITORY must name the release repository.")
-    result = subprocess.run(["gh", "api", f"repos/{repository}/releases/tags/{quote(tag, safe='')}",
-                             "--jq", "{draft: .draft}"],
+    owner, name = repository.split("/", 1)
+    # REST's release-by-tag endpoint does not expose an unpublished draft.
+    # GraphQL returns both drafts and published releases for the same tag.
+    query = (
+        "query($owner: String!, $name: String!, $tag: String!) { "
+        "repository(owner: $owner, name: $name) { release(tagName: $tag) { isDraft } } }"
+    )
+    result = subprocess.run(["gh", "api", "graphql", "-f", f"query={query}",
+                             "-f", f"owner={owner}", "-f", f"name={name}", "-f", f"tag={tag}"],
                             capture_output=True, text=True, encoding="utf-8")
     if result.returncode:
-        if "HTTP 404" in result.stderr:
-            return None
         raise SystemExit("Cannot verify release state; check GitHub authentication and connectivity.")
-    state = json.loads(result.stdout)
-    if state.get("draft") is not True:
+    repository_state = json.loads(result.stdout)["data"]["repository"]
+    if repository_state is None:
+        raise SystemExit("Cannot verify release state; the repository is unavailable.")
+    state = repository_state["release"]
+    if state is None:
+        return None
+    if state.get("isDraft") is not True:
         raise SystemExit("Published releases are immutable; choose a new version tag.")
-    return state
+    return {"draft": True}
 
 
 def resolve():

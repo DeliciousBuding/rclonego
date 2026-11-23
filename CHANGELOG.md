@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Resolve release drafts through GitHub GraphQL so an unpublished draft remains visible before asset upload; published releases stay immutable.
+- 通过 GitHub GraphQL 查询发行草稿，确保上传产物前能读到未公开草稿；已公开发行仍保持不可变。
+
 ## 0.1.0-alpha.4 - 2026-11-23
 
 ### English
