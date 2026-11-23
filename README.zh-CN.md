@@ -17,9 +17,9 @@ RcloneGo 是管理传输、挂载与校验的原生桌面客户端，由
 
 项目处于 alpha 开发阶段，是独立社区项目，不代表 rclone 或 MyGo 官方。
 
-**版本状态：**本页描述 alpha.3 开发源码，最新公开预览版仍为
+**版本状态：**本页描述 alpha.4 开发源码，最新公开预览版仍为
 [v0.1.0-alpha.2](https://github.com/DeliciousBuding/rclonego/releases/tag/v0.1.0-alpha.2)。
-alpha.3 新增能力需要从源码构建，或使用后续公开预览版；目前尚无稳定版。
+alpha.4 新增能力需要从源码构建，或使用后续公开预览版；目前尚无稳定版。
 
 <p align="center"><img src="assets/screenshots/overview-dark.png" width="900" alt="RcloneGo 传输总览与存储服务标识"></p>
 

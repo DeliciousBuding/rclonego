@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.0-alpha.4 - 2026-11-23
+
+### English
+
+- Compare filesystem identity in automation and offline-copy tests so release checks pass on macOS and Windows, where temp paths resolve differently. No runtime behavior change.
+- Update the native packaging dependencies: go-crypto 1.5.2, CIRCL 1.6.5, compress 1.20.5 and xz 0.5.17, including upstream security fixes.
+
+### 简体中文
+
+- 自动任务与离线副本测试改用文件系统身份比较，修复 macOS 与 Windows 临时路径解析差异导致的发布检查失败；运行时行为不变。
+- 更新原生打包依赖：go-crypto 1.5.2、CIRCL 1.6.5、compress 1.20.5 与 xz 0.5.17，包含上游安全修复。
+
 ## 0.1.0-alpha.3 - 2026-11-23
 
 ### English

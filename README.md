@@ -19,9 +19,9 @@ one persistent scheduler.
 This is an independent community project under active alpha development.
 It is not an official rclone or MyGo application.
 
-**Version status:** this README describes the alpha.3 development source.
+**Version status:** this README describes the alpha.4 development source.
 The latest published preview is [v0.1.0-alpha.2](https://github.com/DeliciousBuding/rclonego/releases/tag/v0.1.0-alpha.2).
-Changes introduced in alpha.3 require a source build or a later published preview.
+Changes introduced in alpha.4 require a source build or a later published preview.
 No stable release is available yet.
 
 <p align="center"><img src="assets/screenshots/overview-dark.png" width="900" alt="RcloneGo transfer overview with storage provider marks"></p>

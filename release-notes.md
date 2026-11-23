@@ -1,8 +1,10 @@
-# RcloneGo 0.1.0-alpha.3
+# RcloneGo 0.1.0-alpha.4
 
 ### English
 
 - Use MyGo 0.10 with its native SQLite module and the current Go toolchain.
+- Update packaging dependencies with upstream security fixes and correct
+  filesystem identity assertions in Windows and macOS release tests.
 - Compact file browsing, clear partial batch results and retry without duplicate
   submissions. Open the corresponding queue tasks and keep reading error details
   available on demand.
@@ -52,6 +54,7 @@
 ### 简体中文
 
 - 升级 MyGo 0.10 及其原生 SQLite 模块与当前 Go 工具链。
+- 更新打包依赖以纳入上游安全修复，并修正 Windows/macOS 发布测试中的文件系统身份断言。
 - 文件浏览更紧凑，批量操作明确部分成功，重试不重复提交；可查看对应队列任务，
   读取错误的技术详情按需展开。
 - 原生文件工作页支持目录导航、预览和右键操作；上传下载、复制、重命名与确认删除
