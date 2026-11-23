@@ -93,6 +93,9 @@ Section
   ClearErrors
   SetOutPath "$INSTDIR"
 @@INSTALL_FILES@@
+  ; MyGo 0.9 renamed its SQLite runtime. Remove the retired payload on upgrade.
+  IfFileExists "$INSTDIR\mygo-sqlite3.dll" 0 +2
+  Delete "$INSTDIR\mygo-sqlite3.dll"
   IfErrors install_failed
   SetOutPath "$INSTDIR"
   WriteUninstaller "$INSTDIR\Uninstall.exe"

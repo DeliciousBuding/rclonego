@@ -4,6 +4,8 @@
 
 - Resolve release drafts through GitHub GraphQL so an unpublished draft remains visible before asset upload; published releases stay immutable.
 - 通过 GitHub GraphQL 查询发行草稿，确保上传产物前能读到未公开草稿；已公开发行仍保持不可变。
+- Remove the retired MyGo SQLite DLL when the Windows installer upgrades an older installation.
+- Windows 安装器升级旧安装时清理已退役的 MyGo SQLite DLL。
 
 ## 0.1.0-alpha.4 - 2026-11-23
 
