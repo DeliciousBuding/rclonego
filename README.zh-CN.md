@@ -62,13 +62,15 @@ RcloneGo 是管理传输、挂载与校验的原生桌面客户端，由
 
 | 平台 | 包形式与验证范围 |
 | --- | --- |
-| Windows amd64 | 推荐当前用户 EXE 安装器，另提供 ZIP/单独 exe；原生测试/CLI、界面启动、本地复制和状态恢复通过；安装器使用独立注册标识验证生命周期 |
+| Windows amd64 | 推荐当前用户 EXE 安装器，另提供 ZIP/单独 exe；原生测试/CLI、界面启动、复制和状态恢复通过；使用合成配置验证签名自动更新、重启保护与安装升级 |
 | Windows arm64 | EXE 安装器和免安装包；原生测试与打包后 CLI 通过，人工界面安装待验 |
 | Linux amd64 | `.deb` 或 `.tar.gz`；原生测试、race 与打包后 CLI 通过 |
 | macOS amd64 / arm64 | 推荐 DMG，另提供 app ZIP；Intel/Apple Silicon 原生测试与打包后 CLI 通过，人工界面安装待验 |
 
 alpha.4 已提供五个平台的 MyGo 签名更新 manifest 与归档。
-原生 CLI 检查不替代人工界面安装与完整更新重启验收。
+原生 CLI 检查不替代人工界面安装与平台验收。Windows amd64 预览更新已验证自动检查与下载、
+签名替换、重启后的历史和偏好保留，以及活动传输推迟更新重启。
+ARM64 与 macOS 的完整更新重启仍待验收。
 Windows 包尚无 Authenticode 签名，macOS 包尚无 Developer ID 公证。
 SHA256SUMS 用于校验产物完整性，不能替代系统签名。
 

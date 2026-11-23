@@ -73,14 +73,17 @@ Available assets and platform validation are listed with each release.
 
 | Platform | Package and validation |
 | --- | --- |
-| Windows amd64 | Per-user EXE installer recommended; ZIP or standalone executable available; native tests/CLI, GUI startup, local copying and state recovery passed; installer lifecycle checked with isolated registration |
+| Windows amd64 | Per-user EXE installer recommended; ZIP or standalone executable available; native tests/CLI, GUI startup, copying and state recovery passed; signed automatic updates, relaunch protection and installer upgrades checked with synthetic profiles |
 | Windows arm64 | EXE installer and no-install packages; native tests and packaged CLI passed; manual GUI installation pending |
 | Linux amd64 | `.deb` or `.tar.gz`; native tests, race detector and packaged CLI passed |
 | macOS amd64 / arm64 | DMG recommended, application ZIP available; native Intel/Apple Silicon tests and packaged CLI passed; manual GUI installation pending |
 
 The alpha.4 release includes signed MyGo update manifests and archives for all
 five targets. Native CLI checks do not replace manual GUI installation or
-end-to-end update/relaunch checks.
+platform acceptance. The Windows amd64 preview update path passed automatic
+checking/download, signed replacement and relaunch with retained history and
+preferences; active transfers defer relaunch. ARM64 and macOS update/relaunch
+acceptance remains pending.
 Windows packages are not Authenticode signed; macOS packages are not Developer ID
 notarized. SHA256SUMS verifies artifact integrity and does not replace OS signing.
 

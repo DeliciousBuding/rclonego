@@ -134,6 +134,17 @@ and update-triggered relaunch must wait for transfers and owned mounts to stop.
 Client update signatures authenticate update archives; Windows Authenticode and
 macOS Developer ID signing/notarization are separate platform checks.
 
+The Windows amd64 alpha.3 → alpha.4 preview upgrade was checked with synthetic
+data: background checks and downloads installed the signed archive while the old
+process kept running, and relaunch preserved history and preferences. A running
+transfer blocked update-triggered relaunch; after completion the new version
+started normally.
+
+The published alpha.4 installer can leave the unused `mygo-sqlite3.dll` from an
+older installation. The current source installer removes it; that correction
+will be included in the next release. The signed update path removes the old
+payload through MyGo's installed-file inventory.
+
 ## 简体中文
 
 从 [GitHub Releases](https://github.com/DeliciousBuding/rclonego/releases) 下载。
@@ -201,3 +212,10 @@ alpha 默认关闭自动检查更新，可在设置中开启。新的 alpha/beta
 已有通道选择会保留；稳定通道等待更新的稳定版。
 安装与更新重启应等待活动传输及本实例挂载结束。更新包签名、Windows Authenticode、
 macOS Developer ID 签名与公证分别验证，不能相互替代。
+
+Windows amd64 的 alpha.3 → alpha.4 预览升级已使用合成数据验证：
+后台检查与下载完成签名归档安装，旧进程继续运行，重启后历史与偏好保留。
+传输运行时会阻止更新重启，传输完成后可正常启动新版本。
+
+已公开的 alpha.4 安装器可能留下旧安装中不再使用的 `mygo-sqlite3.dll`。
+当前源码安装器已加入清理，修正随下个发行交付；签名更新路径通过 MyGo 安装文件清单移除旧库。
