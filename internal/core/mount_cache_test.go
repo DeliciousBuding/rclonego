@@ -159,6 +159,10 @@ func TestMountCacheKeepsDiskStatusWhenQueueDetailsAreUnavailable(t *testing.T) {
 func TestOfflineCopyKeepsSharedQueueSemanticsAndRejectsCacheDestinations(t *testing.T) {
 	app := testApp(t)
 	destination := t.TempDir()
+	destinationInfo, err := os.Stat(destination)
+	if err != nil {
+		t.Fatal(err)
+	}
 	cache := t.TempDir()
 	if err := app.UpdateState(func(state *State) error {
 		state.Mounts = []MountConfig{{ID: "fixture", CacheDir: cache}}
@@ -183,7 +187,11 @@ func TestOfflineCopyKeepsSharedQueueSemanticsAndRejectsCacheDestinations(t *test
 	if err != nil {
 		t.Fatal(err)
 	}
-	if job.Operation != "copyto" || job.Destination != filepath.Join(destination, "vault.bin") || job.AllowDelete || job.Status != "pending" {
+	jobDirectory, err := os.Stat(filepath.Dir(job.Destination))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if job.Operation != "copyto" || filepath.Base(job.Destination) != "vault.bin" || !os.SameFile(destinationInfo, jobDirectory) || job.AllowDelete || job.Status != "pending" {
 		t.Fatalf("offline copy bypassed shared copy semantics: %+v", job)
 	}
 	repeated, err := app.AddOfflineCopy(request)

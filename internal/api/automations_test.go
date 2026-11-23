@@ -27,7 +27,15 @@ func TestAutomationTransportPersistsConfigurationAndRejectsRuntimeInjection(t *t
 	if err := json.Unmarshal(recorder.Body.Bytes(), &saved); err != nil {
 		t.Fatal(err)
 	}
-	if saved.Enabled || saved.Source != source || saved.Kind != "watch" {
+	sourceInfo, err := os.Stat(source)
+	if err != nil {
+		t.Fatal(err)
+	}
+	savedInfo, err := os.Stat(saved.Source)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if saved.Enabled || saved.Kind != "watch" || !os.SameFile(sourceInfo, savedInfo) {
 		t.Fatal("automation configuration was not preserved")
 	}
 	injected := map[string]any{"name": "Injected", "kind": "watch", "source": source, "destination": target,
