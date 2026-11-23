@@ -9,6 +9,7 @@
   <a href="https://github.com/DeliciousBuding/rclonego/actions/workflows/release.yml"><img src="https://github.com/DeliciousBuding/rclonego/actions/workflows/release.yml/badge.svg" alt="Manual release"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-318b9d" alt="Apache-2.0"></a>
   <a href="https://mygo.egoist.dev/"><img src="https://img.shields.io/badge/native_UI-MyGo-318b9d" alt="Built with MyGo"></a>
+  <a href="https://awesomemygo.dev/apps/rclonego"><img src="https://awesomemygo.dev/badge.svg" alt="Listed on Awesome MyGo"></a>
 </p>
 
 RcloneGo is a native desktop workspace for transfers, mounts and verification,
@@ -19,9 +20,9 @@ one persistent scheduler.
 This is an independent community project under active alpha development.
 It is not an official rclone or MyGo application.
 
-**Version status:** this README describes the alpha.4 development source.
-The latest published preview is [v0.1.0-alpha.2](https://github.com/DeliciousBuding/rclonego/releases/tag/v0.1.0-alpha.2).
-Changes introduced in alpha.4 require a source build or a later published preview.
+**Version status:** the latest published preview is
+[v0.1.0-alpha.4](https://github.com/DeliciousBuding/rclonego/releases/tag/v0.1.0-alpha.4).
+This README describes that preview and the current development source.
 No stable release is available yet.
 
 <p align="center"><img src="assets/screenshots/overview-dark.png" width="900" alt="RcloneGo transfer overview with storage provider marks"></p>
@@ -72,13 +73,14 @@ Available assets and platform validation are listed with each release.
 
 | Platform | Package and validation |
 | --- | --- |
-| Windows amd64 | Per-user EXE installer recommended; no-install ZIP or executable available; native UI/CLI, upgrade and uninstall retention tested |
-| Windows arm64 | EXE installer and no-install packages; native release runner configured, manual validation pending |
-| Linux amd64 | `.deb` or `.tar.gz`; Ubuntu WSLg UI, transfers and FUSE mount/read/unmount tested |
-| macOS amd64 / arm64 | DMG recommended, application ZIP available; native Intel/Apple Silicon release runners configured, manual native validation pending |
+| Windows amd64 | Per-user EXE installer recommended; ZIP or standalone executable available; native tests/CLI, GUI startup, local copying and state recovery passed; installer lifecycle checked with isolated registration |
+| Windows arm64 | EXE installer and no-install packages; native tests and packaged CLI passed; manual GUI installation pending |
+| Linux amd64 | `.deb` or `.tar.gz`; native tests, race detector and packaged CLI passed |
+| macOS amd64 / arm64 | DMG recommended, application ZIP available; native Intel/Apple Silicon tests and packaged CLI passed; manual GUI installation pending |
 
-Each release lists its actually available assets and validation; configured
-targets are not a claim that their packages have already been published.
+The alpha.4 release includes signed MyGo update manifests and archives for all
+five targets. Native CLI checks do not replace manual GUI installation or
+end-to-end update/relaunch checks.
 Windows packages are not Authenticode signed; macOS packages are not Developer ID
 notarized. SHA256SUMS verifies artifact integrity and does not replace OS signing.
 

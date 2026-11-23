@@ -9,6 +9,7 @@
   <a href="https://github.com/DeliciousBuding/rclonego/actions/workflows/release.yml"><img src="https://github.com/DeliciousBuding/rclonego/actions/workflows/release.yml/badge.svg" alt="手动发行"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-318b9d" alt="Apache-2.0"></a>
   <a href="https://mygo.egoist.dev/"><img src="https://img.shields.io/badge/native_UI-MyGo-318b9d" alt="Built with MyGo"></a>
+  <a href="https://awesomemygo.dev/apps/rclonego"><img src="https://awesomemygo.dev/badge.svg" alt="Listed on Awesome MyGo"></a>
 </p>
 
 RcloneGo 是管理传输、挂载与校验的原生桌面客户端，由
@@ -17,9 +18,9 @@ RcloneGo 是管理传输、挂载与校验的原生桌面客户端，由
 
 项目处于 alpha 开发阶段，是独立社区项目，不代表 rclone 或 MyGo 官方。
 
-**版本状态：**本页描述 alpha.4 开发源码，最新公开预览版仍为
-[v0.1.0-alpha.2](https://github.com/DeliciousBuding/rclonego/releases/tag/v0.1.0-alpha.2)。
-alpha.4 新增能力需要从源码构建，或使用后续公开预览版；目前尚无稳定版。
+**版本状态：**最新公开预览版为
+[v0.1.0-alpha.4](https://github.com/DeliciousBuding/rclonego/releases/tag/v0.1.0-alpha.4)。
+本页描述该预览版与当前开发源码；目前尚无稳定版。
 
 <p align="center"><img src="assets/screenshots/overview-dark.png" width="900" alt="RcloneGo 传输总览与存储服务标识"></p>
 
@@ -61,12 +62,13 @@ alpha.4 新增能力需要从源码构建，或使用后续公开预览版；目
 
 | 平台 | 包形式与验证范围 |
 | --- | --- |
-| Windows amd64 | 推荐当前用户 EXE 安装器，另提供免安装 ZIP/exe；已验证原生界面/CLI、升级与卸载的数据保留 |
-| Windows arm64 | EXE 安装器和免安装包；已配置原生发行 runner，人工验收待完成 |
-| Linux amd64 | `.deb` 或 `.tar.gz`；已验证 Ubuntu WSLg、传输及 FUSE 挂载读取与卸载 |
-| macOS amd64 / arm64 | 推荐 DMG，另提供 app ZIP；已配置 Intel/Apple Silicon 原生发行 runner，人工原生验收待完成 |
+| Windows amd64 | 推荐当前用户 EXE 安装器，另提供 ZIP/单独 exe；原生测试/CLI、界面启动、本地复制和状态恢复通过；安装器使用独立注册标识验证生命周期 |
+| Windows arm64 | EXE 安装器和免安装包；原生测试与打包后 CLI 通过，人工界面安装待验 |
+| Linux amd64 | `.deb` 或 `.tar.gz`；原生测试、race 与打包后 CLI 通过 |
+| macOS amd64 / arm64 | 推荐 DMG，另提供 app ZIP；Intel/Apple Silicon 原生测试与打包后 CLI 通过，人工界面安装待验 |
 
-每次发行会列明实际可下载的包与验证范围，已配置构建目标不等于已经公开发行。
+alpha.4 已提供五个平台的 MyGo 签名更新 manifest 与归档。
+原生 CLI 检查不替代人工界面安装与完整更新重启验收。
 Windows 包尚无 Authenticode 签名，macOS 包尚无 Developer ID 公证。
 SHA256SUMS 用于校验产物完整性，不能替代系统签名。
 

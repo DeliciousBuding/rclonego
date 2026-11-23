@@ -1,102 +1,71 @@
 # RcloneGo 0.1.0-alpha.4
 
-### English
+## English
 
-- Use MyGo 0.10 with its native SQLite module and the current Go toolchain.
-- Update packaging dependencies with upstream security fixes and correct
-  filesystem identity assertions in Windows and macOS release tests.
-- Compact file browsing, clear partial batch results and retry without duplicate
-  submissions. Open the corresponding queue tasks and keep reading error details
-  available on demand.
-- Browse files in a native workspace with breadcrumbs, previews and context
-  actions; queue upload/download/copy, rename and confirmed scoped deletion.
-- Improve mapping setup and expose external Windows rclone drives as observed
-  owners, with file-browser and system-file-manager entry points.
-- Keep system window controls on Windows/Linux and reserve native macOS traffic
-  lights in the inset toolbar. Lighten dark backgrounds and material tints with
-  pale blue accents while preserving readable content.
-- Preview a legacy task import and continue remaining steps after the previous
-  client's active transfer finishes, preserving filters and final verification.
-- Refine file browsing with bounded search/sort, keyboard selection and path
-  details. Unify the runtime brand mark with the generated assets.
-- Inspect provider capacity and backend capabilities, browse files with sizes,
-  and request cancellable directory totals through the GUI, CLI and API.
-- Identify the engine with the official rclone symbol and show external rclone
-  processes separately from client resources and per-attempt diagnostics.
-- Use MyGo's native update window, signed archive verification and stable/preview
-  channels. Active transfers and owned mounts defer update-triggered relaunch.
-- Verify generated update archives and delta signatures before drafting a release.
-- Recover durable task state, stop dispatch when storage fails, verify process
-  ownership and bound task logs.
-- Browse remote directories and inspect structured transfer previews.
-- Edit, clone, import and export workflows, page through history and verify only
-  selected entries.
-- Add opt-in directory watching and recurring workflows to the shared queue.
-- Use official MyGo Glass and language catalogs, command search and background
-  refresh throttling.
-- Keep appearance, language, login startup and updates in one Settings page,
-  with engine management and new-task defaults collapsed until needed.
-- Follow the system theme and language on first launch, show manual language
-  overrides explicitly, and keep profile selection consistent across GUI and CLI.
-- Install per user on Windows without stopping running transfers; preserve
-  configuration on upgrade/uninstall and remove only owned startup entries.
-- Build releases only through manual Actions dispatch, with one pinned source
-  commit, native platform checks and an unpublished draft.
-- Align page headings and primary actions, move secondary workflow actions to
-  More, and use Mica for the Windows main window.
-- Clarify activity phases, use file counts for verification, show mount routes
-  and keep empty history and task details concise.
-- Keep task actions visible, explain input issues at their fields and present
-  results with verification evidence and recovery. Retain critical engine errors.
-- Observe owned VFS cache/writeback state and queue persistent offline copies.
-- Extend Agent contracts, event streaming and revocable task permissions.
+This preview brings the native Files workspace, workflow improvements and signed
+MyGo updates to the published release, with MyGo 0.10 and its native SQLite module.
 
-### 简体中文
+- Browse local and remote files with breadcrumbs, keyboard selection, previews
+  and context actions. Queue file operations with clear partial results and retry
+  only items that were not submitted.
+- Use compact, virtualized task tables and a directory-only folder picker.
+  Refresh affected folders after writes while preserving unrelated selections.
+- Edit and reuse workflows, inspect provider capacity and backend capabilities,
+  observe owned VFS cache/writeback state and queue independent offline copies.
+- Use the official MyGo update window and stable/preview channels. Active
+  transfers and owned mounts defer update-triggered relaunch.
+- Upgrade MyGo from 0.8.3 to 0.10.0, use the current Go toolchain and update
+  packaging dependencies with upstream security fixes.
+- Correct Windows/macOS filesystem identity assertions in release tests.
 
-- 升级 MyGo 0.10 及其原生 SQLite 模块与当前 Go 工具链。
-- 更新打包依赖以纳入上游安全修复，并修正 Windows/macOS 发布测试中的文件系统身份断言。
-- 文件浏览更紧凑，批量操作明确部分成功，重试不重复提交；可查看对应队列任务，
-  读取错误的技术详情按需展开。
-- 原生文件工作页支持目录导航、预览和右键操作；上传下载、复制、重命名与确认删除
-  共用任务队列。
-- 优化映射配置，展示外部 Windows rclone 盘符归属，可直接进入文件浏览或系统文件管理器。
-- Windows/Linux 使用系统窗口按钮，macOS 顶栏为原生交通灯留位；深色背景与材质遮色
-  更浅，使用淡蓝强调色，并保持正文清晰可读。
-- 预览导入旧客户端任务，当前上传完成后接续剩余步骤，保留过滤条件与最终校验。
-- 完善文件浏览搜索排序、键盘选择和路径详情，运行时标志与生成资产共用品牌源。
-- GUI、CLI、API 共用云盘容量、后端能力、文件大小与可取消的目录统计。
-- 使用官方 rclone 标识，单独展示外部 rclone 资源与本客户端尝试诊断。
-- 接入 MyGo 官方原生更新窗口、签名归档校验和稳定版/预览版通道。
-  活动传输与本实例拥有的挂载会推迟更新重启。
-- 创建发行草稿前核验更新归档与差量包签名。
-- 完善持久化恢复、存储失败时停止调度、进程归属校验与任务日志限制。
-- 新增云端目录浏览、结构化预览、工作流编辑/复制/导入导出和历史分页。
-- 最终校验遵循所选步骤范围；目录监听和周期工作流复用同一队列。
-- 使用 MyGo 官方 Glass 和语言目录，加入命令搜索与后台刷新降频。
-- 设置页统一管理主题、语言、登录启动与更新，引擎和新任务默认参数按需展开。
-- 首次启动跟随系统主题和语言，明确显示手动语言选择，GUI 与 CLI 使用同一配置目录。
-- Windows 按当前用户安装，运行中拒绝覆盖或卸载；保留升级与卸载后的配置，只清理所属启动项。
-- 发行仅由手动 Actions 触发，固定同一提交，完成原生平台检查后生成未公开草稿。
-- 统一页面标题与主操作，工作流低频操作收进“更多”，Windows 主窗口采用 Mica。
-- 区分活动阶段，校验按文件数显示进度；补齐映射路径，精简空历史与任务详情。
-- 固定任务操作区，就地显示输入问题；结果窗口展示校验依据与恢复入口，保留引擎关键错误。
-- 展示本实例挂载的 VFS 缓存与写回状态，支持独立离线副本任务。
-- 完善 Agent 契约、事件流和可撤销的任务权限。
+All five native targets passed their full product tests, `go vet`, packaged CLI
+checks and signed update archive checks: Windows amd64/arm64, Linux amd64 and
+macOS amd64/arm64. Linux also passed the race detector. Windows standalone
+execution without an adjacent SQLite DLL, local copying, hash verification and
+state recovery were checked. Installer lifecycle checks used an isolated
+registration and synthetic profile.
 
-## Validation and distribution
+The workflow's final draft-upload job failed on draft lookup. The same checked
+artifacts were uploaded with the corrected helper; no packages were rebuilt.
 
-Build packages target Windows amd64/arm64, Linux amd64 and macOS amd64/arm64. Runtime
-validation is reported in README; macOS manual GUI, actual cloud sign-in,
-sleep/wake and OS signing are separate checks. Windows is not Authenticode
-signed and macOS is not Developer ID notarized. Signed update feeds must be
-published before they can serve updates. Renamed standalone Windows executables
-use manual updates. Existing uploaders, accounts and mounts are not taken over
-automatically.
+The release includes Windows EXE installers, ZIPs and standalone executables;
+Linux DEB and tar.gz packages; macOS DMGs and application ZIPs; and signed MyGo
+update manifests and archives for all five targets. `SHA256SUMS` and dependency
+inventories accompany the packages.
 
-## 验证与发行
+Windows packages are not Authenticode signed. macOS uses ad-hoc signing without
+Developer ID notarization. Manual Windows ARM64/macOS GUI installation, real cloud
+sign-in, sleep/wake and end-to-end update/relaunch remain separate acceptance
+checks. Renamed standalone Windows executables use manual updates. No stable
+release is available yet.
 
-构建目标为 Windows amd64/arm64、Linux amd64 和 macOS amd64/arm64，实际运行证据见 README。
-macOS 人工界面、真实云账户登录、休眠唤醒和系统签名分别验收。
-Windows 尚无 Authenticode 签名，macOS 尚无 Developer ID 公证。
-签名更新源发布后才能提供更新；重命名的 Windows 单独 exe 使用手动更新。
-客户端不会自动接管已有上传器、账户或挂载。
+## 简体中文
+
+本预览版将原生文件工作页、工作流改进与 MyGo 签名更新交付到公开发行，
+并升级到 MyGo 0.10 及其原生 SQLite 模块。
+
+- 本机与云端文件支持目录导航、键盘选择、预览和右键操作；文件更改进入共享队列，
+  批量结果明确部分成功，只重试尚未提交的条目。
+- 使用紧凑的虚拟化任务表与只选目录的文件夹选择器；写入后刷新受影响目录，
+  保留无关选择。
+- 编辑和复用工作流，读取云盘容量与后端能力，观察所属挂载的 VFS 缓存与写回，
+  创建独立离线副本。
+- 使用 MyGo 官方更新窗口与稳定版/预览版通道；活动传输及所属挂载推迟更新重启。
+- MyGo 从 0.8.3 升至 0.10.0，更新 Go 工具链与打包依赖，纳入上游安全修复。
+- 修正 Windows/macOS 发布测试中的文件系统身份断言。
+
+Windows amd64/arm64、Linux amd64、macOS amd64/arm64 五个原生目标均通过完整产品测试、
+`go vet`、打包后 CLI 检查及签名更新归档检查；Linux 同时通过 race 检查。
+Windows 单独 exe 已验证无需相邻 SQLite DLL 启动、本地复制、哈希校验与状态恢复；
+安装器生命周期验证使用独立注册标识和合成配置。
+
+工作流最后的草稿上传 job 因草稿查询失败；使用修正后的执行器上传了同一批已核验产物，
+没有重新构建发行包。
+
+发行包含 Windows EXE 安装器、ZIP 与单独 exe，Linux DEB 与 tar.gz，
+macOS DMG 与 app ZIP，以及五个平台的 MyGo 签名更新 manifest 和归档。
+同时提供 `SHA256SUMS` 与依赖清单。
+
+Windows 尚无 Authenticode 签名；macOS 使用 ad-hoc 签名，尚无 Developer ID 公证。
+Windows ARM64/macOS 人工界面安装、真实云账户登录、休眠唤醒与完整更新重启流程仍待独立验收。
+重命名的 Windows 单独 exe 使用手动更新；目前尚无稳定版。
